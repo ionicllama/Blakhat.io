@@ -1,0 +1,57 @@
+<div id="machineInfoContainer" class="col-content-box">
+
+    <h4>Local Machine</h4>
+    <hr>
+
+    <div class="row">
+
+        <div class="col-xs-9 col-sm-8 col-lg-9">
+            <label class="text-info">IP Address:</label>
+            <span id="machineIp"><%= machine.ip %></span>
+        </div>
+        <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
+            <% if (machine.canRefreshIP()) { %>
+            <button type="button" class="btn btn-success">Refresh</button>
+            <% } else { %>
+            <span class="text-danger "><%= machine.getNextIPRefreshDateString() %></span>
+            <% } %>
+        </div>
+
+    </div>
+    <div class="row">
+
+        <div class="col-xs-9 col-sm-8 col-lg-9">
+            <label class="text-info">CPU:</label>
+            <span id="machineCPU"><%= machine.cpu.getName() %></span>
+        </div>
+        <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#cpuUpgradeModal">
+                Upgrade
+            </button>
+        </div>
+
+    </div>
+    <div class="row">
+
+        <div class="col-xs-9 col-sm-8 col-lg-9">
+            <label class="text-info">Internet:</label>
+            <span id="machineInternet"><%= machine.internet.speed.down + " mb/s down - " + machine.internet.speed.up + " mb/s up" %></span>
+        </div>
+        <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
+            <button type="button" class="btn btn-primary">Upgrade</button>
+        </div>
+
+    </div>
+    <div class="row">
+
+        <div class="col-xs-9 col-sm-8 col-lg-9">
+            <label class="text-info">Firewall:</label>
+            <span id="machineFirewall"><%= machine.getFirewallName() %></span>
+        </div>
+        <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
+            <button type="button" class="btn btn-primary">Upgrade</button>
+        </div>
+
+    </div>
+
+</div>

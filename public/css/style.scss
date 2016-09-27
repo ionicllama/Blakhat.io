@@ -1,0 +1,147 @@
+$font-stack: Helvetica, sans-serif;
+$primary-color: #64B5F6;
+$primary-color-highlight: #2196F3;
+$accent-color: #FF8A65;
+$primary-color-text: #555;
+
+//Nav Header
+$bgDefault: $primary-color;
+$bgHighlight: $primary-color-highlight;
+$colDefault: #FFF;
+$colHighlight: #EEE;
+.navbar-default {
+  background-color: $bgDefault;
+  border-color: $bgHighlight;
+  .navbar-brand {
+    color: $colDefault;
+    &:hover, &:focus {
+      color: $colHighlight;
+    }
+  }
+
+  .navbar-text {
+    color: $colDefault;
+  }
+
+  .navbar-nav {
+    > li {
+      > a {
+        color: $colDefault;
+        font-size: 14px;
+        &:hover, &:focus {
+          color: $colHighlight;
+        }
+      }
+    }
+    > .active {
+      > a, > a:hover, > a:focus {
+        color: $colHighlight;
+        background-color: $bgHighlight;
+      }
+    }
+    > .open {
+      > a, > a:hover, > a:focus {
+        color: $colHighlight;
+        background-color: $bgHighlight;
+      }
+    }
+  }
+
+  .navbar-toggle {
+    border-color: $bgHighlight;
+    &:hover, &:focus {
+      background-color: $bgHighlight;
+    }
+    .icon-bar {
+      background-color: $colDefault;
+    }
+  }
+  .navbar-collapse,
+  .navbar-form {
+    border-color: $colDefault;
+  }
+  .navbar-link {
+    color: $colDefault;
+    &:hover {
+      color: $colHighlight;
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  .navbar-default .navbar-nav .open .dropdown-menu {
+    > li > a {
+      color: $colDefault;
+      &:hover, &:focus {
+        color: $colHighlight;
+      }
+    }
+    > .active {
+      > a, > a:hover, > a:focus {
+        color: $colHighlight;
+        background-color: $bgHighlight;
+      }
+    }
+  }
+}
+
+//Footer Styles
+.site-footer {
+  margin-top: 40px;
+}
+
+//Global Styles
+body {
+  font: 14px $font-stack;
+  background-color: #EEE !important;
+  font-family: 'Roboto', sans-serif;
+  color: $primary-color-text;
+}
+
+.col-content-box {
+  margin-top: 50px;
+  background-color: #FFF;
+  padding: 0 10px;
+  > h2, h4 {
+    padding: 20px 0 10px;
+    margin: 0;
+  }
+  > .row {
+    min-height: 40px;
+    line-height: 40px;
+  }
+  > hr {
+    padding: 5px 0;
+    margin: 0;
+  }
+}
+
+//Login Container Styles
+.login-container {
+  margin-top: 80px;
+  > p {
+    padding: 0 0 20px;
+    margin: 0;
+  }
+  > hr {
+    padding: 0;
+    margin: 20px 0;
+  }
+}
+
+//Local Machine Styles
+.cost-container > h3 {
+  margin: 5px 0;
+}
+
+.cost-total-display {
+  color: $accent-color
+}
+
+//CPU Upgrade Styles
+#cpuUpgradeTable > tbody > tr {
+  height: 50px;
+  > td {
+    vertical-align: middle;
+  }
+}

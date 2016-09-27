@@ -1,0 +1,133 @@
+//Specific Models
+Machine Specs:{
+	CPU:{
+		Count(how many a computer can have):{
+			1,
+			2,
+			4
+		},
+		speeds(ghz):{
+			1.2,
+			1.5,
+			2.0,
+			3.0,
+			4.0
+		},
+		cores:{
+			1,
+			2,
+			4,
+			8
+			16
+		}
+	},
+	HDD:{
+		20gb,
+		80gb,
+		200gb,
+		500gb,
+		1tb,
+		2tb
+	}
+	Network (Speed(mb) - $cost/day - IP resets per 24h):{
+		1up/5down - Free - 1,
+		5up/15down - $10 - 2,
+		10up/25down - $20 - 4,
+		20up/50down - $40 - 10,
+		50up/90down - $100 - 20,
+		100up/150down - $200 - 50,
+		300up/500down - $500 - Unlimited,
+		1000up/1000down - $1000 - Unlimited
+	}
+}
+
+Software:{
+	Firewall (level - time to crack (min) - size(gb)):{
+		1 - 1 - 5,
+		2 - 5 - 15,
+		3 - 10 - 40,
+		4 - 30 - 90,
+		5 - 60 - 150
+	},
+	Firewall Cracker (level - size(gb)):{
+		1 - 10,
+		2 - 30,
+		3 - 80,
+		4 - 150,
+		5 - 300
+	},
+	Password Cracker (level - size(gb)):{
+		1 - 5,
+		2 - 15,
+		3 - 25,
+		4 - 45,
+		5 - 80
+	},
+	Spam (level - size(gb) - income):{
+		1 - 4 - $2/hour/host,
+		2 - 10 - $5/hour/host,
+		3 - 20 - $10/hour/host,
+		4 - 50 - $20/hour/host,
+		5 - 100 - $50/hour/host
+	},
+	Virus(level - size(gb)):{
+		1 - 5,
+		2 - 10,
+		3 - 25,
+		4 - 55,
+		5 - 120
+	},
+	Anti-Virus(level - size(gb)):{
+		1 - 2,
+		2 - 5,
+		3 - 15,
+		4 - 35,
+		5 - 80
+	},
+	Botnet (level - size(gb)):{
+		1 - 5
+	}
+}
+
+
+//Core Models
+
+Machine{
+	Type (user/bank/etc - will determine the logic used after hacking firewall, and also will allow user to use bank UI),
+	IP Address,
+	CPU,
+	HDD,
+	Network,
+	FileSystem:{
+		Folders,
+		Software,
+		Custom.txt files,
+		Log.txt file
+	}
+}
+
+User:{
+	Machine
+	Botnet{
+		Machine(List)
+	}
+}
+
+
+//Views
+Local Machine:{
+	Features:{
+		Local Filesystem:{
+			Display all folders/files (allow navigation between folders)
+			Allow downloading of any file to local machine (queue up virtual task)
+		},
+		System Specs Display/Upgrade,
+		Fancy Graphs (totals and stuff to fill some space)
+	}
+}
+Browser:{
+	Features:{
+		Navigate other IP's,
+		When navigating to other ip, determine type and either show a login screen or a bank UI
+	}
+}

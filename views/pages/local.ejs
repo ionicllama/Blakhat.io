@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+    <title>Blakhat.io</title>
+    <script>
+        var machine = <%- JSON.stringify(machine) %>;
+    </script>
+    <% include ../partials/headerRefs_auth.ejs %>
+    <script src="/js/local.js"></script>
+</head>
+<body>
+<header>
+    <% include ../partials/header_auth.ejs %>
+</header>
+
+<div class="container">
+
+    <div class="col-sm-6 col-lg-6">
+
+        <% data = machine; %>
+        <% include ../partials/machineInfo.ejs %>
+
+    </div>
+
+    <div class="col-sm-6 col-lg-6">
+
+        <div class="col-content-box">
+
+            <h4>Files</h4>
+            <hr>
+
+            <!--todo: file-explorer ui-->
+
+        </div>
+
+    </div>
+
+</div>
+
+<div id="cpuUpgradeModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Upgrade CPU</h4>
+            </div>
+            <div id="cpuUpgradeContainer" class="modal-body">
+                <div class="table-responsive">
+                    <table id="cpuUpgradeTable" class="table">
+                        <thead>
+                        <tr>
+                            <th>Cores</th>
+                            <th>Speed (MHz)</th>
+                            <th>Cost</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <% for(cpu in cpus){ %>
+                        <tr>
+                            <td><%- cpus[cpu].cores %></td>
+                            <td><%- cpus[cpu].speed %></td>
+                            <td>$<%- machine.calculateNewCPUCost(cpus[cpu].cores, cpus[cpu].speed) %></td>
+                            <% if(cpus[cpu]._id.toString() === machine.cpu._id.toString()){ %>
+                            <td class="text-center">
+                                <span class="text-info">Owned</span>
+                            </td>
+                            <% } else { %>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-success buyButton" cpu-id="<%- cpus[cpu]._id %>">
+                                    Buy
+                                </button>
+                            </td>
+                            <% } %>
+                        </tr>
+                        <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<footer>
+    <% include ../partials/footer.ejs %>
+</footer>
+</body>
+</html>
