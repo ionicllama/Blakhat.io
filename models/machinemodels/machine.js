@@ -1,134 +1,27 @@
 /**
  * Created by Evan on 9/24/2016.
  */
-var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
-var globalHelpers = require('../../helpers/globalHelpers');
 var mongoose = require('mongoose');
 
 var _ = require('underscore');
 
 var CPU = require('../../models/machinemodels/cpu');
+var HDD = require('../../models/machinemodels/hdd');
+var Internet = require('../../models/machinemodels/internet');
 
-/* MODEL CONSTANTS */
-const NETWORKS = {
-        LEVEL_0: {
-            up: 1,
-            down: 5
-        },
-        LEVEL_1: {
-            up: 5,
-            down: 15
-        },
-        LEVEL_2: {
-            up: 10,
-            down: 25
-        },
-        LEVEL_3: {
-            up: 20,
-            down: 50
-        },
-        LEVEL_4: {
-            up: 50,
-            down: 90
-        },
-        LEVEL_5: {
-            up: 100,
-            down: 150
-        },
-        LEVEL_6: {
-            up: 300,
-            down: 500
-        },
-        LEVEL_7: {
-            up: 500,
-            down: 800
-        },
-        LEVEL_8: {
-            up: 750,
-            down: 1000
-        },
-        LEVEL_9: {
-            up: 1000,
-            down: 1000
-        }
-    },
-    HDDS = {
-        HDD_0: {
-            size: 20
-        },
-        HDD_1: {
-            size: 80
-        },
-        HDD_2: {
-            size: 160
-        },
-        HDD_3: {
-            size: 320
-        },
-        HDD_4: {
-            size: 500
-        },
-        HDD_5: {
-            size: 1000
-        }
-    },
-    FIREWALLS = {
-        FIREWALL_0: {
-            level: 0,
-            name: "None"
-        },
-        FIREWALL_1: {
-            level: 1,
-            name: "Level 1"
-        },
-        FIREWALL_2: {
-            level: 2,
-            name: "Level 2"
-        },
-        FIREWALL_3: {
-            level: 3,
-            name: "Level 3"
-        },
-        FIREWALL_4: {
-            level: 4,
-            name: "Level 4"
-        },
-        FIREWALL_5: {
-            level: 5,
-            name: "Level 5"
-        }
-    };
-
-/* MODEL METHODS */
-function getNewIp() {
-    return globalHelpers.randomNumber() +
-        "." +
-        globalHelpers.randomNumber() +
-        "." +
-        globalHelpers.randomNumber() +
-        "." +
-        globalHelpers.randomNumber();
-}
+var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
+var purchasingHelpers = require('../../helpers/purchasingHelpers');
 
 var machineSchema = mongoose.Schema({
 
     user_id: mongoose.Schema.Types.ObjectId,
     nodeType: {type: Number, default: 0},
     ip: {type: String, default: getNewIp()},
-    lastIPRefresh: {type: Date, default: new Date()},
-    internet: {
-        speed: {
-            up: {type: Number, default: NETWORKS.LEVEL_0.up},
-            down: {type: Number, default: NETWORKS.LEVEL_0.down}
-        }
-    },
+    lastIPRefresh: {type: Date, default: null},
     cpu: {type: mongoose.Schema.Types.ObjectId, ref: 'cpu'},
-    hdd: {
-        size: {type: Number, default: HDDS.HDD_0.size}
-    },
-    firewall: {
-        level: {type: Number, default: FIREWALLS.FIREWALL_0.level}
-    }
+    hdd: {type: mongoose.Schema.Types.ObjectId, ref: 'hdd'},
+    internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet'},
+    firewall: {type: mongoose.Schema.Types.ObjectId, ref: 'firewall'}
 
 });
 
@@ -145,54 +38,193 @@ machineSchema.methods = {
                     self.save(function (err) {
                         if (err)
                             throw err;
-
-                        return true
                     });
                 }
-                else {
-                    return false;
+            });
+        }
+
+        if (!this.internet) {
+            Internet.findOne({downSpeed: 5, upSpeed: 1}, function (err, newInternet) {
+                if (err)
+                    throw err;
+
+                if (newInternet) {
+                    self.internet = newInternet;
+                    self.save(function (err) {
+                        if (err)
+                            throw err;
+                    });
+                }
+            });
+        }
+
+        if (!this.hdd) {
+            HDD.findOne({size: 20}, function (err, newHDD) {
+                if (err)
+                    throw err;
+
+                if (newHDD) {
+                    self.hdd = newHDD;
+                    self.save(function (err) {
+                        if (err)
+                            throw err;
+                    });
                 }
             });
         }
     },
     getFirewallName: function () {
-        for (var i in FIREWALLS) {
-            if (this.firewall.level === FIREWALLS[i].level)
-                return FIREWALLS[i].name;
-        }
-        return FIREWALLS.FIREWALL_0.name;
+        return sharedHelpers.firewallHelpers.getFirewallName(this.firewall);
     },
     getNextIPRefreshDateString: function () {
-        var date = new Date(),
-            totalMinutes = globalHelpers.getDateMinutesDiff(this.lastIPRefresh, date),
-            hours = Math.floor(totalMinutes / 60),
-            minutes = totalMinutes % 60;
-        return (hours + 'hrs ' + minutes + 'min');
+        return sharedHelpers.getDateDiffString(this.lastIPRefresh);
     },
     canRefreshIP: function () {
-        var refreshAvailDate = globalHelpers.getNewDateAddDays(this.lastIPRefresh, 1);
-        return !this.lastIPRefresh || (refreshAvailDate < new Date());
+        return sharedHelpers.checkDateIsBeforeToday(sharedHelpers.getNewDateAddDays(this.lastIPRefresh, 1));
     },
-    refreshIP: function () {
+    refreshIP: function (callback) {
         if (this.canRefreshIP()) {
             this.ip = getNewIp();
+            this.lastIPRefresh = new Date();
+            this.save(function (err) {
+                if (err) {
+                    console.log(err);
+                    callback("Failed to refresh IP address");
+                    return;
+                }
+                callback();
+            });
             return true;
         }
         else {
+            callback("IP address has been already been reset in the last 24 hours.");
             return false;
         }
     },
-    calculateCPUCost: function () {
-        return sharedHelpers.machineHelpers.calculateCPUCost(this.cpu.cores, this.cpu.speed);
+    upgradeCPU: function (user, upgrade_id, callback) {
+        var failureResponse = "Failed to upgrade CPU";
+        if (this.cpu._id != upgrade_id) {
+            var self = this;
+            CPU.findOne({'_id': upgrade_id}, function (err, newCPU) {
+                if (err) {
+                    callback(failureResponse);
+                    console.log(err);
+                    return;
+                }
+
+                if (newCPU) {
+                    self.cpu = newCPU;
+                    var purchaseCallback = function (err) {
+                        if (err) {
+                            callback(failureResponse);
+                            console.log(err);
+                            return;
+                        }
+
+                        self.save(function (err) {
+                            if (err) {
+                                callback(failureResponse);
+                                console.log(err);
+                                return;
+                            }
+
+                            callback();
+                        });
+                    };
+                    purchasingHelpers.processPurchase(user, newCPU.getCost(), purchaseCallback);
+
+                }
+                else {
+                    callback(failureResponse);
+                    console.log(err);
+                }
+            });
+        }
+        else {
+            errorHelpers.returnError("The selected CPU is not an upgrade your existing hardware.", res);
+        }
     },
-    calculateNewCPUCost: function (cores, speed) {
-        return sharedHelpers.machineHelpers.calculateCPUCost(cores, speed);
+    upgradeHDD: function (user, upgrade_id, callback) {
+        if (this.hdd._id != upgrade_id) {
+            var self = this;
+            HDD.findOne({'_id': upgrade_id}, function (err, newHDD) {
+                if (err) {
+                    console.log(err);
+                    callback("Failed to upgrade HDD");
+                    return;
+                }
+                var purchaseCallback = function (err) {
+                    if (err) {
+                        console.log(err);
+                        callback("Failed to upgrade HDD");
+                        return;
+                    }
+
+                    self.hdd = newHDD;
+                    self.save(function (err) {
+                        if (err) {
+                            console.log(err);
+                            callback(err);
+                            return;
+                        }
+                        callback();
+                    });
+                };
+                purchasingHelpers.processPurchase(user, newHDD.getCost(), purchaseCallback);
+            });
+        }
+        else {
+            callback("The selected HDD is not an upgrade to your existing hardware.");
+        }
+    },
+    upgradeInternet: function (user, upgrade_id, callback) {
+        if (this.internet._id != upgrade_id) {
+            var self = this;
+            Internet.findOne({'_id': upgrade_id}, function (err, newInternet) {
+                if (err) {
+                    console.log(err);
+                    callback("Failed to upgrade internet");
+                    return;
+                }
+                var purchaseCallback = function (err) {
+                    if (err) {
+                        console.log(err);
+                        callback("Failed to upgrade internet");
+                        return;
+                    }
+
+                    self.internet = newInternet;
+                    self.save(function (err) {
+                        if (err) {
+                            console.log(err);
+                            callback(err);
+                            return;
+                        }
+                        callback();
+                    });
+                };
+                purchasingHelpers.processPurchase(user, newInternet.getCost(), purchaseCallback);
+            });
+        }
+        else {
+            callback("The selected HDD is not an upgrade to your existing hardware.");
+        }
+    },
+    calculateCPUUpgradeCost: function (cores, speed) {
+        return sharedHelpers.cpuHelpers.calculateCPUCost(cores, speed);
     }
 };
 
-machineSchema.statics.NETWORKS = NETWORKS;
-machineSchema.statics.HDDS = HDDS;
-machineSchema.statics.FIREWALLS = FIREWALLS;
+/* MODEL LOCAL METHODS */
+function getNewIp() {
+    return sharedHelpers.randomNumber_255(2) +
+        "." +
+        sharedHelpers.randomNumber_255() +
+        "." +
+        sharedHelpers.randomNumber_255() +
+        "." +
+        sharedHelpers.randomNumber_255();
+}
 
 // create the model for users and expose it to our app
 module.exports = mongoose.model('Machine', machineSchema);

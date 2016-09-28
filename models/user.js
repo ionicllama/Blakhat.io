@@ -5,9 +5,12 @@
 var mongoose = require('mongoose');
 var bcrypt = require('bcrypt-nodejs');
 
+const MONEY_DEFAULT = 50;
+
 // define the schema for our user model
 var userSchema = mongoose.Schema({
     displayName: String,
+    money: {type: Number, default: MONEY_DEFAULT},
     local: {
         email: String,
         password: String

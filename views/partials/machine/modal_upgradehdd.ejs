@@ -1,0 +1,41 @@
+<div class="modal-content">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Upgrade Hard Drive</h4>
+    </div>
+    <div id="hddUpgradeContainer" class="modal-body">
+        <div class="table-responsive">
+            <table id="hddUpgradeTable" class="table data-table">
+                <thead>
+                <tr>
+                    <th>Size (gb)</th>
+                    <th>Cost</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <% for(hdd in machineParts.hdds){ %>
+                <tr>
+                    <td><%- machineParts.hdds[hdd].size %></td>
+                    <td>$<%- NH.sharedHelpers.hddHelpers.getHDDCost(machineParts.hdds[hdd]) %></td>
+                    <td class="text-center">
+                        <% if(NH.sharedHelpers.hddHelpers.getHDDModifier(machineParts.hdds[hdd]) < NH.sharedHelpers.hddHelpers.getHDDModifier(machine.hdd)){ %>
+                        <span class="text-warning text-owned">Downgrade</span>
+                        <% } else if(machineParts.hdds[hdd]._id.toString() === machine.hdd._id.toString()){ %>
+                        <span class="text-info text-owned">Owned</span>
+                        <% } else { %>
+                        <button type="button" class="btn btn-success buyButton" _id="<%- machineParts.hdds[hdd]._id %>">
+                            Buy
+                        </button>
+                        <% } %>
+                    </td>
+                </tr>
+                <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+    </div>
+</div>

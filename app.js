@@ -11,13 +11,16 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 
-var globalHelpers = require('./helpers/globalHelpers');
-
-var routes = require('./controllers/index');
-var local = require('./controllers/local');
 var machine = require('./controllers/machine');
 
+var routes = require('./controllers/index');
+var local = require('./controllers/localmachine');
+var internet = require('./controllers/internet');
+var finances = require('./controllers/finances');
+
 var configDB = require('./config/database');
+
+var _ = require('underscore');
 
 // configuration
 mongoose.connect(configDB.url); // connect to database
@@ -25,9 +28,9 @@ mongoose.connect(configDB.url); // connect to database
 // required for passport
 app.use(session({
     secret: 'thisisatributetothegreatessecret',
-    cookie: {maxAge: 60000},
-    resave: true,
-    saveUninitialized: true
+    // cookie: {maxAge: 60000},
+    resave: false,
+    saveUninitialized: false
 })); // session secret
 app.use(passport.initialize());
 app.use(passport.session()); // persistent login sessions
@@ -49,17 +52,30 @@ app.use(require('node-sass-middleware')({
     indentedSyntax: true,
     sourceMap: true
 }));
-app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', routes);
-app.use('/local', local);
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/views', express.static('views'));
+
+app.use(function (req, res, next) {
+    res.locals = _.extend({}, res.locals, {
+        path: req.url,
+        isAuthenticated: req.isAuthenticated()
+    });
+    next();
+});
+
+
+//API Routes
 app.use('/machine', machine);
 
-app.locals.globalHelpers = globalHelpers;
+//Web Routes
+app.use('/', routes);
+app.use('/localmachine', local);
+app.use('/internet', internet);
+app.use('/finances', finances);
 
 require('./config/passport')(passport);
 require('./controllers/users')(app, passport); // pass passport for configuration
-//require('./controllers/local')(app, passport);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

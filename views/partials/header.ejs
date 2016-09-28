@@ -1,0 +1,44 @@
+<nav class="navbar navbar-default bg-primary" role="navigation">
+    <div class="container-fluid">
+
+        <div class="navbar-header">
+            <a class="navbar-brand" href="/">
+                <span class="glyphicon glyphicon glyphicon-tree-deciduous"></span>
+                Blakhat.io
+            </a>
+        </div>
+
+        <% if(isAuthenticated) { %>
+
+        <ul class="nav navbar-nav">
+            <li
+                    <% if(path === "/localmachine") { %>
+                    class="active"
+                    <% } %>
+            ><a href="/localmachine">Local Machine</a></li>
+            <li
+                    <% if(path === "/internet") { %>
+                    class="active"
+                    <% } %>
+            ><a href="/internet">Internet</a></li>
+            <li
+                    <% if(path === "/finances") { %>
+                    class="active"
+                    <% } %>
+            ><a href="/finances">Finances</a></li>
+        </ul>
+
+        <ul class="nav navbar-nav navbar-right">
+            <li><a href="/logout"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+        </ul>
+
+        <% } else{ %>
+
+        <ul class="nav navbar-nav">
+            <li><a href="/about">About</a></li>
+        </ul>
+
+        <% } %>
+
+    </div>
+</nav>

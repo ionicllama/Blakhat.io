@@ -1,12 +1,7 @@
 var _ = require('underscore');
 
-var AjaxResponse = function (status, data) {
-    this.response = {
-        status: status ? status : 200,
-        data: data ? data : null
-    };
-    if (data)
-        this.addDataObject(data);
+var AjaxResponse = function (response) {
+    this.response = response ? response : {};
 };
 
 AjaxResponse.prototype = {

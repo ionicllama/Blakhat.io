@@ -12,6 +12,7 @@ $colHighlight: #EEE;
 .navbar-default {
   background-color: $bgDefault;
   border-color: $bgHighlight;
+  border-radius: 0;
   .navbar-brand {
     color: $colDefault;
     &:hover, &:focus {
@@ -56,10 +57,12 @@ $colHighlight: #EEE;
       background-color: $colDefault;
     }
   }
+
   .navbar-collapse,
   .navbar-form {
     border-color: $colDefault;
   }
+
   .navbar-link {
     color: $colDefault;
     &:hover {
@@ -130,16 +133,12 @@ body {
 }
 
 //Local Machine Styles
-.cost-container > h3 {
-  margin: 5px 0;
+#machineInfoContainer button {
+  width: 80px;
 }
 
-.cost-total-display {
-  color: $accent-color
-}
-
-//CPU Upgrade Styles
-#cpuUpgradeTable > tbody > tr {
+//Upgrade Styles
+.data-table > tbody > tr {
   height: 50px;
   > td {
     vertical-align: middle;
