@@ -12,7 +12,7 @@ var hddScheme = mongoose.Schema({
 
 hddScheme.methods = {
     getName: function () {
-        return this.size.toString() + "gb";
+        return sharedHelpers.hddHelpers.getHDDName(this);
     },
     getCost: function () {
         return sharedHelpers.hddHelpers.getHDDCost(this);

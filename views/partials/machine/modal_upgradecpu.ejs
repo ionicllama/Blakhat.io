@@ -18,11 +18,11 @@
             <tr>
                 <td><%- machineParts.cpus[cpu].cores %></td>
                 <td><%- machineParts.cpus[cpu].speed %></td>
-                <td>$<%- NH.sharedHelpers.cpuHelpers.getCPUCost(machineParts.cpus[cpu]) %></td>
+                <td>$<%- BH.sharedHelpers.cpuHelpers.getCPUCost(machineParts.cpus[cpu]) %></td>
                 <td class="text-center">
-                    <% if(NH.sharedHelpers.cpuHelpers.getCPUModifier(machineParts.cpus[cpu]) < NH.sharedHelpers.cpuHelpers.getCPUModifier(machine.cpu)){ %>
+                    <% if(BH.sharedHelpers.cpuHelpers.getCPUModifier(machineParts.cpus[cpu]) < BH.sharedHelpers.cpuHelpers.getCPUModifier(model.get('machine').cpu)){ %>
                     <span class="text-warning text-owned">Downgrade</span>
-                    <% } else if(machineParts.cpus[cpu]._id.toString() === machine.cpu._id.toString()){ %>
+                    <% } else if(machineParts.cpus[cpu]._id === model.get('machine').cpu._id){ %>
                     <span class="text-info text-owned">Owned</span>
                     <% } else { %>
                     <button type="button" class="btn btn-success buyButton" _id="<%- machineParts.cpus[cpu]._id %>">

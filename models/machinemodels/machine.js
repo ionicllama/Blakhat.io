@@ -5,27 +5,41 @@ var mongoose = require('mongoose');
 
 var _ = require('underscore');
 
+var User = require('../../models/user');
+var Bank = require('../../models/bankmodels/bank');
 var CPU = require('../../models/machinemodels/cpu');
 var HDD = require('../../models/machinemodels/hdd');
 var Internet = require('../../models/machinemodels/internet');
+
 
 var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
 var purchasingHelpers = require('../../helpers/purchasingHelpers');
 
 var machineSchema = mongoose.Schema({
 
-    user_id: mongoose.Schema.Types.ObjectId,
-    nodeType: {type: Number, default: 0},
+    user: {type: mongoose.Schema.Types.ObjectId, ref: 'user'},
+    bank: {type: mongoose.Schema.Types.ObjectId, ref: 'bank'},
+    password: {type: String, default: getRandomPassword()},
     ip: {type: String, default: getNewIp()},
     lastIPRefresh: {type: Date, default: null},
-    cpu: {type: mongoose.Schema.Types.ObjectId, ref: 'cpu'},
-    hdd: {type: mongoose.Schema.Types.ObjectId, ref: 'hdd'},
-    internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet'},
-    firewall: {type: mongoose.Schema.Types.ObjectId, ref: 'firewall'}
+    cpu: {type: mongoose.Schema.Types.ObjectId, ref: 'cpu', default: null},
+    hdd: {type: mongoose.Schema.Types.ObjectId, ref: 'hdd', default: null},
+    internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet', default: null},
+    firewall: {type: mongoose.Schema.Types.ObjectId, ref: 'firewall', default: null},
 
 });
 
 machineSchema.methods = {
+    // getDefaultCPU: function(){
+    //     CPU.findOne({cores: 1, speed: 666}, function (err, newCPU) {
+    //         if (err)
+    //             throw err;
+    //
+    //         if (newCPU) {
+    //             return newCPU;
+    //         }
+    //     });
+    // },
     setDefaultRefs: function () {
         var self = this;
         if (!this.cpu) {
@@ -224,6 +238,11 @@ function getNewIp() {
         sharedHelpers.randomNumber_255() +
         "." +
         sharedHelpers.randomNumber_255();
+}
+
+function getRandomPassword() {
+    //todo: generates a random 10 character alphanumeric password
+    return Math.random().toString(32).slice(2).substr(0, 10);
 }
 
 // create the model for users and expose it to our app

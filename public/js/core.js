@@ -1,295 +1,125 @@
-var NH = NH ? NH : {};
+var BH = BH ? BH : {};
 
-
-//Constants
-NH.constants = {};
-NH.constants.dataTypes = {
+//CONSTANTS
+BH.constants = {};
+BH.constants.dataTypes = {
     JSON: "json"
 };
 
 
-//Base Models
-NH.models = NH.models ? NH.models : {};
-NH.models.Machine = Backbone.Model.extend({
-    url: '/machine',
+//MODELS
+BH.models = BH.models ? BH.models : {};
+
+BH.models.BaseModel = Backbone.Model.extend({
     idAttribute: "_id",
-    getCPUName: function () {
-        return NH.sharedHelpers.cpuHelpers.getCPUName(this.get('cpu'));
-    },
-    getInternetName: function () {
-        return NH.sharedHelpers.internetHelpers.getInternetName(this.get('internet'));
-    },
-    getFirewallName: function () {
-        return NH.sharedHelpers.firewallHelpers.getFirewallName(this.get('firewall'));
-    },
-    refreshIP: function () {
-        this.save(
-            {
-                ip: this.get('ip')
-            },
-            {
-                patch: true,
-                success: function (model, response) {
-                    NH.helpers.Toastr.showSuccessToast("IP Address Refreshed", null);
-                },
-                error: function (model, err) {
-                    NH.helpers.Toastr.showErrorToast(err, null);
-                },
-                wait: true
-            }
-        );
-    },
-    upgradeCPU: function (id) {
-        this.save(
-            {
-                cpu: {
-                    _id: id
-                }
-            },
-            {
-                patch: true,
-                success: function (data) {
-                    NH.helpers.Toastr.showSuccessToast("CPU Upgraded", null);
-                },
-                error: function (model, response) {
-                    NH.helpers.Toastr.showBBResponseErrorToast(response, null);
-                },
-                wait: true
-            }
-        );
-    },
-    upgradeHDD: function (id) {
-        this.save(
-            {
-                hdd: {
-                    _id: id
-                }
-            },
-            {
-                patch: true,
-                success: function (data) {
-                    NH.helpers.Toastr.showSuccessToast("HDD Upgraded", null);
-                },
-                error: function (model, response) {
-                    NH.helpers.Toastr.showBBResponseErrorToast(response, null);
-                },
-                wait: true
-            }
-        );
-    },
-    upgradeInternet: function (id) {
-        this.save(
-            {
-                internet: {
-                    _id: id
-                }
-            },
-            {
-                patch: true,
-                success: function (data) {
-                    NH.helpers.Toastr.showSuccessToast("Internet Upgraded", null);
-                },
-                error: function (model, response) {
-                    NH.helpers.Toastr.showBBResponseErrorToast(response, null);
-                },
-                wait: true
-            }
-        );
+    setSilent: function (attrs) {
+        for (var i in attrs) {
+            this.attributes[i] = attrs[i];
+        }
     }
 });
 
-
-//Base Views
-NH.views = NH.views ? NH.views : {};
-//Core view used for global view functions
-NH.views.View = Backbone.View.extend({
-    renderTemplate: function (data) {
-        if (this.options.template && this.$el)
-            NH.helpers.viewHelpers.renderTemplate(this.options.template, this.$el, data);
-    }
-});
-
-NH.views.MachineInfo = NH.views.View.extend({
+BH.models.Machine = BH.models.BaseModel.extend({
+    urlRoot: '/machine',
     initialize: function () {
-        this.listenTo(this.model, "change", this.render);
+        this.on('sync', this.renderMachine, this);
 
-
-        //move to render once rendering template on client side
-        this.$el.find('#ipRefreshButton').on('click', $.proxy(function (e) {
-            this.model.refreshIP();
-        }, this));
-
-        this.$el.find('#cpuUpgradeButton').on('click', $.proxy(function (e) {
-            new NH.views.MachineUpgradeModal({
-                el: '#cpuUpgradeRender',
-                model: this.model,
-                template: '/views/partials/machine/modal_upgradecpu.ejs',
-                initTableColSort: 2,
-                upgradeCallback: this.model.upgradeCPU.bind(this.model)
-            });
-        }, this));
-
-        this.$el.find('#hddUpgradeButton').on('click', $.proxy(function (e) {
-            new NH.views.MachineUpgradeModal({
-                el: '#hddUpgradeRender',
-                model: this.model,
-                template: '/views/partials/machine/modal_upgradehdd.ejs',
-                initTableColSort: 1,
-                upgradeCallback: this.model.upgradeHDD.bind(this.model)
-            });
-        }, this));
-
-        this.$el.find('#internetUpgradeButton').on('click', $.proxy(function (e) {
-            new NH.views.MachineUpgradeModal({
-                el: '#internetUpgradeRender',
-                model: this.model,
-                template: '/views/partials/machine/modal_upgradeinternet.ejs',
-                initTableColSort: 2,
-                upgradeCallback: this.model.upgradeInternet.bind(this.model)
-            });
-        }, this));
+        this.fetchMachine();
     },
-    render: function () {
-        this.$el.find('#machineIP').text(this.model.get('ip'));
-        var nextRefresh = NH.sharedHelpers.getNewDateAddDays(new Date(this.model.get('lastIPRefresh')), 1);
-        if (NH.sharedHelpers.checkDateIsBeforeToday(nextRefresh)) {
-            this.$el.find('#ipRefreshDate').hide();
-            this.$el.find('#ipRefreshButton').show();
+    fetchMachine: function () {
+        if (this.get('password')) {
+            var data = {};
+            var fetchParams = {
+                data: $.param({password: this.get('password')})
+            };
+            this.fetch(fetchParams);
         }
         else {
-            this.$el.find('#ipRefreshButton').hide();
-            this.$el.find('#ipRefreshDate').text(NH.sharedHelpers.getDateDiffString(nextRefresh));
-            this.$el.find('#ipRefreshDate').show();
+            this.fetch();
         }
-
-        this.$el.find('#machineCPU').text(this.model.getCPUName());
-        this.$el.find('#machineInternet').text(this.model.getInternetName());
-        this.$el.find('#machineFirewall').text(NH.sharedHelpers.firewallHelpers.getFirewallName(this.model.get('firewall')));
+    },
+    renderMachine: function () {
+        new BH.views.Machine({
+            model: this,
+            el: this.get('el')
+        });
+    },
+    parse: function (response) {
+        if (response.machine)
+            response._id = response.machine._id;
+        return response;
+    },
+    getCPUName: function () {
+        return BH.sharedHelpers.cpuHelpers.getCPUName(this.get('machine').cpu);
+    },
+    getHDDName: function () {
+        return BH.sharedHelpers.hddHelpers.getHDDName(this.get('machine').hdd);
+    },
+    getInternetName: function () {
+        return BH.sharedHelpers.internetHelpers.getInternetName(this.get('machine').internet);
+    },
+    getFirewallName: function () {
+        return BH.sharedHelpers.firewallHelpers.getFirewallName(this.get('machine').firewall);
     }
 });
 
-NH.views.MachineUpgradeModal = NH.views.View.extend({
-    defaults: {
-        initTableColSort: 0
-    },
+
+//VIEWS
+BH.views = BH.views ? BH.views : {};
+
+BH.views.BaseView = Backbone.View.extend({
     initialize: function (options) {
-        this.options = _.defaults(options, this.defaults);
-
-        if (!this.options.template || !this.model || !this.options.upgradeCallback) {
-            NH.helpers.Toastr.showErrorToast("Failed to load view");
-            return;
-        }
-
-        this.listenTo(this.model, "change", this.render);
-
-        this.render();
+        this.options = _.defaults(options ? options : {}, this.defaults);
+        if (this.beforeFirstRender() != false)
+            this.render();
+    },
+    beforeFirstRender: function () {
+        return true;
+    },
+    beforeRender: function () {
+        return true;
     },
     render: function () {
-        this.renderTemplate(
-            {
-                machine: this.model.attributes,
-                machineParts: NH.data.machineParts
-            }
-        );
-
-        this.$dataTable = this.$el.find('.data-table');
-        if (this.$dataTable) {
-            this.$dataTable.dataTable({
-                colReorder: {
-                    order: [this.options.initTableColSort]
-                }
-            });
-            this.$dataTable.on('draw.dt', $.proxy(function () {
-                this.addDataTableEvents();
-            }, this));
-            this.addDataTableEvents();
-        }
+        if (this.beforeRender() != false && this.options.template && this.$el)
+            BH.helpers.TemplateRenderer.renderTemplate(this.options.template, this.$el, this.renderData ? this.renderData : {}, this.afterRender.bind(this));
+        return this;
     },
-    addDataTableEvents: function () {
-        this.$el.find('.buyButton').on('click', $.proxy(function (e) {
-            var id = $(e.target).attr('_id');
-            this.options.upgradeCallback(id);
-        }, this));
+    afterRender: function () {
+        //overridden in extended classes
     }
 });
 
-NH.views.UpgradeHDD = NH.views.View.extend({
-    initialize: function () {
-        this.listenTo(this.model, "change", this.render);
-
-        this.$dataTable = this.$el.find('.data-table');
-        this.$dataTable.dataTable({
-            colReorder: {
-                order: [1]
-            }
+BH.views.Machine = BH.views.BaseView.extend({
+    defaults: {
+        template: '/views/partials/machine/machine.ejs'
+    },
+    afterRender: function () {
+        this.renderMachineInfo();
+    },
+    renderMachineInfo: function () {
+        new BH.views.MachineInfo({
+            model: this.model,
+            el: this.$('#machineInfo')
         });
-        this.$dataTable.on('draw.dt', $.proxy(function () {
-            this.render();
-        }, this));
-        this.addDataTableEvents();
-    },
-    render: function () {
-        this.$el.find('.buyButton').each($.proxy(function (i, el) {
-            var t = $(el);
-            if (t.attr('_id') === this.model.get('hdd')._id) {
-                t.prop('disabled', true);
-            }
-            else {
-                t.prop('disabled', false);
-            }
-        }, this));
-
-        this.addDataTableEvents();
-    },
-    addDataTableEvents: function () {
-        this.$el.find('.buyButton').on('click', $.proxy(function (e) {
-            var hddId = $(e.target).attr('_id');
-            this.model.upgradeHDD(hddId);
-        }, this));
     }
 });
 
-NH.views.UpgradeInternet = Backbone.View.extend({
-    initialize: function () {
-        this.listenTo(this.model, "change", this.render);
-
-        this.$dataTable = this.$el.find('.data-table');
-        this.$dataTable.dataTable({
-            colReorder: {
-                order: [1]
-            }
-        });
-        this.$dataTable.on('draw.dt', $.proxy(function () {
-            this.render();
-        }, this));
-        this.addDataTableEvents();
+BH.views.MachineInfo = BH.views.BaseView.extend({
+    defaults: {
+        template: '/views/partials/machine/machineinfo.ejs'
     },
-    render: function () {
-        this.$el.find('.buyButton').each($.proxy(function (i, el) {
-            var t = $(el);
-            if (t.attr('_id') === this.model.get('hdd')._id) {
-                t.prop('disabled', true);
-            }
-            else {
-                t.prop('disabled', false);
-            }
-        }, this));
-
-        this.addDataTableEvents();
-    },
-    addDataTableEvents: function () {
-        this.$el.find('.buyButton').on('click', $.proxy(function (e) {
-            var hddId = $(e.target).attr('_id');
-            this.model.upgradeInternet(hddId);
-        }, this));
+    beforeFirstRender: function (options) {
+        this.renderData = {
+            model: this.model
+        };
     }
 });
 
 
 //Base Utils
-NH.helpers = NH.helpers ? NH.helpers : {};
-NH.helpers.Toastr = {
-    defaultOptions: {
+BH.helpers = BH.helpers ? BH.helpers : {};
+BH.helpers.Toastr = {
+    defaults: {
         "closeButton": false,
         "debug": false,
         "newestOnTop": false,
@@ -307,11 +137,11 @@ NH.helpers.Toastr = {
         "hideMethod": "fadeOut"
     },
     showSuccessToast: function (message, options) {
-        toastr.options = this.defaultOptions;
+        toastr.options = this.options = _.defaults(options ? options : {}, this.defaults);
         toastr.success(message);
     },
     showErrorToast: function (message, options) {
-        toastr.options = this.defaultOptions;
+        toastr.options = this.options = _.defaults(options ? options : {}, this.defaults);
         toastr.error(message);
     },
     showBBResponseErrorToast: function (response, options) {
@@ -320,25 +150,29 @@ NH.helpers.Toastr = {
     }
 };
 
-NH.helpers.viewHelpers = {
-    renderTemplate: function (url, $el, data) {
-        $.ajax({
-            url: url,
-            method: 'GET',
-            async: false,
-            dataType: 'html',
-            success: function (html) {
-                var tmpl = _.template(html);
-                $el.html(tmpl(data));
-            }
-        });
-    },
-    enableBSButton: function (obj, enable) {
-        if (obj) {
-            if (enable)
-                obj.prop('disabled', false);
-            else
-                obj.prop('disabled', false);
+BH.helpers.TemplateRenderer = {
+    templates: {},
+    renderTemplate: function (url, $el, data, callback) {
+        var tmpl = this.templates[url];
+        if (tmpl) {
+            this.render(tmpl, $el, data, callback);
         }
+        else {
+            $.ajax({
+                url: url,
+                method: 'GET',
+                async: false,
+                dataType: 'html',
+                success: $.proxy(function (html) {
+                    tmpl = _.template(html);
+                    this.templates[url] = tmpl;
+                    this.render(tmpl, $el, data, callback);
+                }, this)
+            });
+        }
+    },
+    render: function (tmpl, $el, data, callback) {
+        $el.html(tmpl(data ? data : {}));
+        callback();
     }
 };

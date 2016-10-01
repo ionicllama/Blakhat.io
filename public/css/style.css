@@ -1,3 +1,33 @@
+.elevation-bottom-1 {
+  filter: drop-shadow(0 1.8px 0.6px rgba(0, 0, 0, 0.24)); }
+
+.elevation-bottom-2 {
+  filter: drop-shadow(0 3.6px 1.8px rgba(0, 0, 0, 0.23)); }
+
+.elevation-bottom-3 {
+  filter: drop-shadow(0 3.6px 1.8px rgba(0, 0, 0, 0.23)); }
+
+.elevation-bottom-4 {
+  filter: drop-shadow(0 6px 3px rgba(0, 0, 0, 0.22)); }
+
+.elevation-bottom-5 {
+  filter: drop-shadow(0 9px 3.6px rgba(0, 0, 0, 0.22)); }
+
+.elevation-1 {
+  filter: drop-shadow(0 1.8px 0.9px rgba(0, 0, 0, 0.12)) drop-shadow(0 1.8px 0.6px rgba(0, 0, 0, 0.24)); }
+
+.elevation-2 {
+  filter: drop-shadow(0 1.8px 3px rgba(0, 0, 0, 0.17)) drop-shadow(0 3.6px 1.8px rgba(0, 0, 0, 0.23)); }
+
+.elevation-3 {
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.19)) drop-shadow(0 3.6px 1.8px rgba(0, 0, 0, 0.23)); }
+
+.elevation-4 {
+  filter: drop-shadow(0 8.4px 8.4px rgba(0, 0, 0, 0.25)) drop-shadow(0 6px 3px rgba(0, 0, 0, 0.22)); }
+
+.elevation-5 {
+  filter: drop-shadow(0 11.4px 11.4px rgba(0, 0, 0, 0.3)) drop-shadow(0 9px 3.6px rgba(0, 0, 0, 0.22)); }
+
 .navbar-default {
   background-color: #64B5F6;
   border-color: #2196F3;
@@ -46,9 +76,27 @@
 
 body {
   font: 14px Helvetica, sans-serif;
-  background-color: #EEE !important;
-  font-family: 'Roboto', sans-serif;
+  background-color: #cbcbcb !important;
+  font-family: 'Roboto', sans-serif !important;
   color: #555; }
+
+.btn-primary, .btn-primary:focus {
+  background-color: #ec9d28;
+  border-color: #e48917;
+  outline: none; }
+  .btn-primary:focus, .btn-primary:focus:focus {
+    outline: none;
+    background-color: #ec9d28;
+    border-color: #e48917; }
+  .btn-primary:hover, .btn-primary:focus:hover {
+    background-color: #e48917;
+    border-color: #e46c10; }
+
+.gray-text {
+  color: #a1a1a1; }
+
+.bold {
+  font-weight: bold !important; }
 
 .col-content-box {
   margin-top: 50px;
@@ -65,13 +113,18 @@ body {
     margin: 0; }
 
 .login-container {
-  margin-top: 80px; }
-  .login-container > p {
-    padding: 0 0 20px;
-    margin: 0; }
+  margin-top: 60px;
+  padding: 25px 25px 15px; }
+  .login-container > h2 {
+    padding: 0 0 25px;
+    color: #64B5F6; }
   .login-container > hr {
     padding: 0;
-    margin: 20px 0; }
+    margin: 15px 0 0; }
+  .login-container > .login-footer {
+    padding: 15px 0 0;
+    margin: 0;
+    text-align: center; }
 
 #machineInfoContainer button {
   width: 80px; }
@@ -80,3 +133,53 @@ body {
   height: 50px; }
   .data-table > tbody > tr > td {
     vertical-align: middle; }
+
+#internetBrowser {
+  padding: 0; }
+  #internetBrowser #internetBrowserWindow {
+    height: 100%; }
+  #internetBrowser #internetBrowserHeader {
+    height: 55px; }
+    #internetBrowser #internetBrowserHeader #internetSearchContainer {
+      background: #ec9d28;
+      padding: 10px; }
+      #internetBrowser #internetBrowserHeader #internetSearchContainer #internetSearchText {
+        display: inline-block;
+        margin-right: 5px; }
+      #internetBrowser #internetBrowserHeader #internetSearchContainer .internet-button-container {
+        display: inline-block; }
+        #internetBrowser #internetBrowserHeader #internetSearchContainer .internet-button-container button {
+          display: inline-block;
+          border: none; }
+      #internetBrowser #internetBrowserHeader #internetSearchContainer .button-container.internet-search-button-container {
+        float: right; }
+  #internetBrowser #internetBrowserDOM #internetContent {
+    height: 100%;
+    overflow: auto; }
+    #internetBrowser #internetBrowserDOM #internetContent .internet-admin-container {
+      background: #f1f1f1;
+      min-height: 100%; }
+    #internetBrowser #internetBrowserDOM #internetContent .navigate-admin-login {
+      float: right;
+      margin: 10px; }
+    #internetBrowser #internetBrowserDOM #internetContent .internet-browser-error {
+      max-width: 400px;
+      margin: 22% auto 0; }
+      #internetBrowser #internetBrowserDOM #internetContent .internet-browser-error .panel-heading {
+        font-size: 26px; }
+      #internetBrowser #internetBrowserDOM #internetContent .internet-browser-error .panel-body {
+        font-size: 18px; }
+    #internetBrowser #internetBrowserDOM #internetContent .internet-browser-login-container {
+      max-width: 400px;
+      background: #eee;
+      margin: 15% auto 0;
+      padding: 15px; }
+      #internetBrowser #internetBrowserDOM #internetContent .internet-browser-login-container .internet-browser-login {
+        margin-top: 10px; }
+      #internetBrowser #internetBrowserDOM #internetContent .internet-browser-login-container hr {
+        border-top: 1px solid #555;
+        margin-top: 15px;
+        margin-bottom: 15px; }
+
+.clr {
+  clear: both; }

@@ -1,8 +1,71 @@
 $font-stack: Helvetica, sans-serif;
 $primary-color: #64B5F6;
 $primary-color-highlight: #2196F3;
-$accent-color: #FF8A65;
+$accent-color: #ec9d28;
+$accent-color-highlight: #e48917;
 $primary-color-text: #555;
+$primary-background: #cbcbcb;
+$secondary-inner-background: #f1f1f1;
+$primary-color-button: $accent-color;
+$primary-color-button-border: $accent-color-highlight;
+$primary-color-button-hover: $accent-color-highlight;
+$primary-color-button-border-hover: #e46c10;
+$elevation-dpi: 96/160;
+
+.elevation-bottom-1 {
+  $shadow2: 0 3px*$elevation-dpi 1px*$elevation-dpi rgba(0, 0, 0, 0.24);
+  filter: drop-shadow($shadow2);
+}
+
+.elevation-bottom-2 {
+  $shadow2: 0 6px*$elevation-dpi 3px*$elevation-dpi rgba(0, 0, 0, 0.23);
+  filter: drop-shadow($shadow2);
+}
+
+.elevation-bottom-3 {
+  $shadow2: 0 6px*$elevation-dpi 3px*$elevation-dpi rgba(0, 0, 0, 0.23);
+  filter: drop-shadow($shadow2);
+}
+
+.elevation-bottom-4 {
+  $shadow2: 0 10px*$elevation-dpi 5px*$elevation-dpi rgba(black, 0.22);
+  filter: drop-shadow($shadow2);
+}
+
+.elevation-bottom-5 {
+  $shadow2: 0 15px*$elevation-dpi 6px*$elevation-dpi rgba(0, 0, 0, 0.22);
+  filter: drop-shadow($shadow2);
+}
+
+.elevation-1 {
+  $shadow1: 0 3px*$elevation-dpi 1.5px*$elevation-dpi rgba(0, 0, 0, 0.12);
+  $shadow2: 0 3px*$elevation-dpi 1px*$elevation-dpi rgba(0, 0, 0, 0.24);
+  filter: drop-shadow($shadow1) drop-shadow($shadow2);
+}
+
+.elevation-2 {
+  $shadow1: 0 3px*$elevation-dpi 5px*$elevation-dpi rgba(0, 0, 0, 0.17);
+  $shadow2: 0 6px*$elevation-dpi 3px*$elevation-dpi rgba(0, 0, 0, 0.23);
+  filter: drop-shadow($shadow1) drop-shadow($shadow2);
+}
+
+.elevation-3 {
+  $shadow1: 0 10px*$elevation-dpi 10px*$elevation-dpi rgba(0, 0, 0, 0.19);
+  $shadow2: 0 6px*$elevation-dpi 3px*$elevation-dpi rgba(0, 0, 0, 0.23);
+  filter: drop-shadow($shadow1) drop-shadow($shadow2);
+}
+
+.elevation-4 {
+  $shadow1: 0 14px*$elevation-dpi 14px*$elevation-dpi rgba(black, 0.25);
+  $shadow2: 0 10px*$elevation-dpi 5px*$elevation-dpi rgba(black, 0.22);
+  filter: drop-shadow($shadow1) drop-shadow($shadow2);
+}
+
+.elevation-5 {
+  $shadow1: 0 19px*$elevation-dpi 19px*$elevation-dpi rgba(0, 0, 0, 0.30);
+  $shadow2: 0 15px*$elevation-dpi 6px*$elevation-dpi rgba(0, 0, 0, 0.22);
+  filter: drop-shadow($shadow1) drop-shadow($shadow2);
+}
 
 //Nav Header
 $bgDefault: $primary-color;
@@ -96,9 +159,32 @@ $colHighlight: #EEE;
 //Global Styles
 body {
   font: 14px $font-stack;
-  background-color: #EEE !important;
-  font-family: 'Roboto', sans-serif;
+  background-color: $primary-background !important;
+  font-family: 'Roboto', sans-serif !important;
   color: $primary-color-text;
+}
+
+.btn-primary, .btn-primary:focus {
+  &:focus {
+    outline: none;
+    background-color: $primary-color-button;
+    border-color: $primary-color-button-border;
+  }
+  &:hover {
+    background-color: $primary-color-button-hover;
+    border-color: $primary-color-button-border-hover;
+  }
+  background-color: $primary-color-button;
+  border-color: $primary-color-button-border;
+  outline: none;
+}
+
+.gray-text {
+  color: #a1a1a1
+}
+
+.bold {
+  font-weight: bold !important;
 }
 
 .col-content-box {
@@ -121,14 +207,20 @@ body {
 
 //Login Container Styles
 .login-container {
-  margin-top: 80px;
-  > p {
-    padding: 0 0 20px;
-    margin: 0;
+  margin-top: 60px;
+  padding: 25px 25px 15px;
+  > h2 {
+    padding: 0 0 25px;
+    color: $primary-color;
   }
   > hr {
     padding: 0;
-    margin: 20px 0;
+    margin: 15px 0 0;
+  }
+  > .login-footer {
+    padding: 15px 0 0;
+    margin: 0;
+    text-align: center;
   }
 }
 
@@ -143,4 +235,80 @@ body {
   > td {
     vertical-align: middle;
   }
+}
+
+$primary-error-color: #F44336;
+//Internet Styles
+#internetBrowser {
+  #internetBrowserWindow {
+    height: 100%;
+  }
+  padding: 0;
+  #internetBrowserHeader {
+    height: 55px;
+    #internetSearchContainer {
+      background: $primary-color-button;
+      padding: 10px;
+      #internetSearchText {
+        display: inline-block;
+        margin-right: 5px;
+      }
+      .internet-button-container {
+        display: inline-block;
+        button {
+          display: inline-block;
+          border: none;
+        }
+      }
+      .button-container.internet-nav-button-container {
+
+      }
+      .button-container.internet-search-button-container {
+        float: right;
+      }
+    }
+  }
+  #internetBrowserDOM {
+    #internetContent {
+      height: 100%;
+      overflow: auto;
+      .internet-admin-container {
+        background: $secondary-inner-background;
+        min-height: 100%;
+      }
+      .navigate-admin-login {
+        float: right;
+        margin: 10px;
+      }
+      .internet-browser-error {
+        max-width: 400px;
+        margin: 22% auto 0;
+        .panel-heading {
+          font-size: 26px;
+        }
+        .panel-body {
+          font-size: 18px;
+        }
+      }
+      .internet-browser-login-container {
+        max-width: 400px;
+        background: #eee;
+        margin: 15% auto 0;
+        padding: 15px;
+        .internet-browser-login {
+          margin-top: 10px;
+        }
+        hr {
+          border-top: 1px solid #555;
+          margin-top: 15px;
+          margin-bottom: 15px;
+        }
+      }
+    }
+  }
+}
+
+//Utility
+.clr {
+  clear: both;
 }

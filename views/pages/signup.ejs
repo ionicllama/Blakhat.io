@@ -1,8 +1,8 @@
 <div class="container">
 
-    <div class="col-sm-6 col-sm-offset-3 col-content-box login-container">
+    <div class="col-sm-4 col-sm-offset-4 col-content-box login-container elevation-2">
 
-        <h1><span class="fa fa-sign-in"></span> Signup</h1>
+        <h2><span class="fa fa-sign-in"></span> Sign Up</h2>
 
         <!-- show any messages that come back with authentication -->
         <% if (message.length > 0) { %>
@@ -20,12 +20,12 @@
                 <input type="password" class="form-control" name="password">
             </div>
 
-            <button type="submit" class="btn btn-warning btn-lg">Signup</button>
+            <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
         </form>
 
         <hr>
 
-        <p>Already have an account? <a href="/">Login</a></p>
+        <p class="login-footer gray-text bold">Already have an account? <a href="/">Login</a></p>
 
     </div>
 

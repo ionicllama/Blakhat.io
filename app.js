@@ -16,6 +16,7 @@ var machine = require('./controllers/machine');
 var routes = require('./controllers/index');
 var local = require('./controllers/localmachine');
 var internet = require('./controllers/internet');
+var internetContent = require('./controllers/internetcontent');
 var finances = require('./controllers/finances');
 
 var configDB = require('./config/database');
@@ -28,7 +29,7 @@ mongoose.connect(configDB.url); // connect to database
 // required for passport
 app.use(session({
     secret: 'thisisatributetothegreatessecret',
-    // cookie: {maxAge: 60000},
+    //cookie: {maxAge: 60000},
     resave: false,
     saveUninitialized: false
 })); // session secret
@@ -42,6 +43,7 @@ app.set('view engine', 'ejs');
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+
 app.use(morgan('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
@@ -56,6 +58,7 @@ app.use(require('node-sass-middleware')({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/views', express.static('views'));
 
+//include path in locals to highlight current page on the nav-bar
 app.use(function (req, res, next) {
     res.locals = _.extend({}, res.locals, {
         path: req.url,
@@ -72,6 +75,7 @@ app.use('/machine', machine);
 app.use('/', routes);
 app.use('/localmachine', local);
 app.use('/internet', internet);
+app.use('/internetcontent', internetContent);
 app.use('/finances', finances);
 
 require('./config/passport')(passport);

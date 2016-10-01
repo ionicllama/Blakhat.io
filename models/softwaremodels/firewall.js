@@ -6,21 +6,21 @@ var mongoose = require('mongoose');
 
 var firewallSchema = mongoose.Schema({
 
-    power: {type: Number},
+    level: {type: Number},
     size: {type: Number}
 
 });
 
 firewallSchema.methods = {
     getName: function () {
-        return sharedHelpers.internetHelpers.getInternetName(this);
+        return sharedHelpers.firewallHelpers.getFirewallName(this);
     },
     getCost: function () {
-        return sharedHelpers.internetHelpers.getInternetCost(this);
+        return sharedHelpers.firewallHelpers.getFirewallCost(this);
     },
     getModifier: function () {
         //todo: probably change this to be a bit more sophisticated
-        return this.downSpeed * this.upSpeed;
+        return this.level;
     }
 };
 

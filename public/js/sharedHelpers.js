@@ -24,8 +24,10 @@
         getNewDateAddDays: function (date, days) {
             if (!date)
                 return date;
-            else
+            else {
+                date = new Date(date);
                 return new Date(date.setTime(date.getTime() + days * 86400000));
+            }
         },
         getDateHoursDiff: function (date1, date2) {
             return this.getDateDiff('hours', date1, date2);
@@ -61,6 +63,11 @@
                 return (hours + 'hrs ' + minutes + 'min');
             else
                 return (minutes + 'min');
+        },
+        parseIPFromString: function (string) {
+            var regex = new RegExp(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/),
+                result = string.match(regex);
+            return result ? result : "";
         }
     };
 
@@ -81,6 +88,9 @@
     };
 
     exports.sharedHelpers.hddHelpers = {
+        getHDDName: function (hdd) {
+            return hdd.size.toString() + "gb";
+        },
         getHDDCost: function (hdd) {
             if (!hdd || (hdd.size === 20))
                 return 0;
@@ -115,7 +125,10 @@
                 return "None";
             else
                 return ("Level" + firewall.level.toString());
+        },
+        getFirewallCost: function (firewall) {
+            return Math.floor(Math.pow(firewall.level * 5, 3));
         }
     };
 
-}(typeof exports === 'undefined' ? (!this.NH ? this.NH = {} : this.NH = this.NH) : exports));
+}(typeof exports === 'undefined' ? (!this.BH ? this.BH = {} : this.BH = this.BH) : exports));

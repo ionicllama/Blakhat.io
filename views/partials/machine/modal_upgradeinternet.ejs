@@ -19,11 +19,11 @@
                 <tr>
                     <td><%- machineParts.internets[internet].downSpeed %></td>
                     <td><%- machineParts.internets[internet].upSpeed %></td>
-                    <td>$<%- NH.sharedHelpers.internetHelpers.getInternetCost(machineParts.internets[internet]) %></td>
+                    <td>$<%- BH.sharedHelpers.internetHelpers.getInternetCost(machineParts.internets[internet]) %></td>
                     <td class="text-center">
-                        <% if(NH.sharedHelpers.internetHelpers.getInternetModifier(machineParts.internets[internet]) < NH.sharedHelpers.internetHelpers.getInternetModifier(machine.internet)){ %>
+                        <% if(BH.sharedHelpers.internetHelpers.getInternetModifier(machineParts.internets[internet]) < BH.sharedHelpers.internetHelpers.getInternetModifier(model.get('machine').internet)){ %>
                         <span class="text-warning text-owned">Downgrade</span>
-                        <% } else if(machineParts.internets[internet]._id.toString() === machine.internet._id.toString()){ %>
+                        <% } else if(machineParts.internets[internet]._id.toString() === model.get('machine').internet._id.toString()){ %>
                         <span class="text-info text-owned">Owned</span>
                         <button style="display:none;" type="button" class="btn btn-success buyButton"
                                 _id="<%- machineParts.internets[internet]._id %>">

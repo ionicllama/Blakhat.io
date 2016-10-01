@@ -1,60 +1,7 @@
 <script>
-    var NH = NH ? NH : {};
-    NH.data = <%- JSON.stringify({machine: machine, machineParts: machineParts}) %>;
+    var BH = BH ? BH : {};
+    BH.data = <%- JSON.stringify({machineParts: machineParts}) %>;
 </script>
+<script src="/js/localmachine.js"></script>
 
-<div class="container">
-
-    <div class="col-sm-6 col-lg-6">
-
-        <% include ../partials/machine/machineinfo.ejs %>
-
-    </div>
-
-    <div class="col-sm-6 col-lg-6">
-
-        <div class="col-content-box">
-
-            <h4>Files</h4>
-            <hr>
-
-            <!--todo: file-explorer ui-->
-
-        </div>
-
-    </div>
-
-</div>
-
-<div id="cpuUpgradeModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-
-        <!-- Modal content-->
-        <div id="cpuUpgradeRender" class="modal-content">
-
-        </div>
-
-    </div>
-</div>
-
-<div id="hddUpgradeModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-
-        <!-- Modal content-->
-        <div id="hddUpgradeRender" class="modal-content">
-
-        </div>
-
-    </div>
-</div>
-
-<div id="internetUpgradeModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-
-        <!-- Modal content-->
-        <div id="internetUpgradeRender" class="modal-content">
-
-        </div>
-
-    </div>
-</div>
+<div id="pageOuterContainer"></div>

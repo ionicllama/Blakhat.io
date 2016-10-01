@@ -17,11 +17,11 @@
                 <% for(hdd in machineParts.hdds){ %>
                 <tr>
                     <td><%- machineParts.hdds[hdd].size %></td>
-                    <td>$<%- NH.sharedHelpers.hddHelpers.getHDDCost(machineParts.hdds[hdd]) %></td>
+                    <td>$<%- BH.sharedHelpers.hddHelpers.getHDDCost(machineParts.hdds[hdd]) %></td>
                     <td class="text-center">
-                        <% if(NH.sharedHelpers.hddHelpers.getHDDModifier(machineParts.hdds[hdd]) < NH.sharedHelpers.hddHelpers.getHDDModifier(machine.hdd)){ %>
+                        <% if(BH.sharedHelpers.hddHelpers.getHDDModifier(machineParts.hdds[hdd]) < BH.sharedHelpers.hddHelpers.getHDDModifier(model.get('machine').hdd)){ %>
                         <span class="text-warning text-owned">Downgrade</span>
-                        <% } else if(machineParts.hdds[hdd]._id.toString() === machine.hdd._id.toString()){ %>
+                        <% } else if(machineParts.hdds[hdd]._id.toString() === model.get('machine').hdd._id.toString()){ %>
                         <span class="text-info text-owned">Owned</span>
                         <% } else { %>
                         <button type="button" class="btn btn-success buyButton" _id="<%- machineParts.hdds[hdd]._id %>">
