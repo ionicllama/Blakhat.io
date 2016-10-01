@@ -23,12 +23,10 @@ BH.models.Machine = BH.models.BaseModel.extend({
     urlRoot: '/machine',
     initialize: function () {
         this.on('sync', this.renderMachine, this);
-
         this.fetchMachine();
     },
     fetchMachine: function () {
         if (this.get('password')) {
-            var data = {};
             var fetchParams = {
                 data: $.param({password: this.get('password')})
             };
@@ -48,6 +46,31 @@ BH.models.Machine = BH.models.BaseModel.extend({
         if (response.machine)
             response._id = response.machine._id;
         return response;
+    },
+    getPatchData: function (extraData) {
+        var data = {};
+        if (this.get('sourceIP'))
+            data.sourceIP = this.get('sourceIP');
+        if (this.get('password'))
+            data.password = this.get('password');
+
+        return _.extend(data, extraData);
+    },
+    updateLog: function (logText) {
+        var data = this.getPatchData({
+            log: logText
+        });
+        this.save(data, {
+                patch: true,
+                success: function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Log update successful", null);
+                },
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
     },
     getCPUName: function () {
         return BH.sharedHelpers.cpuHelpers.getCPUName(this.get('machine').cpu);
@@ -95,11 +118,18 @@ BH.views.Machine = BH.views.BaseView.extend({
     },
     afterRender: function () {
         this.renderMachineInfo();
+        this.renderMachineLog();
     },
     renderMachineInfo: function () {
         new BH.views.MachineInfo({
             model: this.model,
             el: this.$('#machineInfo')
+        });
+    },
+    renderMachineLog: function () {
+        new BH.views.MachineLog({
+            model: this.model,
+            el: this.$('#machineLog')
         });
     }
 });
@@ -115,9 +145,67 @@ BH.views.MachineInfo = BH.views.BaseView.extend({
     }
 });
 
+BH.views.MachineLog = BH.views.BaseView.extend({
+    defaults: {
+        template: '/views/partials/machine/machinelog.ejs'
+    },
+    events: {
+        'keyup .log-text': 'logChanged',
+        'change .log-text': 'logChanged',
+        'click .log-save-button': 'saveLog'
+    },
+    beforeFirstRender: function (options) {
+        this.renderData = {
+            model: this.model
+        };
+        this.listenTo(this.model, "change:log", this.render);
+    },
+    logChanged: function () {
+        if (this.$('.log-text').val().length > 0 || this.model.get('machine').log.length > 0)
+            this.$('.log-save-button').prop('disabled', false);
+        else
+            this.$('.log-save-button').prop('disabled', true);
+    },
+    saveLog: function () {
+        this.model.updateLog(this.$('.log-text').val());
+    }
+});
 
 //Base Utils
 BH.helpers = BH.helpers ? BH.helpers : {};
+BH.helpers.viewHelpers = {
+    createCountdownTimer: function ($el, date) {
+        if ($el) {
+            var t = BH.sharedHelpers.getTimeRemaining(date);
+            this.createCountdownElement(t, $el);
+            var interval = setInterval(_.bind(function () {
+                t = BH.sharedHelpers.getTimeRemaining(date);
+
+                if (t.total > 0) {
+                    this.createCountdownElement(t, $el);
+                }
+                else {
+                    clearInterval(interval);
+                }
+            }, this), 1000);
+
+        }
+        return interval;
+    },
+    createCountdownElement: function (remaining, $el) {
+        var s = "";
+        if (remaining.days > 0)
+            s += (remaining.days + "d ");
+        if (remaining.hours > 0 || remaining.days > 0)
+            s += (remaining.hours + "h ");
+        if (remaining.minutes > 0 || remaining.hours > 0 || remaining.days > 0)
+            s += (remaining.minutes + "m ");
+        if (remaining.seconds > 0 || remaining.minutes > 0 || remaining.hours > 0 || remaining.days > 0)
+            s += (remaining.seconds + "s ");
+
+        $el.html(s);
+    }
+};
 BH.helpers.Toastr = {
     defaults: {
         "closeButton": false,
@@ -129,7 +217,7 @@ BH.helpers.Toastr = {
         "onclick": null,
         "showDuration": "300",
         "hideDuration": "1000",
-        "timeOut": "5000",
+        "timeOut": "3000",
         "extendedTimeOut": "1000",
         "showEasing": "swing",
         "hideEasing": "linear",
@@ -145,8 +233,8 @@ BH.helpers.Toastr = {
         toastr.error(message);
     },
     showBBResponseErrorToast: function (response, options) {
-        if (response.responseJSON.data.error)
-            this.showErrorToast(response.responseJSON.data.error, options);
+        if (response.responseText)
+            this.showErrorToast(response.responseText, options);
     }
 };
 

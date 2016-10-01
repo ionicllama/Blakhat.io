@@ -1,16 +1,17 @@
 /**
  * Created by Evan on 9/27/2016.
  */
-var User = require('../models/user');
-var AjaxResponse = require('../models/ajaxresponse');
 
-var purchasingHelpers = {
-    returnError: function (err, res) {
-        console.log('Error Handled: ' + err);
-        var response = new AjaxResponse({error: err.toString().replace('Error: ', '')});
+var errorHelpers = {
+    returnError: function (resText, res, logErr) {
+        if (logErr && logErr.length > 0)
+            console.log('Error Handled: ' + logErr);
         if (res)
-            res.status(500).send(response.getResponse());
+            res.status(500).send(resText);
+    },
+    returnError_noId: function (res) {
+        this.returnError("Missing required _id parameter.", res);
     }
 };
 
-module.exports = purchasingHelpers;
+module.exports = errorHelpers;

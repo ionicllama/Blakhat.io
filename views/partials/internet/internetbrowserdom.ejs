@@ -1,56 +1,32 @@
 <!-- replace -1 with:  user.firewallBypass.level  -->
-<div id="internetContent">
-    <% if(machine._id) { %>
+<div id="internetContent" class="internet-dom">
+    <% if(model.get('machine')._id) { %>
     <% if(path == '/login') { %>
-    <div class="internet-browser-login-container elevation-2">
-        <h4>Enter the admin password for <%= machine.ip %></h4>
-        <div class="internet-browser-login">
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" autocomplete="new-password" class="form-control admin-login-password"
-                       name="password">
-            </div>
-            <div class="button-container">
-                <button type="button" class="btn btn-success btn-block admin-login-button">Login</button>
-                <hr/>
-                <button type="button" class="btn btn-danger btn-block crack-password">Crack Password</button>
+    <div class="internet-browser-login-container internet-dom">
+        <div class="internet-browser-login elevation-2">
+            <h4>Enter the admin password for <%= model.get('machine').ip %></h4>
+            <% if(model.get('isAuthenticated') === false) { %>
+
+            <div class="alert alert-danger">Incorrect password!</div>
+
+            <% } %>
+            <div class="internet-browser-login-inner">
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" autocomplete="new-password" class="form-control admin-login-password"
+                           name="password">
+                </div>
+                <div class="button-container">
+                    <button type="button" class="btn btn-success btn-block admin-login-button">Login</button>
+                    <hr/>
+                    <button type="button" class="btn btn-danger btn-block crack-password">Crack Password</button>
+                </div>
             </div>
         </div>
     </div>
     <% } else if(path == '/admin') { %>
     <div class="container internet-admin-container col-sm-12 col-lg-12">
 
-        <div class="col-sm-6 col-lg-6">
-
-            <div class="row">
-
-                <div id="machineInfo" class="col-sm-12 col-lg-12">
-
-                </div>
-
-            </div>
-
-            <div class="row">
-
-                <div class="col-sm-12 col-lg-12">
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-sm-6 col-lg-6">
-
-            <div class="row">
-
-                <div class="col-sm-12 col-lg-12">
-
-                </div>
-
-            </div>
-
-        </div>
 
     </div>
     <div class="clr"></div>
@@ -80,7 +56,7 @@
 
     <div class="panel panel-danger internet-browser-error">
         <div class="panel-heading bold">Error 404</div>
-        <div class="panel-body">This page doesn't exist!</div>
+        <div class="panel-body">No resource exists at <%= search %></div>
     </div>
 
     <% } %>

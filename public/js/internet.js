@@ -1,7 +1,19 @@
-var BH = BH ? BH : {};
-
 //MODELS
-BH.models.InternetContent = BH.models.BaseModel.extend({
+BH.models.InternetBrowser = BH.models.BaseModel.extend({
+    urlRoot: '/machine',
+    initialize: function () {
+        this.on('sync', this.renderMachine, this);
+        this.fetch();
+    },
+    renderMachine: function () {
+        new BH.views.InternetBrowser({
+            sourceIP: this.get('machine').ip,
+            el: this.get('el')
+        });
+    }
+});
+
+BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
     urlRoot: '/internetcontent',
     initialize: function () {
 
@@ -14,7 +26,10 @@ BH.models.InternetContent = BH.models.BaseModel.extend({
     fetchPage: function () {
         this.get('browser').$('#internetSearchText').val(this.get('search'));
         this.get('browser').renderHistoryButtons();
-        var data = {search: this.get('search')};
+        var data = {
+            source: this.get('sourceIP'),
+            search: this.get('search')
+        };
         if (this.get('password')) {
             data.password = this.get('password');
         }
@@ -111,19 +126,25 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
         this.getInternetContent(this.$('#internetSearchText').val());
     },
     getInternetContent: function (search, excludeFromHistory) {
+        this.showLoading();
         if (!excludeFromHistory)
             this.addToHistory(search);
 
         if (this.model)
             this.model.set('search', search);
         else
-            this.model = new BH.models.InternetContent({
+            this.model = new BH.models.InternetBrowserDOM({
                 el: this.$('#internetBrowserDOM'),
                 search: search,
-                browser: this
+                browser: this,
+                sourceIP: this.options.sourceIP
             });
     },
-    showLoading: function () {
+    showLoading: function (isShow) {
+        if (isShow || isShow == null)
+            this.$('.internet-search-loading').show();
+        else
+            this.$('.internet-search-loading').hide();
     },
     resize: function () {
         var browserHeight = $(window).height() - 200;
@@ -200,17 +221,26 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
     beforeFirstRender: function () {
         this.listenTo(this.model, "change", this.render);
         this.renderData = {
-            machine: this.model.get('machine') ? this.model.get('machine') : {},
-            path: this.options.path
+            model: this.model,
+            path: this.options.path,
+            search: this.model.get('search')
         };
     },
     afterRender: function () {
         this.setElement(this.$('#internetContent'));
+        this.$('.admin-login-password').on({
+            'keyup': $.proxy(function (e) {
+                if (e.keyCode == 13) {
+                    this.attemptAdminLogin();
+                }
+            }, this)
+        });
+        this.model.get('browser').showLoading(false);
     },
     navigateAdminLogin: function () {
         this.model.get('browser').getInternetContent(this.model.get('machine').ip + '/login');
     },
-    attemptAdminLogin: function (e) {
+    attemptAdminLogin: function () {
         this.model.set('password', this.$('.admin-login-password').val());
     }
 });
@@ -226,23 +256,26 @@ BH.views.InternetBrowserAdminDOM = BH.views.InternetBrowserDOM.extend({
         this.setElement(this.$('#internetContent'));
         if (this.model.get('isOwner')) {
             this.connectedMachine = new BH.models.LocalMachine({
-                el: this.$el,
-                _id: this.model.get('machine')._id
+                el: this.$('.internet-admin-container'),
+                _id: this.model.get('machine')._id,
+                password: this.model.get('password'),
+                sourceIP: this.model.get('sourceIP')
             });
         }
         else {
             this.connectedMachine = new BH.models.RemoteMachine({
-                el: this.$el,
+                el: this.$('.internet-admin-container'),
                 _id: this.model.get('machine')._id,
-                password: this.model.get('password')
+                password: this.model.get('password'),
+                sourceIP: this.model.get('sourceIP')
             });
         }
-        this.model.setSilent({password: null});
+        this.model.setSilent({password: null, isAuthenticated: null});
     }
 });
 
 $(function () {
-    new BH.views.InternetBrowser({
+    new BH.models.InternetBrowser({
         el: '#internetBrowser'
     });
 });

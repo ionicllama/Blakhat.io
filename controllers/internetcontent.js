@@ -8,10 +8,15 @@ var auth = require('../middlewares/authMiddleware');
 var Machine = require('../models/machinemodels/machine');
 
 var sharedHelpers = require('../public/js/sharedHelpers').sharedHelpers;
+var machineHelpers = require('../helpers/machineHelpers');
+var errorHelpers = require('../helpers/errorHelpers');
 
 var _ = require('underscore');
 
 router.get('/', auth.isLoggedIn, function (req, res) {
+    if (!req.query.source || req.query.source.length == 0)
+        errorHelpers.returnError("No source IP address found.  Make sure you own at least 1 machine.", res);
+
     var parseIp = sharedHelpers.parseIPFromString(req.query.search),
         query = {
             ip: req.query.search
@@ -23,15 +28,20 @@ router.get('/', auth.isLoggedIn, function (req, res) {
         }
     }
     if (req.query.password) {
-        Machine.findOne(query).select('_id password').exec(function (err, machine) {
+        Machine.findOne(query).select('_id password log').exec(function (err, machine) {
             where = {
                 _id: machine._id
             };
-            getMachineForInternet(req.user, query, res, true);
+            var isAuthenticated = false;
+            if (req.query.password === machine.password) {
+                isAuthenticated = true;
+                machineHelpers.logMachineAccess(machine, req.query.source);
+            }
+            getMachineForInternet(req.user, query, res, isAuthenticated);
         });
     }
     else {
-        getMachineForInternet(req.user, query, res, false);
+        getMachineForInternet(req.user, query, res);
     }
 });
 
@@ -40,27 +50,23 @@ function getMachineForInternet(user, query, res, isAuthenticated) {
         if (err) {
             console.log(err);
         }
-        var resData;
+        var resData = {
+            machine: machine ? machine : {},
+            isOwner: machine && machine.user.toString() == user._id.toString()
+        };
+        if (isAuthenticated != null)
+            resData.isAuthenticated = isAuthenticated;
+
         if (machine && machine.bank) {
             //this is a bank machine ip
             machine.populate("bank", function (err, machine) {
                 if (err) {
                     console.log(err);
                 }
-                resData = {
-                    machine: machine ? machine : {},
-                    isAuthenticated: isAuthenticated === true,
-                    isOwner: machine.user.toString() == user._id.toString()
-                };
                 res.json(resData);
             });
         }
         else {
-            resData = {
-                machine: machine ? machine : {},
-                isAuthenticated: isAuthenticated === true,
-                isOwner: machine && machine.user.toString() == user._id.toString()
-            };
             res.json(resData);
         }
     });

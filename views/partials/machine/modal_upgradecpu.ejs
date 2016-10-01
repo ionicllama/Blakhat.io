@@ -1,41 +1,51 @@
-<div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal">&times;</button>
-    <h4 class="modal-title">Upgrade CPU</h4>
-</div>
-<div id="cpuUpgradeContainer" class="modal-body">
-    <div class="table-responsive">
-        <table id="cpuUpgradeTable" class="table data-table">
-            <thead>
-            <tr>
-                <th>Cores</th>
-                <th>Speed (MHz)</th>
-                <th>Cost</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            <% for(cpu in machineParts.cpus){ %>
-            <tr>
-                <td><%- machineParts.cpus[cpu].cores %></td>
-                <td><%- machineParts.cpus[cpu].speed %></td>
-                <td>$<%- BH.sharedHelpers.cpuHelpers.getCPUCost(machineParts.cpus[cpu]) %></td>
-                <td class="text-center">
-                    <% if(BH.sharedHelpers.cpuHelpers.getCPUModifier(machineParts.cpus[cpu]) < BH.sharedHelpers.cpuHelpers.getCPUModifier(model.get('machine').cpu)){ %>
-                    <span class="text-warning text-owned">Downgrade</span>
-                    <% } else if(machineParts.cpus[cpu]._id === model.get('machine').cpu._id){ %>
-                    <span class="text-info text-owned">Owned</span>
-                    <% } else { %>
-                    <button type="button" class="btn btn-success buyButton" _id="<%- machineParts.cpus[cpu]._id %>">
-                        Buy
-                    </button>
+<div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div id="cpuUpgradeRender" class="modal-content">
+
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title">Upgrade CPU</h4>
+        </div>
+        <div id="cpuUpgradeContainer" class="modal-body">
+            <div class="table-responsive">
+                <table id="cpuUpgradeTable" class="table data-table">
+                    <thead>
+                    <tr>
+                        <th>Cores</th>
+                        <th>Speed (MHz)</th>
+                        <th>Cost</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <% for(cpu in machineParts.cpus){ %>
+                    <tr>
+                        <td><%- machineParts.cpus[cpu].cores %></td>
+                        <td><%- machineParts.cpus[cpu].speed %></td>
+                        <td>$<%- BH.sharedHelpers.cpuHelpers.getCPUCost(machineParts.cpus[cpu]) %></td>
+                        <td class="text-center">
+                            <% if(BH.sharedHelpers.cpuHelpers.getCPUModifier(machineParts.cpus[cpu]) < BH.sharedHelpers.cpuHelpers.getCPUModifier(model.get('machine').cpu)){ %>
+                            <span class="text-warning text-owned">Downgrade</span>
+                            <% } else if(machineParts.cpus[cpu]._id === model.get('machine').cpu._id){ %>
+                            <span class="text-info text-owned">Owned</span>
+                            <% } else { %>
+                            <button type="button" class="btn btn-success buyButton"
+                                    _id="<%- machineParts.cpus[cpu]._id %>">
+                                Buy
+                            </button>
+                            <% } %>
+                        </td>
+                    </tr>
                     <% } %>
-                </td>
-            </tr>
-            <% } %>
-            </tbody>
-        </table>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+
     </div>
-</div>
-<div class="modal-footer">
-    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+
 </div>

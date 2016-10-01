@@ -19,82 +19,106 @@ var machineSchema = mongoose.Schema({
 
     user: {type: mongoose.Schema.Types.ObjectId, ref: 'user'},
     bank: {type: mongoose.Schema.Types.ObjectId, ref: 'bank'},
-    password: {type: String, default: getRandomPassword()},
+    log: {type: String, default: ""},
+    lastLogUpdate: {type: String, default: new Date()},
     ip: {type: String, default: getNewIp()},
     lastIPRefresh: {type: Date, default: null},
+    password: {type: String, default: getRandomPassword()},
+    lastPasswordReset: {type: Date, default: null},
     cpu: {type: mongoose.Schema.Types.ObjectId, ref: 'cpu', default: null},
     hdd: {type: mongoose.Schema.Types.ObjectId, ref: 'hdd', default: null},
-    internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet', default: null},
     firewall: {type: mongoose.Schema.Types.ObjectId, ref: 'firewall', default: null},
+    internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet', default: null}
 
 });
 
 machineSchema.methods = {
-    // getDefaultCPU: function(){
-    //     CPU.findOne({cores: 1, speed: 666}, function (err, newCPU) {
-    //         if (err)
-    //             throw err;
-    //
-    //         if (newCPU) {
-    //             return newCPU;
-    //         }
-    //     });
-    // },
-    setDefaultRefs: function () {
+    setDefaultRefs: function (callback) {
         var self = this;
+        this.setDefaultCPU(function () {
+            self.setDefaultHDD(function () {
+                self.setDefaultInternet(function () {
+                    callback();
+                })
+            });
+        });
+    },
+    setDefaultCPU: function (callback) {
         if (!this.cpu) {
+            var self = this;
             CPU.findOne({cores: 1, speed: 666}, function (err, newCPU) {
                 if (err)
-                    throw err;
+                    console.log(err);
 
                 if (newCPU) {
                     self.cpu = newCPU;
                     self.save(function (err) {
                         if (err)
-                            throw err;
+                            console.log(err);
+
+                        callback();
                     });
                 }
             });
         }
-
-        if (!this.internet) {
-            Internet.findOne({downSpeed: 5, upSpeed: 1}, function (err, newInternet) {
-                if (err)
-                    throw err;
-
-                if (newInternet) {
-                    self.internet = newInternet;
-                    self.save(function (err) {
-                        if (err)
-                            throw err;
-                    });
-                }
-            });
-        }
-
+    },
+    setDefaultHDD: function (callback) {
         if (!this.hdd) {
+            var self = this;
             HDD.findOne({size: 20}, function (err, newHDD) {
                 if (err)
-                    throw err;
+                    console.log(err);
 
                 if (newHDD) {
                     self.hdd = newHDD;
                     self.save(function (err) {
                         if (err)
-                            throw err;
+                            console.log(err);
+
+                        callback();
                     });
                 }
             });
         }
     },
+    setDefaultInternet: function (callback) {
+        if (!this.internet) {
+            var self = this;
+            Internet.findOne({downSpeed: 5, upSpeed: 1}, function (err, newInternet) {
+                if (err)
+                    console.log(err);
+
+                if (newInternet) {
+                    self.internet = newInternet;
+                    self.save(function (err) {
+                        if (err)
+                            console.log(err);
+
+                        callback();
+                    });
+                }
+            });
+        }
+    },
+    updateLog: function (log, callback) {
+        this.log = log;
+        this.lastLogUpdate = new Date();
+        this.save(function (err) {
+            if (err) {
+                callback(err);
+                return;
+            }
+            callback();
+        });
+    },
     getFirewallName: function () {
         return sharedHelpers.firewallHelpers.getFirewallName(this.firewall);
     },
-    getNextIPRefreshDateString: function () {
-        return sharedHelpers.getDateDiffString(this.lastIPRefresh);
-    },
     canRefreshIP: function () {
         return sharedHelpers.checkDateIsBeforeToday(sharedHelpers.getNewDateAddDays(this.lastIPRefresh, 1));
+    },
+    canResetPassword: function () {
+        return sharedHelpers.checkDateIsBeforeToday(sharedHelpers.getNewDateAddHours(this.lastPasswordReset, 4));
     },
     refreshIP: function (callback) {
         if (this.canRefreshIP()) {
@@ -102,27 +126,38 @@ machineSchema.methods = {
             this.lastIPRefresh = new Date();
             this.save(function (err) {
                 if (err) {
-                    console.log(err);
-                    callback("Failed to refresh IP address");
+                    callback(null, err);
                     return;
                 }
                 callback();
             });
-            return true;
         }
         else {
             callback("IP address has been already been reset in the last 24 hours.");
-            return false;
+        }
+    },
+    resetPassword: function (callback) {
+        if (this.canResetPassword()) {
+            this.password = getRandomPassword();
+            this.lastPasswordReset = new Date();
+            this.save(function (err) {
+                if (err) {
+                    callback(null, err);
+                    return;
+                }
+                callback();
+            });
+        }
+        else {
+            callback("Password has been already been reset in the last 4 hours.");
         }
     },
     upgradeCPU: function (user, upgrade_id, callback) {
-        var failureResponse = "Failed to upgrade CPU";
         if (this.cpu._id != upgrade_id) {
             var self = this;
             CPU.findOne({'_id': upgrade_id}, function (err, newCPU) {
                 if (err) {
-                    callback(failureResponse);
-                    console.log(err);
+                    callback(null, err);
                     return;
                 }
 
@@ -130,15 +165,13 @@ machineSchema.methods = {
                     self.cpu = newCPU;
                     var purchaseCallback = function (err) {
                         if (err) {
-                            callback(failureResponse);
-                            console.log(err);
+                            callback(null, err);
                             return;
                         }
 
                         self.save(function (err) {
                             if (err) {
-                                callback(failureResponse);
-                                console.log(err);
+                                callback(null, err);
                                 return;
                             }
 
@@ -149,13 +182,12 @@ machineSchema.methods = {
 
                 }
                 else {
-                    callback(failureResponse);
-                    console.log(err);
+                    callback(null, err);
                 }
             });
         }
         else {
-            errorHelpers.returnError("The selected CPU is not an upgrade your existing hardware.", res);
+            callback("The selected upgrade different than existing hardware.");
         }
     },
     upgradeHDD: function (user, upgrade_id, callback) {
@@ -163,22 +195,19 @@ machineSchema.methods = {
             var self = this;
             HDD.findOne({'_id': upgrade_id}, function (err, newHDD) {
                 if (err) {
-                    console.log(err);
-                    callback("Failed to upgrade HDD");
+                    callback(null, err);
                     return;
                 }
                 var purchaseCallback = function (err) {
                     if (err) {
-                        console.log(err);
-                        callback("Failed to upgrade HDD");
+                        callback(null, err);
                         return;
                     }
 
                     self.hdd = newHDD;
                     self.save(function (err) {
                         if (err) {
-                            console.log(err);
-                            callback(err);
+                            callback(null, err);
                             return;
                         }
                         callback();
@@ -188,7 +217,7 @@ machineSchema.methods = {
             });
         }
         else {
-            callback("The selected HDD is not an upgrade to your existing hardware.");
+            callback("The selected upgrade different than existing hardware.");
         }
     },
     upgradeInternet: function (user, upgrade_id, callback) {
@@ -196,22 +225,19 @@ machineSchema.methods = {
             var self = this;
             Internet.findOne({'_id': upgrade_id}, function (err, newInternet) {
                 if (err) {
-                    console.log(err);
-                    callback("Failed to upgrade internet");
+                    callback(null, err);
                     return;
                 }
                 var purchaseCallback = function (err) {
                     if (err) {
-                        console.log(err);
-                        callback("Failed to upgrade internet");
+                        callback(null, err);
                         return;
                     }
 
                     self.internet = newInternet;
                     self.save(function (err) {
                         if (err) {
-                            console.log(err);
-                            callback(err);
+                            callback(null, err);
                             return;
                         }
                         callback();
@@ -221,7 +247,7 @@ machineSchema.methods = {
             });
         }
         else {
-            callback("The selected HDD is not an upgrade to your existing hardware.");
+            callback("The selected upgrade different than existing hardware.");
         }
     },
     calculateCPUUpgradeCost: function (cores, speed) {

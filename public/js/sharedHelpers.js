@@ -21,12 +21,34 @@
 
             return Math.floor(Math.random() * (startNum - 254) + 255);
         },
+        getTimeRemaining: function (date) {
+            var t = Date.parse(date) - Date.parse(new Date());
+            var seconds = Math.floor((t / 1000) % 60);
+            var minutes = Math.floor((t / 1000 / 60) % 60);
+            var hours = Math.floor((t / (1000 * 60 * 60)) % 24);
+            var days = Math.floor(t / (1000 * 60 * 60 * 24));
+            return {
+                'total': t,
+                'days': days,
+                'hours': hours,
+                'minutes': minutes,
+                'seconds': seconds
+            };
+        },
         getNewDateAddDays: function (date, days) {
             if (!date)
                 return date;
             else {
                 date = new Date(date);
                 return new Date(date.setTime(date.getTime() + days * 86400000));
+            }
+        },
+        getNewDateAddHours: function (date, hours) {
+            if (!date)
+                return date;
+            else {
+                date = new Date(date);
+                return new Date(date.setTime(date.getTime() + hours * 3600000));
             }
         },
         getDateHoursDiff: function (date1, date2) {

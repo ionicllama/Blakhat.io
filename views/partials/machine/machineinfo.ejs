@@ -1,4 +1,4 @@
-<div id="machineInfoContainer" class="col-content-box elevation-2">
+<div id="machineInfoInner" class="col-content-box elevation-2">
 
     <h4>Machine Info</h4>
     <hr>
@@ -7,28 +7,42 @@
 
         <div class="col-xs-9 col-sm-8 col-lg-9">
             <label class="text-info">IP Address:</label>
-            <span id="machineIP"><%= model.get('machine').ip %></span>
+            <span><%= model.get('machine').ip %></span>
         </div>
         <% if (model.get('isOwner')) { %>
         <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
             <% if (model.canRefreshIP()) { %>
-            <button type="button" id="ipRefreshButton" class="btn btn-success">Refresh</button>
+            <button type="button" id="ipRefreshButton" class="btn btn-info">Refresh</button>
             <% } else { %>
-            <span class="text-danger "><%= model.getNextIPRefreshDateString() %></span>
+            <span class="ip-refresh-countdown countdown text-danger"></span>
             <% } %>
         </div>
         <% } %>
     </div>
+    <% if (model.get('isOwner')) { %>
+    <div class="row">
+        <div class="col-xs-9 col-sm-8 col-lg-9">
+            <label class="text-info">Machine Password:</label>
+            <span id="machinePassword">******</span> <a id="toggleMachinePassword" href="javascript:void(0)">Show</a>
+        </div>
+        <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
+            <% if (model.canResetPassword()) { %>
+            <button type="button" id="passwordResetButton" class="btn btn-info">Reset</button>
+            <% } else { %>
+            <span class="password-reset-countdown countdown text-danger"></span>
+            <% } %>
+        </div>
+    </div>
+    <% } %>
     <div class="row">
 
         <div class="col-xs-9 col-sm-8 col-lg-9">
             <label class="text-info">CPU:</label>
-            <span id="machineCPU"><%= model.getCPUName() %></span>
+            <span><%= model.getCPUName() %></span>
         </div>
         <% if (model.get('isOwner')) { %>
         <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
-            <button type="button" id="cpuUpgradeButton" class="btn btn-primary" data-toggle="modal"
-                    data-target="#cpuUpgradeModal">Upgrade
+            <button type="button" id="cpuUpgradeButton" class="btn btn-success">Upgrade
             </button>
         </div>
         <% } %>
@@ -38,11 +52,11 @@
 
         <div class="col-xs-9 col-sm-8 col-lg-9">
             <label class="text-info">Hard Drive:</label>
-            <span id="machineHDD"><%= model.getHDDName() %></span>
+            <span><%= model.getHDDName() %></span>
         </div>
         <% if (model.get('isOwner')) { %>
         <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
-            <button type="button" id="hddUpgradeButton" class="btn btn-primary" data-toggle="modal"
+            <button type="button" id="hddUpgradeButton" class="btn btn-success" data-toggle="modal"
                     data-target="#hddUpgradeModal">Upgrade
             </button>
         </div>
@@ -53,11 +67,11 @@
 
         <div class="col-xs-9 col-sm-8 col-lg-9">
             <label class="text-info">Internet Speed:</label>
-            <span id="machineInternet"><%= model.getInternetName() %></span>
+            <span><%= model.getInternetName() %></span>
         </div>
         <% if (model.get('isOwner')) { %>
         <div class="col-xs-3 col-sm-3 col-lg-3 text-right">
-            <button type="button" id="internetUpgradeButton" class="btn btn-primary" data-toggle="modal"
+            <button type="button" id="internetUpgradeButton" class="btn btn-success" data-toggle="modal"
                     data-target="#internetUpgradeModal">Upgrade
             </button>
         </div>

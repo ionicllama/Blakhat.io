@@ -1,49 +1,59 @@
-<div class="modal-content">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title">Upgrade Internet</h4>
-    </div>
-    <div id="internetUpgradeContainer" class="modal-body">
-        <div class="table-responsive">
-            <table id="internetUpgradeTable" class="table data-table">
-                <thead>
-                <tr>
-                    <th>Download Speed (MB/s)</th>
-                    <th>Upload Speed (MB/s)</th>
-                    <th>Cost</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                <% for(internet in machineParts.internets){ %>
-                <tr>
-                    <td><%- machineParts.internets[internet].downSpeed %></td>
-                    <td><%- machineParts.internets[internet].upSpeed %></td>
-                    <td>$<%- BH.sharedHelpers.internetHelpers.getInternetCost(machineParts.internets[internet]) %></td>
-                    <td class="text-center">
-                        <% if(BH.sharedHelpers.internetHelpers.getInternetModifier(machineParts.internets[internet]) < BH.sharedHelpers.internetHelpers.getInternetModifier(model.get('machine').internet)){ %>
-                        <span class="text-warning text-owned">Downgrade</span>
-                        <% } else if(machineParts.internets[internet]._id.toString() === model.get('machine').internet._id.toString()){ %>
-                        <span class="text-info text-owned">Owned</span>
-                        <button style="display:none;" type="button" class="btn btn-success buyButton"
-                                _id="<%- machineParts.internets[internet]._id %>">
-                            Buy
-                        </button>
-                        <% } else { %>
-                        <span style="display:none;" class="text-info text-owned">Owned</span>
-                        <button type="button" class="btn btn-success buyButton"
-                                _id="<%- machineParts.internets[internet]._id %>">
-                            Buy
-                        </button>
+<div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div id="internetUpgradeRender" class="modal-content">
+
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Upgrade Internet</h4>
+            </div>
+            <div id="internetUpgradeContainer" class="modal-body">
+                <div class="table-responsive">
+                    <table id="internetUpgradeTable" class="table data-table">
+                        <thead>
+                        <tr>
+                            <th>Download Speed (MB/s)</th>
+                            <th>Upload Speed (MB/s)</th>
+                            <th>Cost</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <% for(internet in machineParts.internets){ %>
+                        <tr>
+                            <td><%- machineParts.internets[internet].downSpeed %></td>
+                            <td><%- machineParts.internets[internet].upSpeed %></td>
+                            <td>
+                                $<%- BH.sharedHelpers.internetHelpers.getInternetCost(machineParts.internets[internet]) %></td>
+                            <td class="text-center">
+                                <% if(BH.sharedHelpers.internetHelpers.getInternetModifier(machineParts.internets[internet]) < BH.sharedHelpers.internetHelpers.getInternetModifier(model.get('machine').internet)){ %>
+                                <span class="text-warning text-owned">Downgrade</span>
+                                <% } else if(machineParts.internets[internet]._id.toString() === model.get('machine').internet._id.toString()){ %>
+                                <span class="text-info text-owned">Owned</span>
+                                <button style="display:none;" type="button" class="btn btn-success buyButton"
+                                        _id="<%- machineParts.internets[internet]._id %>">
+                                    Buy
+                                </button>
+                                <% } else { %>
+                                <span style="display:none;" class="text-info text-owned">Owned</span>
+                                <button type="button" class="btn btn-success buyButton"
+                                        _id="<%- machineParts.internets[internet]._id %>">
+                                    Buy
+                                </button>
+                                <% } %>
+                            </td>
+                        </tr>
                         <% } %>
-                    </td>
-                </tr>
-                <% } %>
-                </tbody>
-            </table>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
         </div>
+
     </div>
-    <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-    </div>
+
 </div>

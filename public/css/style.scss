@@ -1,15 +1,15 @@
 $font-stack: Helvetica, sans-serif;
-$primary-color: #64B5F6;
-$primary-color-highlight: #2196F3;
-$accent-color: #ec9d28;
-$accent-color-highlight: #e48917;
+$primary-color: #5e5e5e;
+$primary-color-highlight: #828282;
+$accent-color: #5C6BC0;
+$accent-color-highlight: #3949AB;
 $primary-color-text: #555;
 $primary-background: #cbcbcb;
 $secondary-inner-background: #f1f1f1;
 $primary-color-button: $accent-color;
 $primary-color-button-border: $accent-color-highlight;
 $primary-color-button-hover: $accent-color-highlight;
-$primary-color-button-border-hover: #e46c10;
+$primary-color-button-border-hover: #303F9F;
 $elevation-dpi: 96/160;
 
 .elevation-bottom-1 {
@@ -205,6 +205,31 @@ body {
   }
 }
 
+//Loading spinner
+.glyphicon.spinning {
+  animation: spin 1s infinite linear;
+  -webkit-animation: spin2 1s infinite linear;
+}
+
+@keyframes spin {
+  from {
+    transform: scale(1) rotate(0deg);
+  }
+  to {
+    transform: scale(1) rotate(360deg);
+  }
+}
+
+@-webkit-keyframes spin2 {
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(360deg);
+  }
+}
+
+
 //Login Container Styles
 .login-container {
   margin-top: 60px;
@@ -225,9 +250,23 @@ body {
 }
 
 //Local Machine Styles
-#machineInfoContainer button {
-  width: 80px;
+#machineInfo,
+#machineLog {
+  #machineInfoInner,
+  #machineLogInner {
+    height: 285px;
+    .log-text {
+      resize: none;
+      width: 113%;
+      height: 212px;
+      margin: 2px 0;
+    }
+    button {
+      width: 80px;
+    }
+  }
 }
+
 
 //Upgrade Styles
 .data-table > tbody > tr {
@@ -249,6 +288,11 @@ $primary-error-color: #F44336;
     #internetSearchContainer {
       background: $primary-color-button;
       padding: 10px;
+      .internet-search-loading {
+        position: absolute;
+        top: 20px;
+        margin-left: -40px;
+      }
       #internetSearchText {
         display: inline-block;
         margin-right: 5px;
@@ -269,39 +313,42 @@ $primary-error-color: #F44336;
     }
   }
   #internetBrowserDOM {
-    #internetContent {
-      height: 100%;
+    .internet-dom {
       overflow: auto;
-      .internet-admin-container {
-        background: $secondary-inner-background;
-        min-height: 100%;
+      height: 100%;
+    }
+    .internet-admin-container {
+      background: $secondary-inner-background;
+      min-height: 100%;
+    }
+    .navigate-admin-login {
+      float: right;
+      margin: 10px;
+    }
+    .internet-browser-error {
+      max-width: 400px;
+      margin: 22% auto 0;
+      .panel-heading {
+        font-size: 26px;
       }
-      .navigate-admin-login {
-        float: right;
-        margin: 10px;
+      .panel-body {
+        font-size: 16px;
       }
-      .internet-browser-error {
+    }
+    .internet-browser-login-container {
+      background: $secondary-inner-background;
+      .internet-browser-login {
+        background: #FFF;
         max-width: 400px;
-        margin: 22% auto 0;
-        .panel-heading {
-          font-size: 26px;
-        }
-        .panel-body {
-          font-size: 18px;
-        }
-      }
-      .internet-browser-login-container {
-        max-width: 400px;
-        background: #eee;
         margin: 15% auto 0;
-        padding: 15px;
-        .internet-browser-login {
+        padding: 25px;
+        .internet-browser-login-inner {
           margin-top: 10px;
-        }
-        hr {
-          border-top: 1px solid #555;
-          margin-top: 15px;
-          margin-bottom: 15px;
+          hr {
+            border-top: 1px solid #868686;
+            margin-top: 15px;
+            margin-bottom: 15px;
+          }
         }
       }
     }
