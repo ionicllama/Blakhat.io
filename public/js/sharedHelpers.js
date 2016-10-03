@@ -90,6 +90,13 @@
             var regex = new RegExp(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/),
                 result = string.match(regex);
             return result ? result : "";
+        },
+        formatCurrency: function (money) {
+            //divide by 100, we store it in the database as cents for exact accuracy to one cent
+            return '$' + (money / 100).toFixed(2).toString().replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
+        },
+        formatCurrencyNoDecimals: function (money) {
+            return '$' + (money / 100).toString().replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
         }
     };
 
@@ -150,6 +157,21 @@
         },
         getFirewallCost: function (firewall) {
             return Math.floor(Math.pow(firewall.level * 5, 3));
+        }
+    };
+
+    exports.sharedHelpers.bankHelpers = {
+        parseBankBalance: function (balance) {
+            var result = {};
+            result.dollars = balance / 100;
+            result.cents = balance % 100;
+            return result;
+        }
+    };
+
+    exports.sharedHelpers.events = {
+        isNumberKey: function (e) {
+            return !(e.keyCode > 31 && (e.keyCode < 48 || e.keyCode > 57));
         }
     };
 

@@ -1,0 +1,43 @@
+<div class="modal-dialog">
+    <div class="modal-content">
+        <% if(type && type.length > 0) { %>
+
+        <% if(type == 'newBankAccount' && extras.bankAccount) { %>
+
+        <div class="modal-header">
+            Bank Account Created
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Account Number:</label>
+                <span><%= extras.bankAccount.get('account').accountNumber %></span>
+            </div>
+            <div>
+                <label>Password:</label>
+                <span><%= extras.bankAccount.get('account').password %></span>
+            </div>
+        </div>
+
+        <% } %>
+
+        <% } else { %>
+        <% if(header && header.length > 0) { %>
+
+        <div class="modal-header">
+            <%= header %>
+        </div>
+
+        <% } %>
+        <% if(body && body.length > 0) { %>
+
+        <div class="modal-body">
+            <%= body %>
+        </div>
+
+        <% } %>
+        <% } %>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+    </div>
+</div>

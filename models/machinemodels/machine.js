@@ -13,7 +13,7 @@ var Internet = require('../../models/machinemodels/internet');
 
 
 var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
-var purchasingHelpers = require('../../helpers/purchasingHelpers');
+var globalHelpers = require('../../helpers/globalHelpers');
 
 var machineSchema = mongoose.Schema({
 
@@ -21,9 +21,9 @@ var machineSchema = mongoose.Schema({
     bank: {type: mongoose.Schema.Types.ObjectId, ref: 'bank'},
     log: {type: String, default: ""},
     lastLogUpdate: {type: String, default: new Date()},
-    ip: {type: String, default: getNewIp()},
+    ip: {type: String, default: globalHelpers.getNewIp()},
     lastIPRefresh: {type: Date, default: null},
-    password: {type: String, default: getRandomPassword()},
+    password: {type: String, default: globalHelpers.getRandomPassword()},
     lastPasswordReset: {type: Date, default: null},
     cpu: {type: mongoose.Schema.Types.ObjectId, ref: 'cpu', default: null},
     hdd: {type: mongoose.Schema.Types.ObjectId, ref: 'hdd', default: null},
@@ -31,6 +31,69 @@ var machineSchema = mongoose.Schema({
     internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet', default: null}
 
 });
+
+machineSchema.statics = {
+    findPopulated: function (query, callback) {
+        this.findOne(query).populate(['cpu', 'internet', 'hdd']).exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
+    findByIdPopulated: function (_id, callback) {
+        this.findOne({_id: _id}).populate(['cpu', 'internet', 'hdd']).exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
+    findByUserPopulated: function (user, callback) {
+        var self = this,
+            query = {user: {_id: user._id}};
+        this.findPopulated(query, function (err, machine) {
+            if (err)
+                return callback(err);
+
+            if (!machine) {
+                machine = new self({user: user});
+                machine.setDefaultRefs(function () {
+                    self.findPopulated(query, function (err, machine) {
+                        callback(err, machine);
+                    });
+                });
+            }
+            else {
+                callback(null, machine);
+            }
+        });
+    },
+    findForInternet: function (search, user, callback) {
+        if (!search || search.length == 0)
+            return callback(null, {});
+
+        var parseIp = sharedHelpers.parseIPFromString(search),
+            query = {
+                ip: search
+            };
+
+        if (parseIp && parseIp.length > 0)
+            query.ip = parseIp;
+
+        this.findOne(query).select('ip user bank firewall').populate('bank').exec(function (err, machine) {
+            if (err)
+                return callback(err);
+
+            if (machine && machine.bank) {
+                //this is a bank machine ip
+                machine.populate("bank", function (err, machine) {
+                    if (err)
+                        return callback(err);
+
+                    callback(err, machine);
+                });
+            }
+            else {
+                callback(null, machine);
+            }
+        });
+    }
+};
 
 machineSchema.methods = {
     setDefaultRefs: function (callback) {
@@ -122,7 +185,7 @@ machineSchema.methods = {
     },
     refreshIP: function (callback) {
         if (this.canRefreshIP()) {
-            this.ip = getNewIp();
+            this.ip = globalHelpers.getNewIp();
             this.lastIPRefresh = new Date();
             this.save(function (err) {
                 if (err) {
@@ -138,7 +201,7 @@ machineSchema.methods = {
     },
     resetPassword: function (callback) {
         if (this.canResetPassword()) {
-            this.password = getRandomPassword();
+            this.password = globalHelpers.getRandomPassword();
             this.lastPasswordReset = new Date();
             this.save(function (err) {
                 if (err) {
@@ -252,24 +315,25 @@ machineSchema.methods = {
     },
     calculateCPUUpgradeCost: function (cores, speed) {
         return sharedHelpers.cpuHelpers.calculateCPUCost(cores, speed);
+    },
+    validateAuth: function (user, password) {
+        return ((user && user._id.toString() == user._id.toString()) || this.password == password);
+    },
+    appendLog: function (appendText) {
+        //this is synchronous - no need to validate this was done before returning results
+        if (appendText && appendText.length > 0) {
+            var newLog = (this.log ? this.log : "") + '\n' + appendText;
+            this.updateLog(newLog, function (err) {
+                if (err)
+                    console.log(err);
+            });
+        }
+    },
+    logAccess: function (sourceIP) {
+        var dateStr = (new Date()).toUTCString();
+        this.appendLog("Admin logged in from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
     }
 };
 
-/* MODEL LOCAL METHODS */
-function getNewIp() {
-    return sharedHelpers.randomNumber_255(2) +
-        "." +
-        sharedHelpers.randomNumber_255() +
-        "." +
-        sharedHelpers.randomNumber_255() +
-        "." +
-        sharedHelpers.randomNumber_255();
-}
-
-function getRandomPassword() {
-    //todo: generates a random 10 character alphanumeric password
-    return Math.random().toString(32).slice(2).substr(0, 10);
-}
-
 // create the model for users and expose it to our app
-module.exports = mongoose.model('Machine', machineSchema);
+module.exports = mongoose.model('machine', machineSchema);

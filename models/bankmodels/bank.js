@@ -5,12 +5,11 @@ var mongoose = require('mongoose');
 
 var _ = require('underscore');
 
-var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
-var purchasingHelpers = require('../../helpers/purchasingHelpers');
-
 var machineSchema = mongoose.Schema({
 
-    name: {type: String, default: ""}
+    name: {type: String, default: ""},
+    DOMbackground: {type: String, default: ""},
+    accountCost: {type: Number, default: 0}
 
 });
 

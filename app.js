@@ -12,11 +12,12 @@ var bodyParser = require('body-parser');
 var session = require('express-session');
 
 var machine = require('./controllers/machine');
+var internetContent = require('./controllers/internetcontent');
+var bank = require('./controllers/bank');
 
 var routes = require('./controllers/index');
 var local = require('./controllers/localmachine');
 var internet = require('./controllers/internet');
-var internetContent = require('./controllers/internetcontent');
 var finances = require('./controllers/finances');
 
 var configDB = require('./config/database');
@@ -70,14 +71,15 @@ app.use(function (req, res, next) {
 
 //API Routes
 app.use('/machine', machine);
+app.use('/internetcontent', internetContent);
+app.use('/bank', bank);
 
 //Web Routes
 app.use('/', routes);
 app.use('/localmachine', local);
 app.use('/internet', internet);
-app.use('/internetcontent', internetContent);
-app.use('/finances', finances);
 
+app.use('/finances', finances);
 require('./config/passport')(passport);
 require('./controllers/users')(app, passport); // pass passport for configuration
 

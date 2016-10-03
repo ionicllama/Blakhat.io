@@ -4,19 +4,23 @@
 var express = require('express');
 var router = express.Router();
 
+var Machine = require('../models/machinemodels/machine');
+
 var auth = require('../middlewares/authMiddleware');
 
-var machineHelpers = require('../helpers/machineHelpers');
 var errorHelpers = require('../helpers/errorHelpers');
 
 router.get('/', auth.isLoggedIn, function (req, res) {
     var response = {machine: {}};
     if (req.user._id) {
 
-        machineHelpers.getUserMachine(req.user, function (machine) {
+        Machine.findByUserPopulated(req.user, function (err, machine) {
+            if (err)
+                return errorHelpers.returnError("Failed to initialize this machine.  Please try again later.");
+
             response = {
                 machine: machine ? machine : {},
-                isOwner: machine && (machine.user.toString() == req.user._id.toString())
+                isOwner: machine && machine.user && machine.user.toString() == req.user._id.toString()
             };
             res.json(response);
         })
@@ -28,40 +32,43 @@ router.get('/', auth.isLoggedIn, function (req, res) {
 
 router.get('/:_id', auth.isLoggedIn, function (req, res) {
     if (req.params && req.params._id) {
-        var query = {
-            _id: req.params._id
-        };
-        machineHelpers.getMachine(query, function (machine) {
+        Machine.findByIdPopulated(req.params._id, function (err, machine) {
+            if (err)
+                console.log(err);
+
             var response = {};
-            if (machine.user.toString() == req.user._id.toString() || machine.password == req.query.password)
+            if (machine && (machine.user && machine.user.toString() == req.user._id.toString()) || machine.password == req.query.password) {
                 response = {
                     machine: machine ? machine : {},
-                    isOwner: machine && (machine.user.toString() == req.user._id.toString())
+                    isOwner: machine && machine.user && machine.user.toString() == req.user._id.toString()
                 };
+            }
             res.json(response);
         });
     }
     else {
-        errorHelpers.returnError_get_noId();
+        errorHelpers.returnError_get_noId(res);
     }
 });
 
 router.patch('/:_id', auth.isLoggedIn, function (req, res) {
     if (req.params._id) {
-        machineHelpers.getMachine({_id: req.params._id}, function (machine) {
+        Machine.findByIdPopulated(req.params._id, function (err, machine) {
+            if (err)
+                return errorHelpers.returnError("Failed to update machine.", res, err);
+            else if (!machine)
+                return errorHelpers.returnError("No existing machine with supplied _id.", res);
+
             var response = {
                 machine: machine
             };
 
-            if (!machine)
-                return errorHelpers.returnError("No existing machine with supplied _id.", res);
-
-            if (!machineHelpers.validateMachinePassword(req.user, req.body.password, req.body.sourceIP, machine))
+            if (!machine.validateAuth(req.user, req.body.password))
                 return errorHelpers.returnError("You don't have permission to update this.", res);
 
             if (req.body.log != null) {
-                machine.updateLog(req.body.log, function (UIError, err) {
-                    if (err || UIError) {
+                machine.updateLog(req.body.log, function (err) {
+                    if (err) {
                         errorHelpers.returnError(UIError, res, err);
                         return;
                     }

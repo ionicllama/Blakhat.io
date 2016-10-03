@@ -1,0 +1,38 @@
+<!-- replace -1 with:  user.firewallBypass.level  -->
+<div class="bank-account-container white-centered-box elevation-2 col-lg-4 col-lg-offset-4">
+    <h3 class="text-info"><%= model.get('bank').name %></h3>
+    <h3>
+        <small>Acct #: <%= model.get('account').accountNumber %></small>
+    </h3>
+    <div class="internet-browser-login-inner">
+        <div class="bank-account-balance">
+            <span class="text-success"><%= BH.sharedHelpers.formatCurrency(model.get('account').balance) %></span>
+        </div>
+        <hr/>
+        <div class="transfer-funds-container">
+            <h4 class="text-info">Transfer Funds</h4>
+            <div>
+                <div class="form-group">
+                    <label>To Account #:</label>
+                    <input id="transferAccountNumber" type="text"
+                           onkeypress="return BH.sharedHelpers.events.isNumberKey(event);" class="form-control"
+                           name="transferAccountNumber">
+                </div>
+                <div class="form-group">
+                    <label>Amount:</label>
+                    <div class="input-group">
+                        <span class="input-group-addon">$</span>
+                        <input id="transferAmountDollars" type="text" placeholder="0"
+                               onkeypress="return BH.sharedHelpers.events.isNumberKey(event);"
+                               class="form-control dollars-input" name="transferAmountDollars">
+                        <span class="input-group-addon">¢</span>
+                        <input id="transferAmountCents" type="text" placeholder="00"
+                               onkeypress="return BH.sharedHelpers.events.isNumberKey(event);"
+                               class="form-control cents-input" name="transferAmountCents">
+                    </div>
+                </div>
+                <button id="transferConfirmButton" type="button" class="btn btn-success">Transfer</button>
+            </div>
+        </div>
+    </div>
+</div>

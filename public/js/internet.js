@@ -21,7 +21,7 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
 
         this.fetchPage();
 
-        this.listenTo(this, "change:search change:password", this.fetchPage);
+        this.listenTo(this, "change:search change:password change:bankAccount", this.fetchPage);
     },
     fetchPage: function () {
         this.get('browser').$('#internetSearchText').val(this.get('search'));
@@ -49,14 +49,7 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
             this.browserDOM.remove();
 
         var machine = this.get('machine');
-        if (machine && machine.bank) {
-            this.browserDOM = new BH.views.InternetBrowserBankDOM({
-                el: this.get('el'),
-                model: this,
-                path: path
-            });
-        }
-        else if (machine && this.get('isAuthenticated')) {
+        if (machine && this.get('isAuthenticated')) {
             path = '/admin';
             if (this.get('browser'))
                 this.browserDOM = new BH.views.InternetBrowserAdminDOM({
@@ -65,6 +58,19 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
                     path: path,
                     _id: machine._id
                 });
+        }
+        else if (machine && machine.bank || path == '/account') {
+            if (path == '/admin')
+                path = '/login';
+            else if (this.get('bankAccount') && this.get('bankAccount').get('isAuthenticated'))
+                path = '/account';
+            else if (path == '/account' && (!this.get('bankAccount') || !this.get('bankAccount').get('isAuthenticated')))
+                path = '';
+            this.browserDOM = new BH.views.InternetBrowserBankDOM({
+                el: this.get('el'),
+                model: this,
+                path: path
+            });
         }
         else {
             if (path == '/admin')
@@ -82,8 +88,6 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
         }
     }
 });
-
-BH.models.RemoteMachine = BH.models.Machine.extend({});
 
 
 //VIEWS
@@ -110,9 +114,7 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
                     this.$('#internetSearchText').blur();
                 }
             }, this),
-            click: function () {
-                $(this).select();
-            }
+            click: this.inputClickSelectAll.bind(this)
         });
 
         $(window).resize($.proxy(function () {
@@ -122,6 +124,9 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
 
         this.getInternetContent(this.options.homepage);
     },
+    navigateToSubPath: function (path) {
+        this.getInternetContent(this.model.get('machine').ip + path);
+    },
     searchInternet: function () {
         this.getInternetContent(this.$('#internetSearchText').val());
     },
@@ -130,15 +135,18 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
         if (!excludeFromHistory)
             this.addToHistory(search);
 
-        if (this.model)
-            this.model.set('search', search);
-        else
+        if (this.model) {
+            this.model.setSilent({search: search});
+            this.model.trigger('change:search');
+        }
+        else {
             this.model = new BH.models.InternetBrowserDOM({
                 el: this.$('#internetBrowserDOM'),
                 search: search,
                 browser: this,
                 sourceIP: this.options.sourceIP
             });
+        }
     },
     showLoading: function (isShow) {
         if (isShow || isShow == null)
@@ -156,7 +164,7 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
         this.getInternetContent(this.options.homepage);
     },
     refreshPage: function () {
-        this.getInternetContent(this.internetHistory[this.historyIndex - 1], true);
+        this.model.fetchPage();
     },
     addToHistory: function (search) {
         if (this.internetHistory && this.internetHistory[this.historyIndex - 1] && this.internetHistory[this.historyIndex - 1] == search)
@@ -219,7 +227,6 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
         "click .admin-login-button": "attemptAdminLogin"
     },
     beforeFirstRender: function () {
-        this.listenTo(this.model, "change", this.render);
         this.renderData = {
             model: this.model,
             path: this.options.path,
@@ -238,7 +245,7 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
         this.model.get('browser').showLoading(false);
     },
     navigateAdminLogin: function () {
-        this.model.get('browser').getInternetContent(this.model.get('machine').ip + '/login');
+        this.model.get('browser').navigateToSubPath('/login');
     },
     attemptAdminLogin: function () {
         this.model.set('password', this.$('.admin-login-password').val());
@@ -246,8 +253,83 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
 });
 
 BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
-    defaults: {
-        template: '/views/partials/internet/internetbrowserdom_bank.ejs'
+    events: {
+        "click .navigate-admin-login": "navigateAdminLogin",
+        "click .admin-login-button": "attemptAdminLogin",
+        'click .bank-login-button': 'attemptBankLogin',
+        'click .create-bank-account-button': 'createBankAccountBegin'
+    },
+    afterRender: function () {
+        this.setElement(this.$('#internetContent'));
+        this.$('.bank-account-password').on({
+            'keyup': $.proxy(function (e) {
+                if (e.keyCode == 13) {
+                    this.attemptBankLogin();
+                    this.$('.bank-account-password').blur();
+                }
+            }, this)
+        });
+        this.$('.admin-login-password').on({
+            'keyup': $.proxy(function (e) {
+                if (e.keyCode == 13) {
+                    this.attemptAdminLogin();
+                }
+            }, this)
+        });
+
+        if (this.model.get('bankAccount') && this.model.get('bankAccount').get('isAuthenticated')) {
+            this.connectedAccount = new BH.views.BankAccount({
+                el: this.$('.bank-account-container'),
+                model: this.model.get('bankAccount')
+            });
+        }
+        this.model.setSilent({bankAccount: null});
+        this.model.get('browser').showLoading(false);
+
+        if (this.model.get('bankAccount') && this.model.get('bankAccount')._id) {
+            this.bankAccount = new BH.views.BankAccount({
+                el: this.$('.bank-account-container'),
+                model: this.model.get('bankAccount')
+            });
+        }
+    },
+    attemptBankLogin: function () {
+        var bankAccount = new BH.models.BrowserBankAccount({
+            bank: this.model.get('machine').bank,
+            account: {
+                accountNumber: this.$('.bank-account-number').val(),
+                password: this.$('.bank-account-password').val()
+            },
+            browserModel: this.model
+        });
+    },
+    createBankAccountBegin: function () {
+        new BH.views.ConfirmModal({
+            header: "Confirm New Bank Account",
+            body: "Are you sure you want to create a new bank account with " + this.model.get('machine').bank.name + "?",
+            onConfirm: this.createBankAccountConfirm.bind(this)
+        })
+    },
+    createBankAccountConfirm: function () {
+        var newAccount = new BH.models.BankAccount({
+            bank: this.model.get('machine').bank
+        });
+        newAccount.save(null, {
+                success: function (data) {
+                    //show dialog with new account number and password
+                    new BH.views.NotifyModal({
+                        type: 'newBankAccount',
+                        extras: {
+                            bankAccount: data
+                        }
+                    });
+                },
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
     }
 });
 

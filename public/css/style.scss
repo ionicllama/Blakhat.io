@@ -67,6 +67,11 @@ $elevation-dpi: 96/160;
   filter: drop-shadow($shadow1) drop-shadow($shadow2);
 }
 
+//Modal Styles
+.modal-header {
+  font-size: 18px;
+}
+
 //Nav Header
 $bgDefault: $primary-color;
 $bgHighlight: $primary-color-highlight;
@@ -205,6 +210,10 @@ body {
   }
 }
 
+.cents-input {
+  width: 50px !important;
+}
+
 //Loading spinner
 .glyphicon.spinning {
   animation: spin 1s infinite linear;
@@ -252,6 +261,9 @@ body {
 //Local Machine Styles
 #machineInfo,
 #machineLog {
+  #toggleMachinePassword {
+    margin-left: 5px;
+  }
   #machineInfoInner,
   #machineLogInner {
     height: 285px;
@@ -260,6 +272,7 @@ body {
       width: 113%;
       height: 212px;
       margin: 2px 0;
+      font-size: 12px;
     }
     button {
       width: 80px;
@@ -322,8 +335,9 @@ $primary-error-color: #F44336;
       min-height: 100%;
     }
     .navigate-admin-login {
-      float: right;
       margin: 10px;
+      position: absolute;
+      right: 0;
     }
     .internet-browser-error {
       max-width: 400px;
@@ -335,22 +349,39 @@ $primary-error-color: #F44336;
         font-size: 16px;
       }
     }
-    .internet-browser-login-container {
+    .bank-account-container, .internet-browser-login-container {
       background: $secondary-inner-background;
-      .internet-browser-login {
-        background: #FFF;
-        max-width: 400px;
-        margin: 15% auto 0;
-        padding: 25px;
-        .internet-browser-login-inner {
-          margin-top: 10px;
-          hr {
-            border-top: 1px solid #868686;
-            margin-top: 15px;
-            margin-bottom: 15px;
-          }
-        }
+    }
+    .white-centered-box {
+      background: #FFF;
+      margin-top: 12%;
+      padding: 20px;
+      hr {
+        border-top: 1px solid #CCC;
+        margin-top: 15px;
+        margin-bottom: 15px;
       }
+      .internet-browser-login-inner {
+        margin-top: 20px;
+      }
+      h3 {
+        margin: 0;
+      }
+    }
+  }
+}
+
+//Bank Styles
+.bank-account-container {
+  .bank-account-balance {
+    font-size: 35px;
+    text-align: center;
+    margin-top: 10px;
+  }
+  .transfer-funds-container {
+    h4 {
+      padding: 0;
+      margin-bottom: 10px;
     }
   }
 }

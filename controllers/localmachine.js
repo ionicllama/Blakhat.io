@@ -16,20 +16,14 @@ router.get('/', auth.isLoggedIn, function (req, res) {
     CPU.find({}).exec(function (err, cpus) {
         if (err) {
             console.log(err);
-            res.redirect('/logout');
-            return;
         }
         HDD.find({}).exec(function (err, hdds) {
             if (err) {
                 console.log(err);
-                res.redirect('/logout');
-                return;
             }
             Internet.find({}).exec(function (err, internets) {
                 if (err) {
                     console.log(err);
-                    res.redirect('/logout');
-                    return;
                 }
 
                 res.locals = _.extend({}, res.locals, {
