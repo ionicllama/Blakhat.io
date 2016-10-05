@@ -1,0 +1,23 @@
+<div class="modal-dialog modal-bank-account-select">
+    <div class="modal-content">
+        <div class="modal-header">
+            <% if(header && header.length > 0) { %>
+            <%= header %>
+            <% } %>
+        </div>
+        <div class="modal-body">
+            <% if(extras && extras.amount) { %>
+            <div class="payment-total-container">
+                <strong>Total: </strong>
+                <span class="text-success"><%= BH.sharedHelpers.formatCurrency(extras.amount) %></span>
+            </div>
+            <div class="modal-body-inner">
+
+            </div>
+            <% } %>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default modal-button-close" data-dismiss="modal">Close</button>
+        </div>
+    </div>
+</div>

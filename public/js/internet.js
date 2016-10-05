@@ -21,7 +21,7 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
 
         this.fetchPage();
 
-        this.listenTo(this, "change:search change:password change:bankAccount", this.fetchPage);
+        this.listenTo(this, "change:search change:password change:activeAccount", this.fetchPage);
     },
     fetchPage: function () {
         this.get('browser').$('#internetSearchText').val(this.get('search'));
@@ -62,9 +62,9 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
         else if (machine && machine.bank || path == '/account') {
             if (path == '/admin')
                 path = '/login';
-            else if (this.get('bankAccount') && this.get('bankAccount').get('isAuthenticated'))
+            else if (this.get('activeAccount') && this.get('activeAccount').get('isAuthenticated'))
                 path = '/account';
-            else if (path == '/account' && (!this.get('bankAccount') || !this.get('bankAccount').get('isAuthenticated')))
+            else if (path == '/account' && (!this.get('activeAccount') || !this.get('activeAccount').get('isAuthenticated')))
                 path = '';
             this.browserDOM = new BH.views.InternetBrowserBankDOM({
                 el: this.get('el'),
@@ -260,7 +260,6 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
         'click .create-bank-account-button': 'createBankAccountBegin'
     },
     afterRender: function () {
-        this.setElement(this.$('#internetContent'));
         this.$('.bank-account-password').on({
             'keyup': $.proxy(function (e) {
                 if (e.keyCode == 13) {
@@ -277,53 +276,58 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
             }, this)
         });
 
-        if (this.model.get('bankAccount') && this.model.get('bankAccount').get('isAuthenticated')) {
-            this.connectedAccount = new BH.views.BankAccount({
+        if (this.model.get('activeAccount') && this.model.get('activeAccount').get('isAuthenticated')) {
+            new BH.views.BrowserBankAccount({
                 el: this.$('.bank-account-container'),
-                model: this.model.get('bankAccount')
+                model: this.model.get('activeAccount')
             });
         }
-        this.model.setSilent({bankAccount: null});
+        this.model.setSilent({activeAccount: null});
         this.model.get('browser').showLoading(false);
-
-        if (this.model.get('bankAccount') && this.model.get('bankAccount')._id) {
-            this.bankAccount = new BH.views.BankAccount({
-                el: this.$('.bank-account-container'),
-                model: this.model.get('bankAccount')
-            });
-        }
     },
-    attemptBankLogin: function () {
-        var bankAccount = new BH.models.BrowserBankAccount({
+    forceBankLogin: function (accountNumber, password) {
+        new BH.models.BrowserBankAccount({
             bank: this.model.get('machine').bank,
             account: {
-                accountNumber: this.$('.bank-account-number').val(),
-                password: this.$('.bank-account-password').val()
+                accountNumber: accountNumber,
+                password: password
             },
             browserModel: this.model
         });
     },
-    createBankAccountBegin: function () {
-        new BH.views.ConfirmModal({
-            header: "Confirm New Bank Account",
-            body: "Are you sure you want to create a new bank account with " + this.model.get('machine').bank.name + "?",
-            onConfirm: this.createBankAccountConfirm.bind(this)
-        })
+    attemptBankLogin: function () {
+        this.forceBankLogin(this.$('.bank-account-number').val(), this.$('.bank-account-password').val());
     },
-    createBankAccountConfirm: function () {
+    createBankAccountBegin: function () {
+        if (this.model.get('machine').bank.accountCost == 0) {
+            new BH.views.ConfirmModal({
+                header: "Confirm New Bank Account",
+                body: "Are you sure you want to create a new free bank account with " + this.model.get('machine').bank.name + "?",
+                onConfirm: this.createBankAccountConfirm.bind(this)
+            });
+        }
+        else {
+            new BH.collections.UserBankAccountSelect([], {
+                amount: this.model.get('machine').bank.accountCost,
+                callback: this.createBankAccountConfirm.bind(this)
+            });
+        }
+    },
+    createBankAccountConfirm: function (paymentAccount) {
         var newAccount = new BH.models.BankAccount({
-            bank: this.model.get('machine').bank
+            bank: this.model.get('machine').bank,
+            paymentAccount: paymentAccount ? paymentAccount.get('account')._id : {}
         });
         newAccount.save(null, {
-                success: function (data) {
-                    //show dialog with new account number and password
-                    new BH.views.NotifyModal({
+            success: $.proxy(function (data) {
+                new BH.views.NotifyNewBankAccountModal({
                         type: 'newBankAccount',
                         extras: {
-                            bankAccount: data
-                        }
+                            account: data
+                        },
+                    loginCallback: this.attemptBankLogin.bind(this)
                     });
-                },
+            }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);
                 },
@@ -335,7 +339,6 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
 
 BH.views.InternetBrowserAdminDOM = BH.views.InternetBrowserDOM.extend({
     afterRender: function () {
-        this.setElement(this.$('#internetContent'));
         if (this.model.get('isOwner')) {
             this.connectedMachine = new BH.models.LocalMachine({
                 el: this.$('.internet-admin-container'),

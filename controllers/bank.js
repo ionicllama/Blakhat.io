@@ -27,28 +27,22 @@ router.post('/account/', auth.isLoggedIn, function (req, res) {
 
         if (bank) {
             if (bank.accountCost > 0) {
-                //todo: check if the user has enough funds in other bank accounts
-                return errorHelpers.returnError("Failed to create bank account.  Not enough funds in other accounts.", res, err);
-            }
-            var newAccount = new BankAccount({
-                bank: bank._id,
-                user: req.user._id
-            });
-            newAccount.save(function (err) {
-                if (err)
-                    return errorHelpers.returnError("Failed to create bank account.", res, err);
+                if (!req.body.paymentAccount || req.body.paymentAccount.length <= 0)
+                    return errorHelpers.returnError("Failed to create bank account.  No payment account supplied.", res, err);
 
-                BankAccount.populate(newAccount, 'bank', function (err, bank) {
-                    if (err)
-                        console.log(err);
+                BankAccount.makePurchase(req.user, req.body.paymentAccount, bank.accountCost, function (UIError, err) {
+                    if (UIError || err)
+                        return errorHelpers.returnError(UIError, res, err);
 
-                    response = {
-                        account: newAccount,
-                        isAuthenticated: true
-                    };
-                    res.json(response);
+                    createNewBankAccount(req.user, bank, res);
                 });
-            });
+            }
+            else {
+                createNewBankAccount(req.user, bank, res);
+            }
+        }
+        else {
+            res.json(response);
         }
     });
 });
@@ -63,18 +57,39 @@ router.get('/account/', auth.isLoggedIn, function (req, res) {
             if (err)
                 console.log(err);
 
-            if (bankAccount) {
+            if (bankAccount)
                 response = {
                     account: bankAccount,
                     isAuthenticated: true
                 };
-            }
+
             res.json(response);
         });
     }
     else {
         res.json(response)
     }
+});
+
+router.get('/accounts/', auth.isLoggedIn, function (req, res) {
+    var response = [];
+    BankAccount.findByUser(req.user, function (err, bankAccounts) {
+        if (err)
+            console.log(err);
+
+        if (bankAccounts && bankAccounts.length > 0) {
+            for (var bankAccount in bankAccounts) {
+                var accountInfo = {
+                    account: bankAccounts[bankAccount],
+                    isAuthenticated: true
+                };
+                response.push(accountInfo);
+            }
+
+        }
+
+        res.json(response);
+    });
 });
 
 // router.get('/:_id', auth.isLoggedIn, function (req, res) {
@@ -90,27 +105,47 @@ router.patch('/account/:_id', auth.isLoggedIn, function (req, res) {
     if (!req.params._id)
         return errorHelpers.returnError_noId(res);
 
-    if (req.params.transfer) {
-        if (!req.params.transfer.accountNumber)
-            return errorHelpers.returnError("No desination account number was entered");
-        else if (!req.params.transfer.amount || req.params.transfer.amount == 0)
-            return errorHelpers.returnError("You must transfer at least 1 dollar");
+    if (!req.body.transfer || req.body.transfer.accountNumber.length == 0)
+        return errorHelpers.returnError("No desination account number was entered", res);
+    else if (!req.body.transfer.amount || req.body.transfer.amount == 0)
+        return errorHelpers.returnError("You must transfer at least 1 dollar", res);
 
-        BankAccount.findByLogin(null, req.params.account.accountNumber, req.params.account.password, function (err, bankAccount) {
-            if (err || !bankAccount)
-                return errorHelpers.returnError("This bank account no longer exists!", res, err);
+    BankAccount.findByLogin(null, req.body.account.accountNumber, req.body.account.password, function (err, bankAccount) {
+        if (err || !bankAccount)
+            return errorHelpers.returnError("This bank account no longer exists!", res, err);
 
-            bankAccount.transferFundsFrom(req.params.transfer.accountNumber, req.params.transfer.amount, function (UIError, err) {
-                if (err || UIError)
-                    return errorHelpers.returnError(UIError, res, err);
+        bankAccount.transferFundsFrom(req.body.transfer.accountNumber, req.body.transfer.amount, function (UIError, err, sourceBankAccount) {
+            if (err || UIError)
+                return errorHelpers.returnError(UIError, res, err);
 
-                res.json({
-                    account: bankAccount,
-                    isAuthenticated: true
-                });
+            res.json({
+                account: bankAccount,
+                isAuthenticated: true
             });
         });
-    }
+    });
 });
+
+function createNewBankAccount(user, bank, res) {
+    var newAccount = new BankAccount({
+        bank: bank._id,
+        user: user._id
+    });
+    newAccount.save(function (err) {
+        if (err)
+            return errorHelpers.returnError("Failed to create bank account.", res, err);
+
+        BankAccount.populate(newAccount, 'bank', function (err, bank) {
+            if (err)
+                console.log(err);
+
+            response = {
+                account: newAccount,
+                isAuthenticated: true
+            };
+            res.json(response);
+        });
+    });
+}
 
 module.exports = router;

@@ -1,11 +1,6 @@
-//MODELS
-
-
-//VIEWS
-
-
-// $(function () {
-//     new BH.models.LocalMachine({
-//         el: $('#pageOuterContainer')
-//     });
-// });
+$(function () {
+    new BH.collections.UserBankAccountManagement([],
+        {
+            el: '#bankAccountManagementContainer'
+        });
+});

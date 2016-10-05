@@ -226,22 +226,31 @@ machineSchema.methods = {
 
                 if (newCPU) {
                     self.cpu = newCPU;
-                    var purchaseCallback = function (err) {
+                    self.save(function (err) {
                         if (err) {
                             callback(null, err);
                             return;
                         }
 
-                        self.save(function (err) {
-                            if (err) {
-                                callback(null, err);
-                                return;
-                            }
+                        callback();
+                    });
 
-                            callback();
-                        });
-                    };
-                    purchasingHelpers.processPurchase(user, newCPU.getCost(), purchaseCallback);
+                    // var purchaseCallback = function (err) {
+                    //     if (err) {
+                    //         callback(null, err);
+                    //         return;
+                    //     }
+                    //
+                    //     self.save(function (err) {
+                    //         if (err) {
+                    //             callback(null, err);
+                    //             return;
+                    //         }
+                    //
+                    //         callback();
+                    //     });
+                    // };
+                    // purchasingHelpers.processPurchase(user, newCPU.getCost(), purchaseCallback);
 
                 }
                 else {

@@ -1,0 +1,12 @@
+<div class="user-bank-account-container elevation-2">
+    <h4 class="text-info"><%= model.get('account').bank.name %></h4>
+    <h5 class="text-muted">Acct #: <%= model.get('account').accountNumber %></h5>
+    <div class="bank-account-balance">
+        <span class="text-success"><%= BH.sharedHelpers.formatCurrency(model.get('account').balance) %></span>
+    </div>
+
+    <button type="button"
+            class="btn btn-success btn-block select-bank-account <% if(amount > model.get('account').balance) { %> disabled <% } %> ">
+        Select
+    </button>
+</div>

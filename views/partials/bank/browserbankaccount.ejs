@@ -1,6 +1,9 @@
 <!-- replace -1 with:  user.firewallBypass.level  -->
 <div class="bank-account-container white-centered-box elevation-2 col-lg-4 col-lg-offset-4">
-    <h3 class="text-info"><%= model.get('bank').name %></h3>
+    <div>
+        <button id="bankAccountLogoutButton" type="button" class="btn btn-danger">Logout</button>
+    </div>
+    <h3 class="text-info"><%= model.get('account').bank.name %></h3>
     <h3>
         <small>Acct #: <%= model.get('account').accountNumber %></small>
     </h3>
@@ -12,15 +15,15 @@
         <div class="transfer-funds-container">
             <h4 class="text-info">Transfer Funds</h4>
             <div>
-                <div class="form-group">
+                <div class="transfer-account-number-input-group form-group">
                     <label>To Account #:</label>
-                    <input id="transferAccountNumber" type="text"
+                    <input id="transferAccountNumber" type="text" maxlength="10" placeholder="1234567890"
                            onkeypress="return BH.sharedHelpers.events.isNumberKey(event);" class="form-control"
                            name="transferAccountNumber">
                 </div>
                 <div class="form-group">
                     <label>Amount:</label>
-                    <div class="input-group">
+                    <div class="transfer-amount-input-group input-group">
                         <span class="input-group-addon">$</span>
                         <input id="transferAmountDollars" type="text" placeholder="0"
                                onkeypress="return BH.sharedHelpers.events.isNumberKey(event);"
@@ -31,7 +34,7 @@
                                class="form-control cents-input" name="transferAmountCents">
                     </div>
                 </div>
-                <button id="transferConfirmButton" type="button" class="btn btn-success">Transfer</button>
+                <button id="transferConfirmButton" type="button" class="btn btn-success" disabled>Transfer</button>
             </div>
         </div>
     </div>

@@ -1,0 +1,17 @@
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <% if(header && header.length > 0) { %>
+            <%= header %>
+            <% } %>
+        </div>
+        <div class="modal-body">
+            <% if(body && body.length > 0) { %>
+            <%= body %>
+            <% } %>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default modal-button-close" data-dismiss="modal">Close</button>
+        </div>
+    </div>
+</div>

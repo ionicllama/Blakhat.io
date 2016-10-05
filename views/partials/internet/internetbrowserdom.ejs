@@ -58,7 +58,7 @@
             <h3 class="text-primary">Account Login
                 <small><%= model.get('machine').bank.name %></small>
             </h3>
-            <% if(model.get('bankAccount') && model.get('bankAccount').get('isAuthenticated') === false) { %>
+            <% if(model.get('activeAccount') && model.get('activeAccount').get('isAuthenticated') === false) { %>
 
             <div class="alert alert-danger">Incorrect account number or password</div>
 

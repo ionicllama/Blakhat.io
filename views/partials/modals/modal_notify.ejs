@@ -2,7 +2,7 @@
     <div class="modal-content">
         <% if(type && type.length > 0) { %>
 
-        <% if(type == 'newBankAccount' && extras.bankAccount) { %>
+        <% if(type == 'newBankAccount' && extras.account) { %>
 
         <div class="modal-header">
             Bank Account Created
@@ -10,11 +10,11 @@
         <div class="modal-body">
             <div class="form-group">
                 <label>Account Number:</label>
-                <span><%= extras.bankAccount.get('account').accountNumber %></span>
+                <span><%= extras.account.get('account').accountNumber %></span>
             </div>
             <div>
                 <label>Password:</label>
-                <span><%= extras.bankAccount.get('account').password %></span>
+                <span><%= extras.account.get('account').password %></span>
             </div>
         </div>
 
@@ -37,6 +37,13 @@
         <% } %>
         <% } %>
         <div class="modal-footer">
+
+            <% if(type == 'newBankAccount' && extras.account) { %>
+
+            <button type="button" class="btn btn-success new-account-login-button" data-dismiss="modal">Login</button>
+
+            <% } %>
+
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
     </div>

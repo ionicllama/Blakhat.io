@@ -169,6 +169,10 @@ body {
   color: $primary-color-text;
 }
 
+.alert {
+  margin: 10px 0;
+}
+
 .btn-primary, .btn-primary:focus {
   &:focus {
     outline: none;
@@ -373,6 +377,12 @@ $primary-error-color: #F44336;
 
 //Bank Styles
 .bank-account-container {
+  #bankAccountLogoutButton {
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin: 10px 10px 0;
+  }
   .bank-account-balance {
     font-size: 35px;
     text-align: center;
@@ -384,6 +394,47 @@ $primary-error-color: #F44336;
       margin-bottom: 10px;
     }
   }
+}
+
+.modal-bank-account-select {
+  width: 80%;
+  .modal-content {
+    height: 100%;
+    .modal-body {
+      .payment-total-container {
+        text-align: center;
+        font-size: 24px;
+        margin-bottom: 10px;
+      }
+      .modal-body-inner {
+        overflow: auto;
+        text-align: center;
+      }
+    }
+  }
+}
+
+.user-bank-account-container {
+  width: 225px;
+  background: $secondary-inner-background;
+  padding: 10px;
+  margin: 20px;
+  display: inline-block;
+  .bank-account-balance {
+    font-size: 24px;
+    text-align: center;
+    margin: 20px;
+  }
+  h4, h5 {
+    margin: 0
+  }
+  .bank-name {
+    margin: 10px 0 0;
+  }
+}
+
+#bankAccountManagementContainer {
+  text-align: center;
 }
 
 //Utility
