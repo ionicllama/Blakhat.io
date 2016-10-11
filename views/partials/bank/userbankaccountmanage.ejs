@@ -1,9 +1,11 @@
 <div class="user-bank-account-container elevation-2">
+    <button type="button" class="btn btn-sm btn-danger delete-manage-bank-account"><span
+                class="glyphicon glyphicon-trash"></span></button>
     <h4 class="text-info"><%= model.get('account').bank.name %></h4>
     <h5 class="text-muted">Acct #: <%= model.get('account').accountNumber %></h5>
     <div class="bank-account-balance">
         <span class="text-success"><%= BH.sharedHelpers.formatCurrency(model.get('account').balance) %></span>
     </div>
 
-    <button type="button" class="btn btn-success btn-block select-bank-account">Login</button>
+    <button type="button" class="btn btn-success btn-block login-manage-bank-account">Login</button>
 </div>

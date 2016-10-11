@@ -12,7 +12,7 @@
         <% if (model.get('isOwner')) { %>
         <div class="col-xs-4 col-sm-4 col-lg-3 text-right">
             <% if (model.canRefreshIP()) { %>
-            <button type="button" id="ipRefreshButton" class="btn btn-info">Refresh</button>
+            <button type="button" id="ipRefreshButton" class="btn btn-primary">Refresh</button>
             <% } else { %>
             <span class="ip-refresh-countdown countdown text-danger"></span>
             <% } %>
@@ -27,7 +27,7 @@
         </div>
         <div class="col-xs-4 col-sm-4 col-lg-3 text-right">
             <% if (model.canResetPassword()) { %>
-            <button type="button" id="passwordResetButton" class="btn btn-info">Reset</button>
+            <button type="button" id="passwordResetButton" class="btn btn-primary">Reset</button>
             <% } else { %>
             <span class="password-reset-countdown countdown text-danger"></span>
             <% } %>
@@ -42,7 +42,7 @@
         </div>
         <% if (model.get('isOwner')) { %>
         <div class="col-xs-4 col-sm-4 col-lg-3 text-right">
-            <button type="button" id="cpuUpgradeButton" class="btn btn-success">Upgrade
+            <button type="button" id="cpuUpgradeButton" class="btn btn-primary">Upgrade
             </button>
         </div>
         <% } %>
@@ -56,7 +56,7 @@
         </div>
         <% if (model.get('isOwner')) { %>
         <div class="col-xs-4 col-sm-4 col-lg-3 text-right">
-            <button type="button" id="hddUpgradeButton" class="btn btn-success" data-toggle="modal"
+            <button type="button" id="hddUpgradeButton" class="btn btn-primary" data-toggle="modal"
                     data-target="#hddUpgradeModal">Upgrade
             </button>
         </div>
@@ -71,7 +71,7 @@
         </div>
         <% if (model.get('isOwner')) { %>
         <div class="col-xs-4 col-sm-4 col-lg-3 text-right">
-            <button type="button" id="internetUpgradeButton" class="btn btn-success" data-toggle="modal"
+            <button type="button" id="internetUpgradeButton" class="btn btn-primary" data-toggle="modal"
                     data-target="#internetUpgradeModal">Upgrade
             </button>
         </div>

@@ -3,8 +3,13 @@ var router = express.Router();
 
 var _ = require('underscore');
 
-/* GET home page. */
-router.get('/', function (req, res, next) {
+router.use('/machine', require('../controllers/machine'));
+router.use('/machineParts/', require('../controllers/machineParts'));
+router.use('/internetcontent', require('../controllers/internetcontent'));
+router.use('/bank', require('../controllers/bank'));
+
+/* Catch All GET - For Single Page App. */
+router.get('*', function (req, res, next) {
     if (!req.isAuthenticated()) {
         res.locals = _.extend({}, res.locals, {
             page: 'login',
@@ -13,8 +18,13 @@ router.get('/', function (req, res, next) {
         });
         res.render('pages/index');
     }
-    else
-        res.redirect('/localmachine');
+    else {
+        res.locals = _.extend({}, res.locals, {
+            page: 'app',
+            title: 'Blakhat.io'
+        });
+        res.render('pages/index');
+    }
 });
 
 router.get('/signup', function (req, res) {
@@ -23,7 +33,6 @@ router.get('/signup', function (req, res) {
         message: req.flash('signupMessage')
     });
     res.render('pages/index');
-    //res.render('pages/index', {message: req.flash('signupMessage')});
 });
 
 router.get('/about', function (req, res) {

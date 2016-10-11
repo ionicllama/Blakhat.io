@@ -47,6 +47,30 @@ router.post('/account/', auth.isLoggedIn, function (req, res) {
     });
 });
 
+router.get('/account/:_id', auth.isLoggedIn, function (req, res) {
+    var response = {
+        bankAccount: {},
+        isAuthenticated: false
+    };
+    if (req.params._id) {
+        BankAccount.findById(req.params._id).populate('bank').exec(function (err, bankAccount) {
+            if (err)
+                console.log(err);
+
+            if (bankAccount && req.user._id.toString() == bankAccount.user.toString())
+                response = {
+                    account: bankAccount,
+                    isAuthenticated: req.user._id.toString() == bankAccount.user.toString()
+                };
+
+            res.json(response);
+        });
+    }
+    else {
+        res.json(response)
+    }
+});
+
 router.get('/account/', auth.isLoggedIn, function (req, res) {
     var response = {
         bankAccount: {},
@@ -85,21 +109,11 @@ router.get('/accounts/', auth.isLoggedIn, function (req, res) {
                 };
                 response.push(accountInfo);
             }
-
         }
 
         res.json(response);
     });
 });
-
-// router.get('/:_id', auth.isLoggedIn, function (req, res) {
-//     if (req.params && req.params._id) {
-//
-//     }
-//     else {
-//         errorHelpers.returnError_get_noId();
-//     }
-// });
 
 router.patch('/account/:_id', auth.isLoggedIn, function (req, res) {
     if (!req.params._id)
@@ -114,7 +128,7 @@ router.patch('/account/:_id', auth.isLoggedIn, function (req, res) {
         if (err || !bankAccount)
             return errorHelpers.returnError("This bank account no longer exists!", res, err);
 
-        bankAccount.transferFundsFrom(req.body.transfer.accountNumber, req.body.transfer.amount, function (UIError, err, sourceBankAccount) {
+        bankAccount.transferFundsFrom(req.body.transfer.accountNumber, req.body.transfer.amount, function (UIError, err) {
             if (err || UIError)
                 return errorHelpers.returnError(UIError, res, err);
 
@@ -126,25 +140,56 @@ router.patch('/account/:_id', auth.isLoggedIn, function (req, res) {
     });
 });
 
+router.delete('/account/:_id', auth.isLoggedIn, function (req, res) {
+    if (!req.params._id)
+        return errorHelpers.returnError_noId(res);
+
+    BankAccount.findById(req.params._id, function (err, bankAccount) {
+        if (err)
+            return errorHelpers.returnError("Couldn't find bank account with supplied _id", res, err);
+
+        if (!bankAccount)
+            return errorHelpers.returnError("Couldn't find bank account with supplied _id", res);
+
+        if (bankAccount.user.toString() != req.user._id.toString())
+            return errorHelpers.returnError("You can only delete your own bank accounts", res);
+
+        bankAccount.remove(function (err) {
+            if (err)
+                return errorHelpers.returnError("Failed to delete the selected account", err, res);
+
+            res.end();
+        });
+    });
+});
+
 function createNewBankAccount(user, bank, res) {
     var newAccount = new BankAccount({
-        bank: bank._id,
-        user: user._id
-    });
-    newAccount.save(function (err) {
-        if (err)
+            bank: bank._id,
+            user: user._id
+        }),
+        response = {
+            account: {},
+            isAuthenticated: false
+        };
+    //this also saves it
+    newAccount.generateAccountNumber(function (err) {
+        if (err) {
             return errorHelpers.returnError("Failed to create bank account.", res, err);
-
-        BankAccount.populate(newAccount, 'bank', function (err, bank) {
-            if (err)
-                console.log(err);
-
-            response = {
-                account: newAccount,
-                isAuthenticated: true
-            };
-            res.json(response);
-        });
+        }
+        else {
+            BankAccount.populate(newAccount, 'bank', function (err, bank) {
+                if (err)
+                    console.log(err);
+                else {
+                    response = {
+                        account: newAccount,
+                        isAuthenticated: true
+                    };
+                }
+                return res.json(response);
+            });
+        }
     });
 }
 

@@ -1,5 +1,5 @@
 <!-- replace -1 with:  user.firewallBypass.level  -->
-<div class="bank-account-container white-centered-box elevation-2 col-lg-4 col-lg-offset-4">
+<div class="white-centered-box elevation-2 col-lg-4 col-lg-offset-4">
     <div>
         <button id="bankAccountLogoutButton" type="button" class="btn btn-danger">Logout</button>
     </div>
@@ -16,25 +16,38 @@
             <h4 class="text-info">Transfer Funds</h4>
             <div>
                 <div class="transfer-account-number-input-group form-group">
-                    <label>To Account #:</label>
+                    <label class="control-label" for="transferAccountNumber">Destination Acct #:</label>
                     <input id="transferAccountNumber" type="text" maxlength="10" placeholder="1234567890"
                            onkeypress="return BH.sharedHelpers.events.isNumberKey(event);" class="form-control"
                            name="transferAccountNumber">
                 </div>
                 <div class="form-group">
-                    <label>Amount:</label>
-                    <div class="transfer-amount-input-group input-group">
-                        <span class="input-group-addon">$</span>
-                        <input id="transferAmountDollars" type="text" placeholder="0"
-                               onkeypress="return BH.sharedHelpers.events.isNumberKey(event);"
-                               class="form-control dollars-input" name="transferAmountDollars">
-                        <span class="input-group-addon">¢</span>
-                        <input id="transferAmountCents" type="text" placeholder="00"
-                               onkeypress="return BH.sharedHelpers.events.isNumberKey(event);"
-                               class="form-control cents-input" name="transferAmountCents">
+                    <label class="control-label">Amount:</label>
+                    <div class="row transfer-amount-input-group form-group">
+                        <div class="col-xs-8">
+                            <div class="form-group transfer-amount-form-group">
+                                <div class="input-group">
+                                    <span class="input-group-addon">$</span>
+                                    <input id="transferAmountDollars" type="text" placeholder="0"
+                                           onkeypress="return BH.sharedHelpers.events.isNumberKey(event);"
+                                           class="form-control dollars-input" name="transferAmountDollars">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xs-4">
+                            <div class="form-group transfer-amount-form-group">
+                                <div class="input-group">
+                                    <span class="input-group-addon">¢</span>
+                                    <input id="transferAmountCents" type="text" placeholder="00"
+                                           onkeypress="return BH.sharedHelpers.events.isNumberKey(event);"
+                                           class="form-control cents-input" name="transferAmountCents">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <button id="transferConfirmButton" type="button" class="btn btn-success" disabled>Transfer</button>
+                <button id="transferConfirmButton" type="button" class="btn btn-success">Transfer</button>
+                <button id="transferSetMaxButton" type="button" class="btn btn-primary">Set Max</button>
             </div>
         </div>
     </div>

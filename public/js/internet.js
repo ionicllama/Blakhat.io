@@ -8,7 +8,8 @@ BH.models.InternetBrowser = BH.models.BaseModel.extend({
     renderMachine: function () {
         new BH.views.InternetBrowser({
             sourceIP: this.get('machine').ip,
-            el: this.get('el')
+            el: this.get('el'),
+            browserLoadData: this.get('browserLoadData')
         });
     }
 });
@@ -16,23 +17,37 @@ BH.models.InternetBrowser = BH.models.BaseModel.extend({
 BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
     urlRoot: '/internetcontent',
     initialize: function () {
-
         this.on('sync', this.renderInternetDOM, this);
-
         this.fetchPage();
-
         this.listenTo(this, "change:search change:password change:activeAccount", this.fetchPage);
     },
     fetchPage: function () {
-        this.get('browser').$('#internetSearchText').val(this.get('search'));
         this.get('browser').renderHistoryButtons();
         var data = {
             source: this.get('sourceIP'),
             search: this.get('search')
         };
-        if (this.get('password')) {
-            data.password = this.get('password');
+        if (this.get('browserLoadData')) {
+            if (this.get('browserLoadData').bankAccount && this.get('browserLoadData').bank) {
+                data.bank_id = this.get('browserLoadData').bank._id;
+                var activeAccount = new BH.models.BrowserBankAccount({
+                    sourceIP: this.get('sourceIP'),
+                    _id: this.get('browserLoadData').bankAccount._id,
+                    bank: this.get('browserLoadData').bank
+                });
+                this.setSilent({activeAccount: activeAccount})
+            }
+            else if (this.get('browserLoadData').ip)
+                data.search = this.get('browserLoadData').ip;
+            this.unset('browserLoadData');
         }
+        else {
+            data.search = this.get('search');
+            if (this.get('password')) {
+                data.password = this.get('password');
+            }
+        }
+
         var fetchParams = {
             data: $.param(data)
         };
@@ -45,8 +60,16 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
         if (search.length > 0 && search.indexOf('/') != -1)
             path = search.substr(search.indexOf('/'));
 
+        if (this.get('machine') && this.get('machine').ip)
+            this.get('browser').$('#internetSearchText').val(this.get('machine').ip + path);
+        else
+            this.get('browser').$('#internetSearchText').val(search);
+
         if (this.browserDOM)
             this.browserDOM.remove();
+
+        if (path == '/account' && !this.get('activeAccount'))
+            path = '';
 
         var machine = this.get('machine');
         if (machine && this.get('isAuthenticated')) {
@@ -59,7 +82,7 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
                     _id: machine._id
                 });
         }
-        else if (machine && machine.bank || path == '/account') {
+        else if (machine && machine.bank) {
             if (path == '/admin')
                 path = '/login';
             else if (this.get('activeAccount') && this.get('activeAccount').get('isAuthenticated'))
@@ -136,6 +159,8 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
             this.addToHistory(search);
 
         if (this.model) {
+            //set silent and then trigger in case we're setting it to the same value
+            // if its the same value its considered a dom refresh
             this.model.setSilent({search: search});
             this.model.trigger('change:search');
         }
@@ -143,6 +168,7 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
             this.model = new BH.models.InternetBrowserDOM({
                 el: this.$('#internetBrowserDOM'),
                 search: search,
+                browserLoadData: this.options.browserLoadData,
                 browser: this,
                 sourceIP: this.options.sourceIP
             });
@@ -234,7 +260,6 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
         };
     },
     afterRender: function () {
-        this.setElement(this.$('#internetContent'));
         this.$('.admin-login-password').on({
             'keyup': $.proxy(function (e) {
                 if (e.keyCode == 13) {
@@ -257,7 +282,7 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
         "click .navigate-admin-login": "navigateAdminLogin",
         "click .admin-login-button": "attemptAdminLogin",
         'click .bank-login-button': 'attemptBankLogin',
-        'click .create-bank-account-button': 'createBankAccountBegin'
+        'click .create-bank-account-button': 'createBankAccountStart'
     },
     afterRender: function () {
         this.$('.bank-account-password').on({
@@ -277,6 +302,7 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
         });
 
         if (this.model.get('activeAccount') && this.model.get('activeAccount').get('isAuthenticated')) {
+            this.model.get('activeAccount').set('browserModel', this.model);
             new BH.views.BrowserBankAccount({
                 el: this.$('.bank-account-container'),
                 model: this.model.get('activeAccount')
@@ -287,6 +313,7 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
     },
     forceBankLogin: function (accountNumber, password) {
         new BH.models.BrowserBankAccount({
+            machine: this.model.get('machine'),
             bank: this.model.get('machine').bank,
             account: {
                 accountNumber: accountNumber,
@@ -298,22 +325,22 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
     attemptBankLogin: function () {
         this.forceBankLogin(this.$('.bank-account-number').val(), this.$('.bank-account-password').val());
     },
-    createBankAccountBegin: function () {
+    createBankAccountStart: function () {
         if (this.model.get('machine').bank.accountCost == 0) {
             new BH.views.ConfirmModal({
                 header: "Confirm New Bank Account",
                 body: "Are you sure you want to create a new free bank account with " + this.model.get('machine').bank.name + "?",
-                onConfirm: this.createBankAccountConfirm.bind(this)
+                onConfirm: this.createBankAccount.bind(this)
             });
         }
         else {
             new BH.collections.UserBankAccountSelect([], {
                 amount: this.model.get('machine').bank.accountCost,
-                callback: this.createBankAccountConfirm.bind(this)
+                callback: this.createBankAccount.bind(this)
             });
         }
     },
-    createBankAccountConfirm: function (paymentAccount) {
+    createBankAccount: function (paymentAccount) {
         var newAccount = new BH.models.BankAccount({
             bank: this.model.get('machine').bank,
             paymentAccount: paymentAccount ? paymentAccount.get('account')._id : {}
@@ -325,7 +352,7 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
                         extras: {
                             account: data
                         },
-                    loginCallback: this.attemptBankLogin.bind(this)
+                    loginCallback: this.forceBankLogin.bind(this)
                     });
             }, this),
                 error: function (model, response) {
@@ -357,10 +384,4 @@ BH.views.InternetBrowserAdminDOM = BH.views.InternetBrowserDOM.extend({
         }
         this.model.setSilent({password: null, isAuthenticated: null});
     }
-});
-
-$(function () {
-    new BH.models.InternetBrowser({
-        el: '#internetBrowser'
-    });
 });

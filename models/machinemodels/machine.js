@@ -3,13 +3,10 @@
  */
 var mongoose = require('mongoose');
 
-var _ = require('underscore');
-
-var User = require('../../models/user');
-var Bank = require('../../models/bankmodels/bank');
 var CPU = require('../../models/machinemodels/cpu');
 var HDD = require('../../models/machinemodels/hdd');
 var Internet = require('../../models/machinemodels/internet');
+var Process = require('../../models/machinemodels/process');
 
 
 var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
@@ -17,30 +14,58 @@ var globalHelpers = require('../../helpers/globalHelpers');
 
 var machineSchema = mongoose.Schema({
 
-    user: {type: mongoose.Schema.Types.ObjectId, ref: 'user'},
-    bank: {type: mongoose.Schema.Types.ObjectId, ref: 'bank'},
+    user: {type: mongoose.Schema.Types.ObjectId, ref: 'user', default: null},
+    bank: {type: mongoose.Schema.Types.ObjectId, ref: 'bank', default: null},
     log: {type: String, default: ""},
     lastLogUpdate: {type: String, default: new Date()},
-    ip: {type: String, default: globalHelpers.getNewIp()},
+    ip: {type: String, default: ""},
     lastIPRefresh: {type: Date, default: null},
     password: {type: String, default: globalHelpers.getRandomPassword()},
     lastPasswordReset: {type: Date, default: null},
     cpu: {type: mongoose.Schema.Types.ObjectId, ref: 'cpu', default: null},
     hdd: {type: mongoose.Schema.Types.ObjectId, ref: 'hdd', default: null},
-    firewall: {type: mongoose.Schema.Types.ObjectId, ref: 'firewall', default: null},
-    internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet', default: null}
+    internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet', default: null},
+    files: [{
+        name: {type: String, default: "no_name.txt"},
+        file: {type: mongoose.Schema.Types.ObjectId, ref: 'file', default: null},
+        isLocked: {type: Boolean, default: false}
+    }],
+    processes: [{type: mongoose.Schema.Types.ObjectId, ref: 'process'}]
 
 });
 
 machineSchema.statics = {
     findPopulated: function (query, callback) {
-        this.findOne(query).populate(['cpu', 'internet', 'hdd']).exec(function (err, machine) {
+        this.findOne(query).populate(['cpu', 'internet', 'hdd', 'files.file', 'processes']).exec(function (err, machine) {
             callback(err, machine);
         });
     },
     findByIdPopulated: function (_id, callback) {
-        this.findOne({_id: _id}).populate(['cpu', 'internet', 'hdd']).exec(function (err, machine) {
+        this.findOne({_id: _id}).populate(['cpu', 'internet', 'hdd', 'files.file', 'processes']).exec(function (err, machine) {
             callback(err, machine);
+        });
+    },
+    findWithPassword: function (_id, callback) {
+        this.findOne({_id: _id}).select('password').exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
+    findWithFiles: function (_id, callback) {
+        this.findOne({_id: _id}).populate(['files.file']).exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
+    findWithSingleFile: function (machine_id, file_id, callback) {
+        this.findOne({_id: machine_id}).populate({
+            path: 'files.file',
+            match: {_id: file_id}
+        }).exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
+    findByBank: function (bank_id, callback) {
+        this.findOne({bank: bank_id}).select('ip user bank firewall log').populate('bank').exec(function (err, machine) {
+            callback(null, machine);
         });
     },
     findByUserPopulated: function (user, callback) {
@@ -52,14 +77,14 @@ machineSchema.statics = {
 
             if (!machine) {
                 machine = new self({user: user});
-                machine.setDefaultRefs(function () {
+                machine.setDefaults(function () {
                     self.findPopulated(query, function (err, machine) {
                         callback(err, machine);
                     });
                 });
             }
             else {
-                callback(null, machine);
+                return callback(null, machine);
             }
         });
     },
@@ -79,29 +104,29 @@ machineSchema.statics = {
             if (err)
                 return callback(err);
 
-            if (machine && machine.bank) {
-                //this is a bank machine ip
-                machine.populate("bank", function (err, machine) {
-                    if (err)
-                        return callback(err);
-
-                    callback(err, machine);
-                });
-            }
-            else {
-                callback(null, machine);
-            }
+            return callback(null, machine);
         });
     }
 };
 
 machineSchema.methods = {
-    setDefaultRefs: function (callback) {
+    setDefaults: function (callback) {
         var self = this;
-        this.setDefaultCPU(function () {
-            self.setDefaultHDD(function () {
-                self.setDefaultInternet(function () {
-                    callback();
+        this.setDefaultCPU(function (err) {
+            if (err)
+                console.log(err);
+            self.setDefaultHDD(function (err) {
+                if (err)
+                    console.log(err);
+                self.setDefaultInternet(function (err) {
+                    if (err)
+                        console.log(err);
+                    self.ip = globalHelpers.getNewIP();
+                    self.save(function (err) {
+                        if (err)
+                            console.log(err);
+                        return callback();
+                    });
                 })
             });
         });
@@ -113,15 +138,10 @@ machineSchema.methods = {
                 if (err)
                     console.log(err);
 
-                if (newCPU) {
+                if (newCPU)
                     self.cpu = newCPU;
-                    self.save(function (err) {
-                        if (err)
-                            console.log(err);
 
-                        callback();
-                    });
-                }
+                callback();
             });
         }
     },
@@ -132,15 +152,10 @@ machineSchema.methods = {
                 if (err)
                     console.log(err);
 
-                if (newHDD) {
+                if (newHDD)
                     self.hdd = newHDD;
-                    self.save(function (err) {
-                        if (err)
-                            console.log(err);
 
-                        callback();
-                    });
-                }
+                callback();
             });
         }
     },
@@ -151,28 +166,58 @@ machineSchema.methods = {
                 if (err)
                     console.log(err);
 
-                if (newInternet) {
+                if (newInternet)
                     self.internet = newInternet;
-                    self.save(function (err) {
-                        if (err)
-                            console.log(err);
 
-                        callback();
-                    });
-                }
+                callback();
             });
         }
     },
-    updateLog: function (log, callback) {
-        this.log = log;
-        this.lastLogUpdate = new Date();
-        this.save(function (err) {
-            if (err) {
-                callback(err);
-                return;
-            }
-            callback();
-        });
+    updateLog: function (log, isAppend, callback) {
+        if (isAppend) {
+            this.model('machine').findById(this._id, function (err, machine) {
+                if (err && typeof callback == 'function')
+                    return callback(err);
+
+                machine.log = machine.log ? machine.log + '\n' + log : log;
+                machine.lastLogUpdate = new Date();
+                machine.save(function (err) {
+                    if (err && typeof callback == 'function')
+                        return callback(err);
+
+                    if (typeof callback == 'function')
+                        callback();
+                });
+            })
+        }
+        else {
+            this.log = log;
+            this.lastLogUpdate = new Date();
+            this.save(function (err) {
+                if (err && typeof callback == 'function')
+                    return callback(err);
+
+                if (typeof callback == 'function')
+                    callback();
+            });
+        }
+    },
+    appendLog: function (appendText) {
+        //this is synchronous - no need to validate this was done before returning results
+        if (appendText && appendText.length > 0) {
+            this.updateLog(appendText, true, function (err) {
+                if (err)
+                    console.log(err);
+            });
+        }
+    },
+    logBankTransfer: function (sourceAccountNumber, destinationAccountNumber, destinationBankIP, amount) {
+        var dateStr = (new Date()).toUTCString();
+        this.appendLog("Transfer @ " + dateStr.substr(5, dateStr.length) + ": " + sharedHelpers.formatCurrency(amount) + " - " + sourceAccountNumber + " [" + this.ip + "] --> " + destinationAccountNumber + " [" + destinationBankIP + "]");
+    },
+    logAccess: function (sourceIP) {
+        var dateStr = (new Date()).toUTCString();
+        this.appendLog("Admin logged in from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
     },
     getFirewallName: function () {
         return sharedHelpers.firewallHelpers.getFirewallName(this.firewall);
@@ -185,7 +230,7 @@ machineSchema.methods = {
     },
     refreshIP: function (callback) {
         if (this.canRefreshIP()) {
-            this.ip = globalHelpers.getNewIp();
+            this.ip = globalHelpers.getNewIP();
             this.lastIPRefresh = new Date();
             this.save(function (err) {
                 if (err) {
@@ -196,7 +241,7 @@ machineSchema.methods = {
             });
         }
         else {
-            callback("IP address has been already been reset in the last 24 hours.");
+            callback("IP address has been already been reset in the last 24 hours");
         }
     },
     resetPassword: function (callback) {
@@ -212,135 +257,102 @@ machineSchema.methods = {
             });
         }
         else {
-            callback("Password has been already been reset in the last 4 hours.");
+            callback("Password has been already been reset in the last 4 hours");
         }
     },
-    upgradeCPU: function (user, upgrade_id, callback) {
-        if (this.cpu._id != upgrade_id) {
-            var self = this;
-            CPU.findOne({'_id': upgrade_id}, function (err, newCPU) {
-                if (err) {
-                    callback(null, err);
-                    return;
-                }
+    upgradeCPU: function (user, paymentAccount, upgrade_id, callback) {
+        if (this.cpu._id == upgrade_id)
+            return callback("The selected upgrade different than existing hardware");
 
-                if (newCPU) {
-                    self.cpu = newCPU;
-                    self.save(function (err) {
-                        if (err) {
-                            callback(null, err);
-                            return;
-                        }
+        var self = this;
+        CPU.findOne({'_id': upgrade_id}, function (err, newCPU) {
+            if (err || !newCPU)
+                callback("Failed to purchase selected CPU", err);
 
-                        callback();
-                    });
-
-                    // var purchaseCallback = function (err) {
-                    //     if (err) {
-                    //         callback(null, err);
-                    //         return;
-                    //     }
-                    //
-                    //     self.save(function (err) {
-                    //         if (err) {
-                    //             callback(null, err);
-                    //             return;
-                    //         }
-                    //
-                    //         callback();
-                    //     });
-                    // };
-                    // purchasingHelpers.processPurchase(user, newCPU.getCost(), purchaseCallback);
-
-                }
-                else {
-                    callback(null, err);
-                }
-            });
-        }
-        else {
-            callback("The selected upgrade different than existing hardware.");
-        }
-    },
-    upgradeHDD: function (user, upgrade_id, callback) {
-        if (this.hdd._id != upgrade_id) {
-            var self = this;
-            HDD.findOne({'_id': upgrade_id}, function (err, newHDD) {
-                if (err) {
-                    callback(null, err);
-                    return;
-                }
-                var purchaseCallback = function (err) {
-                    if (err) {
-                        callback(null, err);
-                        return;
-                    }
-
-                    self.hdd = newHDD;
-                    self.save(function (err) {
-                        if (err) {
-                            callback(null, err);
-                            return;
-                        }
-                        callback();
-                    });
-                };
-                purchasingHelpers.processPurchase(user, newHDD.getCost(), purchaseCallback);
-            });
-        }
-        else {
-            callback("The selected upgrade different than existing hardware.");
-        }
-    },
-    upgradeInternet: function (user, upgrade_id, callback) {
-        if (this.internet._id != upgrade_id) {
-            var self = this;
-            Internet.findOne({'_id': upgrade_id}, function (err, newInternet) {
-                if (err) {
-                    callback(null, err);
-                    return;
-                }
-                var purchaseCallback = function (err) {
-                    if (err) {
-                        callback(null, err);
-                        return;
-                    }
-
-                    self.internet = newInternet;
-                    self.save(function (err) {
-                        if (err) {
-                            callback(null, err);
-                            return;
-                        }
-                        callback();
-                    });
-                };
-                purchasingHelpers.processPurchase(user, newInternet.getCost(), purchaseCallback);
-            });
-        }
-        else {
-            callback("The selected upgrade different than existing hardware.");
-        }
-    },
-    calculateCPUUpgradeCost: function (cores, speed) {
-        return sharedHelpers.cpuHelpers.calculateCPUCost(cores, speed);
-    },
-    validateAuth: function (user, password) {
-        return ((user && user._id.toString() == user._id.toString()) || this.password == password);
-    },
-    appendLog: function (appendText) {
-        //this is synchronous - no need to validate this was done before returning results
-        if (appendText && appendText.length > 0) {
-            var newLog = (this.log ? this.log : "") + '\n' + appendText;
-            this.updateLog(newLog, function (err) {
+            paymentAccount.makePurchase(user, newCPU.getCost(), function (err) {
                 if (err)
-                    console.log(err);
+                    return callback("Failed to purchase selected CPU", err);
+
+                self.cpu = newCPU;
+                self.save(function (err) {
+                    if (err) {
+                        return callback("Failed to purchase selected CPU", err);
+                    }
+
+                    callback();
+                });
             });
-        }
+        });
     },
-    logAccess: function (sourceIP) {
-        var dateStr = (new Date()).toUTCString();
-        this.appendLog("Admin logged in from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
+    upgradeHDD: function (user, paymentAccount, upgrade_id, callback) {
+        if (this.hdd._id == upgrade_id)
+            return callback("The selected upgrade different than existing hardware");
+
+        var self = this;
+        HDD.findOne({'_id': upgrade_id}, function (err, newHDD) {
+            if (err || !newHDD)
+                callback("Failed to purchase selected hard drive", err);
+
+            paymentAccount.makePurchase(user, newHDD.getCost(), function (err) {
+                if (err)
+                    return callback("Failed to purchase selected hard drive", err);
+
+                self.hdd = newHDD;
+                self.save(function (err) {
+                    if (err) {
+                        return callback("Failed to purchase selected hard drive", err);
+                    }
+
+                    callback();
+                });
+            });
+        });
+    },
+    upgradeInternet: function (user, paymentAccount, upgrade_id, callback) {
+        if (this.internet._id == upgrade_id)
+            return callback("The selected upgrade different than existing hardware");
+
+        var self = this;
+        Internet.findOne({'_id': upgrade_id}, function (err, newInternet) {
+            if (err || !newInternet)
+                callback("Failed to purchase selected internet speed", err);
+
+            paymentAccount.makePurchase(user, newInternet.getCost(), function (err) {
+                if (err)
+                    return callback("Failed to purchase selected internet speed", err);
+
+                self.internet = newInternet;
+                self.save(function (err) {
+                    if (err) {
+                        return callback("Failed to purchase selected internet speed", err);
+                    }
+
+                    callback();
+                });
+            });
+        });
+    },
+    validateAuth: function (user, password, callback) {
+        if (user && this.user && user._id.toString() === this.user.toString())
+            callback(true);
+        else if (password && password.length > 0) {
+            if (this.password)
+                callback(password === this.password);
+            else {
+                this.model('machine').findWithPassword(this._id, function (err, machine) {
+                    if (err) {
+                        console.log(err);
+                        callback(false);
+                    }
+                    else {
+                        callback(password === machine.password);
+                    }
+                });
+            }
+        }
+        else {
+            callback(false);
+        }
     }
 };
 

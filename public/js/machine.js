@@ -16,12 +16,6 @@ BH.models.Machine = BH.models.BaseModel.extend({
             this.fetch();
         }
     },
-    renderMachine: function () {
-        new BH.views.Machine({
-            model: this,
-            el: this.get('el')
-        });
-    },
     parse: function (response) {
         if (response.machine)
             response._id = response.machine._id;
@@ -66,7 +60,14 @@ BH.models.Machine = BH.models.BaseModel.extend({
     }
 });
 
-BH.models.RemoteMachine = BH.models.Machine.extend({});
+BH.models.RemoteMachine = BH.models.Machine.extend({
+    renderMachine: function () {
+        new BH.views.RemoteMachine({
+            model: this,
+            el: this.get('el')
+        });
+    }
+});
 
 BH.models.LocalMachine = BH.models.Machine.extend({
     renderMachine: function () {
@@ -115,11 +116,12 @@ BH.models.LocalMachine = BH.models.Machine.extend({
             }
         );
     },
-    upgradeCPU: function (id) {
+    upgradeCPU: function (purchaseAccount, options) {
         this.save(
             {
+                purchaseAccount: purchaseAccount.get('account'),
                 cpu: {
-                    _id: id
+                    _id: options.upgradeId
                 }
             },
             {
@@ -134,11 +136,12 @@ BH.models.LocalMachine = BH.models.Machine.extend({
             }
         );
     },
-    upgradeHDD: function (id) {
+    upgradeHDD: function (purchaseAccount, options) {
         this.save(
             {
+                purchaseAccount: purchaseAccount.get('account'),
                 hdd: {
-                    _id: id
+                    _id: options.upgradeId
                 }
             },
             {
@@ -153,11 +156,12 @@ BH.models.LocalMachine = BH.models.Machine.extend({
             }
         );
     },
-    upgradeInternet: function (id) {
+    upgradeInternet: function (purchaseAccount, options) {
         this.save(
             {
+                purchaseAccount: purchaseAccount.get('account'),
                 internet: {
-                    _id: id
+                    _id: options.upgradeId
                 }
             },
             {
@@ -174,14 +178,101 @@ BH.models.LocalMachine = BH.models.Machine.extend({
     }
 });
 
+BH.models.CPU = BH.models.BaseModel.extend({
+    urlRoot: '/CPU',
+    initialize: function () {
+        //this.on('sync', this.renderMachine, this);
+        //this.fetch();
+    }
+});
+
+BH.models.HDD = BH.models.BaseModel.extend({
+    urlRoot: '/HDD',
+    initialize: function () {
+        //this.on('sync', this.renderMachine, this);
+        //this.fetch();
+    }
+});
+
+BH.models.Internet = BH.models.BaseModel.extend({
+    urlRoot: '/Internet',
+    initialize: function () {
+        //this.on('sync', this.renderMachine, this);
+        //this.fetch();
+    }
+});
+
+
+//COLLECTIONS
+BH.collections.CPUS = BH.collections.BaseCollection.extend({
+    model: BH.models.CPU,
+    url: '/machineParts/cpus',
+    afterInit: function () {
+        this.on('sync', this.renderCPU, this);
+        this.fetch();
+    },
+    renderCPU: function () {
+        new BH.views.MachineUpgradeModal({
+            model: this.options.machine,
+            renderData: {
+                model: this.options.machine,
+                cpus: this
+            },
+            template: '/views/partials/machine/modal_upgradecpu.ejs',
+            initTableColSort: 2,
+            upgradeCallback: this.options.machine.upgradeCPU.bind(this.options.machine)
+        });
+    }
+});
+
+BH.collections.HDDS = BH.collections.BaseCollection.extend({
+    model: BH.models.HDD,
+    url: '/machineParts/hdds',
+    afterInit: function () {
+        this.on('sync', this.renderHDD, this);
+        this.fetch();
+    },
+    renderHDD: function () {
+        new BH.views.MachineUpgradeModal({
+            model: this.options.machine,
+            renderData: {
+                model: this.options.machine,
+                hdds: this
+            },
+            template: '/views/partials/machine/modal_upgradehdd.ejs',
+            initTableColSort: 1,
+            upgradeCallback: this.options.machine.upgradeHDD.bind(this.options.machine)
+        });
+    }
+});
+
+BH.collections.Internets = BH.collections.BaseCollection.extend({
+    model: BH.models.Internet,
+    url: '/machineParts/internets',
+    afterInit: function () {
+        this.on('sync', this.renderInternets, this);
+        this.fetch();
+    },
+    renderInternets: function () {
+        new BH.views.MachineUpgradeModal({
+            model: this.options.machine,
+            renderData: {
+                model: this.options.machine,
+                internets: this
+            },
+            template: '/views/partials/machine/modal_upgradeinternet.ejs',
+            initTableColSort: 2,
+            upgradeCallback: this.options.machine.upgradeInternet.bind(this.options.machine)
+        });
+    }
+});
+
+
 //VIEWS
 BH.views.Machine = BH.views.BaseView.extend({
     defaults: {
-        template: '/views/partials/machine/machine.ejs'
-    },
-    afterRender: function () {
-        this.renderMachineInfo();
-        this.renderMachineLog();
+        template: '/views/partials/machine/machine.ejs',
+        canDownloadFiles: true
     },
     renderMachineInfo: function () {
         new BH.views.MachineInfo({
@@ -194,18 +285,48 @@ BH.views.Machine = BH.views.BaseView.extend({
             model: this.model,
             el: this.$('#machineLog')
         });
+    },
+    renderFiles: function () {
+        new BH.collections.Files(this.model.get('machine').files,
+            {
+                machine_id: this.model.get('machine')._id,
+                el: this.$('#files'),
+                canDownloadFiles: this.options.canDownloadFiles ? this.options.canDownloadFiles : false
+            });
     }
 });
 
 BH.views.LocalMachine = BH.views.Machine.extend({
     defaults: {
-        template: '/views/partials/machine/machine.ejs'
+        template: '/views/partials/machine/machine.ejs',
+        canDownloadFiles: false
+    },
+    afterRender: function () {
+        this.renderMachineInfo();
+        this.renderMachineLog();
+        this.renderProcesses();
+        this.renderFiles();
     },
     renderMachineInfo: function () {
         new BH.views.LocalMachineInfo({
             model: this.model,
             el: this.$('#machineInfo')
         });
+    },
+    renderProcesses: function () {
+        new BH.collections.Processes(this.model.get('machine').processes,
+            {
+                machine_id: this.model.get('machine')._id,
+                el: this.$('#processes')
+            });
+    }
+});
+
+BH.views.RemoteMachine = BH.views.Machine.extend({
+    afterRender: function () {
+        this.renderMachineInfo();
+        this.renderMachineLog();
+        this.renderFiles();
     }
 });
 
@@ -217,14 +338,15 @@ BH.views.MachineInfo = BH.views.BaseView.extend({
         this.renderData = {
             model: this.model
         };
+        this.listenTo(this.model, "change:ip change:password change:cpu change:hdd change:internet", this.render);
     }
 });
 
 BH.views.LocalMachineInfo = BH.views.MachineInfo.extend({
     events: {
-        'click #ipRefreshButton': 'refreshIP',
+        'click #ipRefreshButton': 'refreshIPConfirm',
         'click #toggleMachinePassword': 'toggleMachinePassword',
-        'click #passwordResetButton': 'resetPassword',
+        'click #passwordResetButton': 'resetPasswordConfirm',
         'click #cpuUpgradeButton': 'initCPUUpgradeModal',
         'click #hddUpgradeButton': 'initHDDUpgradeModal',
         'click #internetUpgradeButton': 'initInternetUpgradeModal'
@@ -250,8 +372,22 @@ BH.views.LocalMachineInfo = BH.views.MachineInfo.extend({
             this.isPasswordVisible = false;
         }
     },
+    refreshIPConfirm: function () {
+        new BH.views.ConfirmModal({
+            header: "Confirm IP Refresh",
+            body: "Are you sure you want to refresh your IP address?  You can only do this once a day.",
+            onConfirm: this.refreshIP.bind(this)
+        });
+    },
     refreshIP: function () {
         this.model.refreshIP();
+    },
+    resetPasswordConfirm: function () {
+        new BH.views.ConfirmModal({
+            header: "Confirm Password Reset",
+            body: "Are you sure you want to reset your password?  You can only do this every 4 hours.",
+            onConfirm: this.resetPassword.bind(this)
+        });
     },
     resetPassword: function () {
         this.model.resetPassword();
@@ -262,37 +398,19 @@ BH.views.LocalMachineInfo = BH.views.MachineInfo.extend({
     createIPRefreshCountdown: function ($el) {
         BH.helpers.viewHelpers.createCountdownTimer($el, BH.sharedHelpers.getNewDateAddHours(this.model.get('machine').lastIPRefresh, 24), this.render.bind(this));
     },
-    getUpgradeModalRenderData: function () {
-        return {
-            model: this.model,
-            machineParts: BH.data.machineParts
-        };
-    },
     initCPUUpgradeModal: function () {
-        new BH.views.MachineUpgradeModal({
-            model: this.model,
-            template: '/views/partials/machine/modal_upgradecpu.ejs',
-            initTableColSort: 2,
-            upgradeCallback: this.model.upgradeCPU.bind(this.model),
-            renderData: this.getUpgradeModalRenderData()
+        new BH.collections.CPUS([], {
+            machine: this.model
         });
     },
     initHDDUpgradeModal: function () {
-        new BH.views.MachineUpgradeModal({
-            model: this.model,
-            template: '/views/partials/machine/modal_upgradehdd.ejs',
-            initTableColSort: 1,
-            upgradeCallback: this.model.upgradeHDD.bind(this.model),
-            renderData: this.getUpgradeModalRenderData()
+        new BH.collections.HDDS([], {
+            machine: this.model
         });
     },
     initInternetUpgradeModal: function () {
-        new BH.views.MachineUpgradeModal({
-            model: this.model,
-            template: '/views/partials/machine/modal_upgradeinternet.ejs',
-            initTableColSort: 2,
-            upgradeCallback: this.model.upgradeInternet.bind(this.model),
-            renderData: this.getUpgradeModalRenderData()
+        new BH.collections.Internets([], {
+            machine: this.model
         });
     }
 });
@@ -304,7 +422,6 @@ BH.views.MachineUpgradeModal = BH.views.BaseModal.extend({
         initTableColSort: 0
     },
     events: {
-        'draw.dt .data-table': 'addDataTableEvents',
         'page.dt .data-table': 'pageNumberChanged',
         'length.dt .data-table': 'pageLengthChanged',
         'click .buyButton': 'buyUpgrade',
@@ -313,24 +430,29 @@ BH.views.MachineUpgradeModal = BH.views.BaseModal.extend({
     afterRender: function () {
         if (this.$('.data-table')) {
             this.upgradeTable = this.$('.data-table').DataTable({
-                "displayStart": this.options.dataTablePage * this.options.dataTableLength,
+                displayStart: this.options.dataTablePage * this.options.dataTableLength,
+                language: {
+                    emptyTable: "No upgrades available",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ upgrades",
+                    "infoEmpty": "Showing 0 to 0 of 0 upgrades",
+                    "infoFiltered": " - filtered from _MAX_ upgrades"
+                },
                 pageLength: this.options.dataTableLength,
-                colReorder: {
-                    order: [this.options.initTableColSort]
-                }
+                order: [this.options.initTableColSort, 'asc'],
+                columnDefs: [
+                    {orderable: false, targets: -1}
+                ]
             });
         }
     },
-    pageNumberChanged: function () {
-        if (this.upgradeTable.page)
-            this.options.dataTablePage = this.upgradeTable.page.info().page;
-    },
-    pageLengthChanged: function (e, settings, len) {
-        this.dataTableLength = len;
-    },
     buyUpgrade: function (e) {
-        var id = $(e.target).attr('_id');
-        this.options.upgradeCallback(id);
+        var id = $(e.target).attr('_id'),
+            amount = $(e.target).attr('amount');
+        new BH.collections.UserBankAccountSelect([], {
+            amount: amount,
+            upgradeId: id,
+            callback: this.options.upgradeCallback.bind(this)
+        });
     }
 });
 

@@ -20,25 +20,25 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <% for(internet in machineParts.internets){ %>
+                        <% for(var i = 0 ; i < internets.models.length ; i++){ %>
                         <tr>
-                            <td><%- machineParts.internets[internet].downSpeed %></td>
-                            <td><%- machineParts.internets[internet].upSpeed %></td>
-                            <td>
-                                $<%- BH.sharedHelpers.internetHelpers.getInternetCost(machineParts.internets[internet]) %></td>
+                            <td><%- internets.models[i].get('downSpeed') %></td>
+                            <td><%- internets.models[i].get('upSpeed') %></td>
+                            <td><%- BH.sharedHelpers.internetHelpers.getInternetCostDisplay(internets.models[i].attributes) %></td>
                             <td class="text-center">
-                                <% if(BH.sharedHelpers.internetHelpers.getInternetModifier(machineParts.internets[internet]) < BH.sharedHelpers.internetHelpers.getInternetModifier(model.get('machine').internet)){ %>
+                                <% if(BH.sharedHelpers.internetHelpers.getInternetModifier(internets.models[i].attributes) < BH.sharedHelpers.internetHelpers.getInternetModifier(model.get('machine').internet)){ %>
                                 <span class="text-warning text-owned">Downgrade</span>
-                                <% } else if(machineParts.internets[internet]._id.toString() === model.get('machine').internet._id.toString()){ %>
+                                <% } else if(internets.models[i].get('id') === model.get('machine').internet._id){ %>
                                 <span class="text-info text-owned">Owned</span>
                                 <button style="display:none;" type="button" class="btn btn-success buyButton"
-                                        _id="<%- machineParts.internets[internet]._id %>">
+                                        _id="<%- internets.models[i].get('_id') %>">
                                     Buy
                                 </button>
                                 <% } else { %>
                                 <span style="display:none;" class="text-info text-owned">Owned</span>
                                 <button type="button" class="btn btn-success buyButton"
-                                        _id="<%- machineParts.internets[internet]._id %>">
+                                        amount="<%- BH.sharedHelpers.internetHelpers.getInternetCost(internets.models[i].attributes) %>"
+                                        _id="<%- internets.models[i].get('_id') %>">
                                     Buy
                                 </button>
                                 <% } %>

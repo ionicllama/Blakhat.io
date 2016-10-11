@@ -1,11 +1,10 @@
 var BH = BH ? BH : {};
 
 //CONSTANTS
-BH.constants = {};
+BH.constants = BH.constants ? BH.constants : {};
 BH.constants.dataTypes = {
     JSON: "json"
 };
-
 
 //MODELS
 BH.models = BH.models ? BH.models : {};
@@ -26,6 +25,8 @@ BH.collections.BaseCollection = Backbone.Collection.extend({
     defaults: {},
     initialize: function (models, options) {
         this.options = _.defaults(options ? options : {}, this.defaults);
+        if (models && models.length > 0)
+            this.add(models, this.options);
         this.afterInit();
     },
     afterInit: function () {
@@ -37,10 +38,14 @@ BH.views = BH.views ? BH.views : {};
 
 BH.views.BaseView = Backbone.View.extend({
     defaults: {
-        isAppend: false
+        isAppend: false,
     },
     initialize: function (options) {
         this.options = _.defaults(options ? options : {}, this.defaults);
+
+        if (this.model)
+            this.listenTo(this.model, "reset", this.render);
+
         if (this.beforeFirstRender() != false)
             this.render();
     },
@@ -68,16 +73,61 @@ BH.views.BaseView = Backbone.View.extend({
         if (e.target)
             $(e.target).select();
     },
-    setInputError: function (input, isError) {
+    setInputError: function (input, isError, errorText) {
         if (input) {
-            if (isError)
+            this.removeInputError(input);
+            if (isError) {
                 input.addClass('has-error');
-            else
-                input.removeClass('has-error');
+                if (errorText)
+                    input.append("<span class='help-block'>" + errorText + "</span>");
+            }
         }
+    },
+    removeInputError: function (input) {
+        input.removeClass('has-error');
+        input.find('.help-block').remove();
+    },
+    pageNumberChanged: function () {
+        if (this.upgradeTable.page)
+            this.options.dataTablePage = this.upgradeTable.page.info().page;
+    },
+    pageLengthChanged: function (e, settings, len) {
+        this.dataTableLength = len;
     }
 });
 
+BH.views.BaseCollectionView = BH.views.BaseView.extend({
+    beforeRender: function () {
+        if (!this.childEl)
+            this.childEl = this.el;
+        this.$el.empty();
+    },
+    beforeChildrenRender: function () {
+        return true;
+    },
+    afterRender: function () {
+        if (this.beforeChildrenRender() != false) {
+            if (this.options.childView && this.options.collection) {
+                for (model in this.options.collection.models) {
+                    var options = {
+                        model: this.options.collection.models[model],
+                        el: this.childEl
+                    };
+
+                    if (this.options.childOptions)
+                        options = _.extend(this.options.childOptions, options);
+                    new this.options.childView(options);
+                }
+            }
+        }
+        this.afterChildrenRender();
+    },
+    afterChildrenRender: function () {
+    }
+});
+
+
+//MODALS
 BH.views.BaseModal = BH.views.BaseView.extend({
     defaults: {
         template: '/views/partials/modals/modal_default.ejs'
@@ -111,6 +161,8 @@ BH.views.BaseModal = BH.views.BaseView.extend({
         this.setElement(null);
         if (this.beforeModalCreated() != false)
             this.createModal();
+
+        this.listenTo(this.model, "change", this.render);
     },
     beforeModalCreated: function () {
         return true;
@@ -143,20 +195,50 @@ BH.views.BaseModal = BH.views.BaseView.extend({
     }
 });
 
-BH.views.BaseCollectionView = BH.views.BaseView.extend({
-    afterRender: function () {
-        if (this.options.childView && this.options.collection) {
-            for (model in this.options.collection.models) {
-                var options = {
-                    model: this.options.collection.models[model],
-                    el: this.el
-                };
+BH.views.NotifyModal = BH.views.BaseModal.extend({
+    defaults: {
+        template: '/views/partials/modals/modal_notify.ejs'
+    }
+});
 
-                if (this.options.childOptions)
-                    options = _.extend(this.options.childOptions, options);
-                new this.options.childView(options);
-            }
-        }
+BH.views.NotifyNewBankAccountModal = BH.views.NotifyModal.extend({
+    defaults: {
+        template: '/views/partials/modals/modal_notify.ejs'
+    },
+    events: {
+        'click .new-account-login-button': 'accountLogin'
+    },
+    accountLogin: function () {
+        if (this.options.loginCallback)
+            this.options.loginCallback(this.options.extras.account.get('account').accountNumber, this.options.extras.account.get('account').password);
+    }
+});
+
+BH.views.ConfirmModal = BH.views.BaseModal.extend({
+    defaults: {
+        template: '/views/partials/modals/modal_confirm.ejs'
+    },
+    events: {
+        "click .modal-button-confirm": "confirmCallback",
+        "click .modal-button-cancel": "cancelCallback"
+    },
+    confirmCallback: function () {
+        if (typeof this.options.onConfirm === 'function')
+            this.options.onConfirm();
+    },
+    cancelCallback: function () {
+        if (typeof this.options.onCancel === 'function')
+            this.options.onCancel();
+    }
+});
+
+BH.views.DeleteModal = BH.views.ConfirmModal.extend({
+    defaults: {
+        template: '/views/partials/modals/modal_delete.ejs'
+    },
+    events: {
+        "click .modal-button-delete": "confirmCallback",
+        "click .modal-button-cancel": "cancelCallback"
     }
 });
 
@@ -180,7 +262,7 @@ BH.views.BaseCollectionModal = BH.views.BaseModal.extend({
 });
 
 
-//Base Utils
+//HELPERS
 BH.helpers = BH.helpers ? BH.helpers : {};
 BH.helpers.viewHelpers = {
     createCountdownTimer: function ($el, date, finishCallback) {
@@ -212,6 +294,10 @@ BH.helpers.viewHelpers = {
             s += (remaining.seconds + "s ");
 
         $el.html(s);
+    },
+    setActiveNav: function (id) {
+        $(id).addClass('active');
+        $('#navTabs').find('li').not(id).removeClass('active');
     }
 };
 BH.helpers.Toastr = {
@@ -225,7 +311,7 @@ BH.helpers.Toastr = {
         "onclick": null,
         "showDuration": "300",
         "hideDuration": "1000",
-        "timeOut": "3000",
+        "timeOut": "5000",
         "extendedTimeOut": "1000",
         "showEasing": "swing",
         "hideEasing": "linear",
@@ -267,8 +353,15 @@ BH.helpers.TemplateRenderer = {
             });
         }
     },
+    attachDefaultEventHandlers: function (content) {
+        content.find('.ip-address').on('click', function (e) {
+            var url = "#internet/ip" + $(e.currentTarget).text();
+            BH.app.router.navigate(url, {trigger: true});
+        });
+    },
     render: function (isAppend, tmpl, $el, data, callback) {
         var content = $(tmpl(data ? data : {}));
+        this.attachDefaultEventHandlers(content);
         if (isAppend)
             $el.append(content);
         else
@@ -276,3 +369,81 @@ BH.helpers.TemplateRenderer = {
         callback(content);
     }
 };
+
+
+//ROUTER
+BH.Router = Backbone.Router.extend({
+    body: '#pageInnerContainer',
+    routes: {
+        "": "localMachine",
+        "localmachine": "localMachine",
+        "internet": "internetBrowser",
+        "internet/b:bank_id/a:account_id": 'browserBankAccountLogin',
+        "internet/ip:ip": 'browserIPNavigate',
+        "finances": "userFinances"
+    },
+    localMachine: function () {
+        BH.helpers.viewHelpers.setActiveNav('#navLocalMachine');
+        new BH.models.LocalMachine({
+            el: '#pageInnerContainer'
+        });
+    },
+    internetBrowser: function () {
+        BH.helpers.viewHelpers.setActiveNav('#navInternet');
+        new BH.models.InternetBrowser({
+            el: '#pageInnerContainer'
+        });
+    },
+    browserIPNavigate: function (ip) {
+        BH.helpers.viewHelpers.setActiveNav('#navInternet');
+        $('#modalsContainer').remove();
+        $('.modal-backdrop').remove();
+        new BH.models.InternetBrowser({
+            el: '#pageInnerContainer',
+            browserLoadData: {
+                ip: ip
+            }
+        });
+    },
+    browserBankAccountLogin: function (bank_id, account_id) {
+        BH.helpers.viewHelpers.setActiveNav('#navFinances');
+        new BH.models.InternetBrowser({
+            el: '#pageInnerContainer',
+            browserLoadData: {
+                bankAccount: {
+                    _id: account_id
+                },
+                bank: {
+                    _id: bank_id
+                }
+            }
+        });
+    },
+    userFinances: function () {
+        BH.helpers.viewHelpers.setActiveNav('#navFinances');
+        new BH.collections.UserBankAccountManagement([],
+            {
+                el: '#pageInnerContainer'
+            });
+    }
+});
+
+
+//APP
+BH.app = BH.app ? BH.app : {};
+$(function () {
+    BH.app.router = new BH.Router();
+    Backbone.history.start({pushState: true});
+    $(document).on('mouseup', '.route', function (e) {
+        var route = $(e.currentTarget).attr('route');
+        if (route) {
+            if (e.which == 2) {
+                window.open(window.location.origin + route);
+            }
+            else {
+                BH.app.router.navigate(route, {trigger: true});
+            }
+            e.preventDefault();
+        }
+    });
+});

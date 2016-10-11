@@ -1,7 +1,16 @@
 <!doctype html>
 <html>
 <head>
+
+    <% if(title) { %>
+
+    <title><%= title %></title>
+
+    <% } else { %>
+
     <title>Blakhat.io</title>
+
+    <% } %>
 
     <% include ../partials/refs.ejs %>
 

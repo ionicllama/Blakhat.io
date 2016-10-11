@@ -27,23 +27,37 @@ BH.models.BrowserBankAccount = BH.models.BankAccount.extend({
         this.on('sync', this.renderAccount, this);
         this.fetchAccount();
     },
+    rightAfterRender: function () {
+    },
     fetchAccount: function () {
-        var fetchData = {
-            bank_id: this.get('bank')._id,
-            accountNumber: this.get('account').accountNumber
-        };
-        if (this.get('account').password) {
-            fetchData.password = this.get('account').password;
+        if (!this.get('_id')) {
+            var fetchData = {};
+
+            if (this.get('sourceIP'))
+                fetchData.sourceIP = this.get('sourceIP');
+
+            if (this.get('bank')._id)
+                fetchData.bank_id = this.get('bank')._id;
+
+            if (this.get('account').accountNumber)
+                fetchData.accountNumber = this.get('account').accountNumber;
+
+            if (this.get('account').password)
+                fetchData.password = this.get('account').password;
+            var fetchParams = {
+                data: $.param(fetchData)
+            };
+            this.fetch(fetchParams);
         }
-        var fetchParams = {
-            data: $.param(fetchData)
-        };
-        this.fetch(fetchParams);
+        else
+            this.fetch()
     },
     renderAccount: function () {
-        this.get('browserModel').set({
-            activeAccount: this
-        });
+        if (this.get('browserModel')) {
+            this.get('browserModel').set({
+                activeAccount: this
+            });
+        }
     },
     getPatchData: function (extraData) {
         var data = {
@@ -82,9 +96,8 @@ BH.models.BrowserBankAccount = BH.models.BankAccount.extend({
 //COLLECTIONS
 BH.collections.UserBankAccounts = BH.collections.BaseCollection.extend({
     model: BH.models.BankAccount,
-    url: 'bank/accounts',
+    url: '/bank/accounts',
     afterInit: function () {
-        this.on('sync', this.renderAccounts, this);
         this.fetch();
         this.on("change:selected", this.accountSelected, this);
     }
@@ -92,7 +105,6 @@ BH.collections.UserBankAccounts = BH.collections.BaseCollection.extend({
 
 BH.collections.UserBankAccountSelect = BH.collections.UserBankAccounts.extend({
     model: BH.models.BankAccount,
-    url: 'bank/accounts',
     afterInit: function () {
         this.on('sync', this.renderAccounts, this);
         this.fetch();
@@ -108,7 +120,8 @@ BH.collections.UserBankAccountSelect = BH.collections.UserBankAccounts.extend({
             },
             header: "Select a payment account",
             extras: {
-                amount: this.options.amount
+                amount: this.options.amount,
+                accountCount: this.models.length
             }
         });
     },
@@ -117,7 +130,7 @@ BH.collections.UserBankAccountSelect = BH.collections.UserBankAccounts.extend({
             this.view.removeModal();
 
         if (this.options.callback)
-            this.options.callback(model);
+            this.options.callback(model, this.options);
     }
 });
 
@@ -142,15 +155,15 @@ BH.views.BrowserBankAccount = BH.views.BaseView.extend({
         template: '/views/partials/bank/browserbankaccount.ejs'
     },
     events: {
-        'keyup change #transferAccountNumber, #transferAmountDollars, #transferAmountCents': 'transferDataChanged',
-        'keyup #transferAmountCents': 'transferAmountCentsKeyup',
+        'change keyup #transferAmountCents': 'transferAmountCentsKeyup',
         'change #transferAmountCents': 'transferAmountCentsChanged',
         'click #transferAmountDollars, #transferAmountCents': 'inputClickSelectAll',
         'click #transferConfirmButton': 'transferFunds',
+        'click #transferSetMaxButton': 'setTransferMaxiumums',
         'click #bankAccountLogoutButton': 'accountLogout'
     },
     beforeFirstRender: function () {
-        this.listenTo(this.model, "change", this.render);
+
         this.renderData = {
             model: this.model
         };
@@ -159,19 +172,33 @@ BH.views.BrowserBankAccount = BH.views.BaseView.extend({
         this.$dollarsInput = this.$('#transferAmountDollars');
         this.$centsInput = this.$('#transferAmountCents');
     },
-    transferDataChanged: function (e) {
+    validateTransferData: function (e) {
         var currentTransfer = this.getCurrentTransferAmount(),
+            currentAccountNumber = this.$('#transferAccountNumber').val(),
             isCostError = false,
-            isAccountNumberError = false;
-        if (currentTransfer.totalCents > this.model.get('account').balance)
+            isAccountNumberError = false,
+            errorText = '';
+        if (currentTransfer.totalCents > this.model.get('account').balance) {
             isCostError = true;
+            errorText = "Transfer cannot exceed balance"
+        }
+        else if (currentTransfer.totalCents == 0) {
+            isCostError = true;
+            errorText = "Transfer must be for more than 0 dollars"
+        }
+        this.setInputError(this.$('.transfer-amount-input-group'), isCostError, errorText);
 
-        if (this.$('#transferAccountNumber').val().length < 10)
+        if (currentAccountNumber.length < 10) {
             isAccountNumberError = true;
+            errorText = "Destination account number must be 10 characters";
+        }
+        else if (currentAccountNumber == this.model.get('account').accountNumber) {
+            isAccountNumberError = true;
+            errorText = "Destination account can't be the source account";
+        }
+        this.setInputError(this.$('.transfer-account-number-input-group'), isAccountNumberError, errorText);
 
-        this.setInputError(this.$('.transfer-account-number-input-group'), isAccountNumberError);
-        this.setInputError(this.$('.transfer-amount-input-group'), isCostError);
-        this.$('#transferConfirmButton').prop('disabled', isCostError || isAccountNumberError);
+        return isCostError && isAccountNumberError;
     },
     transferAmountCentsKeyup: function (e) {
         var t = this.$centsInput;
@@ -199,8 +226,10 @@ BH.views.BrowserBankAccount = BH.views.BaseView.extend({
         this.$centsInput.val(parsedBalance.cents);
     },
     transferFunds: function () {
-        var currentTransfer = this.getCurrentTransferAmount();
-        this.model.transferFunds(this.$('#transferAccountNumber').val(), currentTransfer.totalCents);
+        if (!this.validateTransferData()) {
+            var currentTransfer = this.getCurrentTransferAmount();
+            this.model.transferFunds(this.$('#transferAccountNumber').val(), currentTransfer.totalCents);
+        }
     },
     accountLogout: function () {
         this.model.accountLogout();
@@ -231,9 +260,28 @@ BH.views.BankAccountManage = BH.views.BaseView.extend({
         template: '/views/partials/bank/userbankaccountmanage.ejs',
         isAppend: true
     },
+    events: {
+        'click .login-manage-bank-account': 'bankAccountLogin',
+        'click .delete-manage-bank-account': 'bankAccountDeleteConfirm'
+    },
     beforeFirstRender: function () {
+        this.listenTo(this.model, "destroy", this.remove);
         this.renderData = {
             model: this.model
         };
+    },
+    bankAccountLogin: function () {
+        var url = "#internet/b" + this.model.get('account').bank._id + '/a' + this.model.get('_id');
+        BH.app.router.navigate(url, {trigger: true});
+    },
+    bankAccountDeleteConfirm: function () {
+        new BH.views.DeleteModal({
+            header: "Delete Bank Account",
+            body: "Are you sure you want to delete this bank account?",
+            onConfirm: this.bankAccountDelete.bind(this)
+        });
+    },
+    bankAccountDelete: function () {
+        this.model.destroy();
     }
 });

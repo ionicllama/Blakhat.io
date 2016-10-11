@@ -19,18 +19,19 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <% for(hdd in machineParts.hdds){ %>
+                        <% for(var i = 0 ; i < hdds.models.length ; i++){ %>
                         <tr>
-                            <td><%- machineParts.hdds[hdd].size %></td>
-                            <td>$<%- BH.sharedHelpers.hddHelpers.getHDDCost(machineParts.hdds[hdd]) %></td>
+                            <td><%- hdds.models[i].get('size') %></td>
+                            <td><%- BH.sharedHelpers.hddHelpers.getHDDCostDisplay(hdds.models[i].attributes) %></td>
                             <td class="text-center">
-                                <% if(BH.sharedHelpers.hddHelpers.getHDDModifier(machineParts.hdds[hdd]) < BH.sharedHelpers.hddHelpers.getHDDModifier(model.get('machine').hdd)){ %>
+                                <% if(hdds.models[i].attributes.size < model.get('machine').hdd.size){ %>
                                 <span class="text-warning text-owned">Downgrade</span>
-                                <% } else if(machineParts.hdds[hdd]._id.toString() === model.get('machine').hdd._id.toString()){ %>
+                                <% } else if(hdds.models[i].get('_id') === model.get('machine').hdd._id){ %>
                                 <span class="text-info text-owned">Owned</span>
                                 <% } else { %>
                                 <button type="button" class="btn btn-success buyButton"
-                                        _id="<%- machineParts.hdds[hdd]._id %>">
+                                        amount="<%- BH.sharedHelpers.hddHelpers.getHDDCost(hdds.models[i].attributes) %>"
+                                        _id="<%- hdds.models[i].get('_id') %>">
                                     Buy
                                 </button>
                                 <% } %>

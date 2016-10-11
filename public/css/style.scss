@@ -96,7 +96,7 @@ $colHighlight: #EEE;
     > li {
       > a {
         color: $colDefault;
-        font-size: 14px;
+        font-size: 15px;
         &:hover, &:focus {
           color: $colHighlight;
         }
@@ -173,19 +173,22 @@ body {
   margin: 10px 0;
 }
 
-.btn-primary, .btn-primary:focus {
+.btn-custom-blue, .btn-custom-blue:focus {
   &:focus {
     outline: none;
     background-color: $primary-color-button;
     border-color: $primary-color-button-border;
+    color: white;
   }
   &:hover {
     background-color: $primary-color-button-hover;
     border-color: $primary-color-button-border-hover;
+    color: $primary-color-highlight;
   }
   background-color: $primary-color-button;
   border-color: $primary-color-button-border;
   outline: none;
+  color: white;
 }
 
 .gray-text {
@@ -215,7 +218,7 @@ body {
 }
 
 .cents-input {
-  width: 50px !important;
+
 }
 
 //Loading spinner
@@ -389,6 +392,14 @@ $primary-error-color: #F44336;
     margin-top: 10px;
   }
   .transfer-funds-container {
+    .transfer-amount-input-group {
+      .help-block {
+        margin-left: 15px;
+      }
+      .transfer-amount-form-group {
+        margin-bottom: 5px;
+      }
+    }
     h4 {
       padding: 0;
       margin-bottom: 10px;
@@ -420,6 +431,13 @@ $primary-error-color: #F44336;
   padding: 10px;
   margin: 20px;
   display: inline-block;
+  position: relative;
+  .delete-manage-bank-account {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 8px 8px 0;
+  }
   .bank-account-balance {
     font-size: 24px;
     text-align: center;

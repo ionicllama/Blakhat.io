@@ -5,7 +5,7 @@ var mongoose = require('mongoose');
 
 var _ = require('underscore');
 
-var machineSchema = mongoose.Schema({
+var bankSchema = mongoose.Schema({
 
     name: {type: String, default: ""},
     DOMbackground: {type: String, default: ""},
@@ -13,7 +13,9 @@ var machineSchema = mongoose.Schema({
 
 });
 
-machineSchema.methods = {};
+bankSchema.statics = {};
+
+bankSchema.methods = {};
 
 // create the model for users and expose it to our app
-module.exports = mongoose.model('bank', machineSchema);
+module.exports = mongoose.model('bank', bankSchema);

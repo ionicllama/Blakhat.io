@@ -1,36 +1,39 @@
-<div id="internetBrowserWindow">
+<div id="internetBrowser" class="col-lg-12 col-content-box elevation-2">
 
-    <div id="internetBrowserHeader" class="elevation-bottom-2">
+    <div id="internetBrowserWindow">
 
-        <div id="internetSearchContainer">
-            <div class="internet-button-container internet-nav-button-container">
-                <button type="button" id="historyBackButton" class="btn btn-primary history-back" disabled><span
-                            class="glyphicon glyphicon-chevron-left"></span></button>
-                <button type="button" id="historyNextButton" class="btn btn-primary history-next" disabled><span
-                            class="glyphicon glyphicon-chevron-right"></span></button>
-                <button type="button" id="internetRefreshButton" class="btn btn-primary internet-refresh"><span
-                            class="glyphicon glyphicon-refresh"></span></button>
-                <button type="button" id="internetHomeButton" class="btn btn-primary internet-home"><span
-                            class="glyphicon glyphicon-home"></span></button>
+        <div id="internetBrowserHeader" class="elevation-bottom-2">
+
+            <div id="internetSearchContainer">
+                <div class="internet-button-container internet-nav-button-container">
+                    <button type="button" id="historyBackButton" class="btn btn-custom-blue history-back" disabled><span
+                                class="glyphicon glyphicon-chevron-left"></span></button>
+                    <button type="button" id="historyNextButton" class="btn btn-custom-blue history-next" disabled><span
+                                class="glyphicon glyphicon-chevron-right"></span></button>
+                    <button type="button" id="internetRefreshButton" class="btn btn-custom-blue internet-refresh"><span
+                                class="glyphicon glyphicon-refresh"></span></button>
+                    <button type="button" id="internetHomeButton" class="btn btn-custom-blue internet-home"><span
+                                class="glyphicon glyphicon-home"></span></button>
+                </div>
+
+                <input type="text" class="form-control" autocomplete="new-password" id="internetSearchText">
+                <span class="internet-search-loading glyphicon glyphicon-refresh spinning"></span>
+
+                <div class="internet-button-container internet-search-button-container">
+                    <button type="button" id="internetSearchButton" class="btn btn-custom-blue"><span
+                                class="glyphicon glyphicon-search internet-search"></span></button>
+                </div>
+
+                <div class="clr"></div>
+
             </div>
 
-            <input type="text" class="form-control" autocomplete="new-password" id="internetSearchText">
-            <span class="internet-search-loading glyphicon glyphicon-refresh spinning"></span>
+        </div>
 
-            <div class="internet-button-container internet-search-button-container">
-                <button type="button" id="internetSearchButton" class="btn btn-primary"><span
-                            class="glyphicon glyphicon-search internet-search"></span></button>
-            </div>
-
-            <div class="clr"></div>
+        <div id="internetBrowserDOM">
 
         </div>
 
     </div>
-
-    <div id="internetBrowserDOM">
-
-    </div>
-
 
 </div>

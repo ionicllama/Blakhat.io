@@ -8,11 +8,16 @@
         <div class="modal-body">
             <% if(extras && extras.amount) { %>
             <div class="payment-total-container">
-                <strong>Total: </strong>
+                <strong>Cost: </strong>
                 <span class="text-success"><%= BH.sharedHelpers.formatCurrency(extras.amount) %></span>
             </div>
             <div class="modal-body-inner">
-
+                <% if(extras.accountCount == 0) { %>
+                <div class="alert alert-danger" role="alert">
+                    You don't have any bank accounts. Visit <a href="javascript:void(0)" class="alert-link ip-address">3.3.3.3</a>
+                    to get set up with a free one.
+                </div>
+                <% } %>
             </div>
             <% } %>
         </div>

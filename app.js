@@ -11,20 +11,13 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 
-var machine = require('./controllers/machine');
-var internetContent = require('./controllers/internetcontent');
-var bank = require('./controllers/bank');
-
-var routes = require('./controllers/index');
-var local = require('./controllers/localmachine');
-var internet = require('./controllers/internet');
-var finances = require('./controllers/finances');
+var index = require('./controllers/index');
 
 var configDB = require('./config/database');
 
 var _ = require('underscore');
 
-// configuration
+mongoose.Promise = global.Promise; //redefine mongoose promise to prevent deprecation console warning
 mongoose.connect(configDB.url); // connect to database
 
 // required for passport
@@ -68,20 +61,11 @@ app.use(function (req, res, next) {
     next();
 });
 
+require('./config/passport')(passport);
+require('./controllers/users')(app, passport);
 
 //API Routes
-app.use('/machine', machine);
-app.use('/internetcontent', internetContent);
-app.use('/bank', bank);
-
-//Web Routes
-app.use('/', routes);
-app.use('/localmachine', local);
-app.use('/internet', internet);
-
-app.use('/finances', finances);
-require('./config/passport')(passport);
-require('./controllers/users')(app, passport); // pass passport for configuration
+app.all('*', index);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -113,6 +97,5 @@ app.use(function (err, req, res, next) {
         error: {}
     });
 });
-
 
 module.exports = app;

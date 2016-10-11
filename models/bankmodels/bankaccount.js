@@ -5,15 +5,16 @@ var mongoose = require('mongoose');
 
 var _ = require('underscore');
 
+var Machine = require('../../models/machinemodels/machine');
 var globalHelpers = require('../../helpers/globalHelpers');
 
 var bankAccountSchema = mongoose.Schema({
 
-    accountNumber: {type: String, default: generateNewAccountNumber()},
+    accountNumber: {type: String, default: "", unique: true},
     password: {type: String, default: globalHelpers.getRandomPassword()},
     user: {type: mongoose.Schema.Types.ObjectId, ref: 'user'},
     bank: {type: mongoose.Schema.Types.ObjectId, ref: 'bank'},
-    balance: {type: Number, default: 0}
+    balance: {type: Number, default: 0, min: 0}
 
 });
 
@@ -65,6 +66,18 @@ bankAccountSchema.statics = {
 };
 
 bankAccountSchema.methods = {
+    generateAccountNumber: function (callback) {
+        this.accountNumber = globalHelpers.getNewAccountNumber();
+        var self = this;
+        this.save(function (err) {
+            if (err) {
+                if (err.code === 11000)
+                    return self.generateAccountNumber(callback);
+                return callback(err);
+            }
+            callback();
+        });
+    },
     transferFundsFrom: function (destinationBankAccountNumber, amount, callback) {
         if (!destinationBankAccountNumber || destinationBankAccountNumber.length == 0) {
             return callback("No destination account number was entered");
@@ -72,7 +85,7 @@ bankAccountSchema.methods = {
         else {
             var self = this;
             this.model('bankaccount').findByAccountNumber(destinationBankAccountNumber, function (err, destinationBankAccount) {
-                if (err)
+                if (err || !destinationBankAccount)
                     return callback("Couldn't find destination account", err);
 
                 if (self.balance < amount)
@@ -88,29 +101,49 @@ bankAccountSchema.methods = {
                         if (err)
                             console.log(err + " - Failed to change balance of the source bank account during a transfer.");
 
-                        callback();
+                        Machine.findByBank(self.bank._id, function (err, sourceBankMachine) {
+                            if (err || !sourceBankMachine)
+                                console.log("Couldn't find bank machine.");
+
+                            if (sourceBankMachine) {
+                                Machine.findByBank(destinationBankAccount.bank._id, function (err, destinationBankMachine) {
+                                    if (err || !destinationBankMachine)
+                                        console.log("Couldn't find bank machine.");
+
+                                    if (destinationBankMachine) {
+                                        sourceBankMachine.logBankTransfer(self.accountNumber, destinationBankAccount.accountNumber, destinationBankMachine.ip, amount);
+                                    }
+                                    return callback();
+                                });
+                            }
+                            else {
+                                return callback();
+                            }
+                        });
                     });
                 });
 
             })
         }
+    },
+    makePurchase: function (user, amount, callback) {
+        if (this.balance < amount) {
+            return callback("This account no longer has enough funds to purchase this item");
+        }
+        else if (user._id.toString() != this.user.toString()) {
+            //this should never happen
+            //this is here for a second validation after client side to prevent cheating
+            return callback("You do not own the selected bank account");
+        }
+
+        this.balance = this.balance - amount;
+        this.save(function (err) {
+            if (err)
+                return callback("Failed to purchase the selected item", err);
+
+            return callback();
+        });
     }
 };
-
-function generateNewAccountNumber() {
-    //generate random 10 digit account numbers until we find one that doesn't exist yet
-    var validAccount = false,
-        accountNumber;
-    // do {
-    //     accountNumber = Math.floor(Math.random() * 10000000000).toString();
-    //     bankHelpers.getBankAccount({accountNumber: accountNumber}, function (bankAccount) {
-    //         if (!bankAccount)
-    //             validAccount = true;
-    //     });
-    // }
-    // while (!validAccount);
-    // return accountNumber;
-    return Math.floor(Math.random() * 10000000000).toString();
-}
 
 module.exports = mongoose.model('bankaccount', bankAccountSchema);

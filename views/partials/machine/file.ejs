@@ -1,0 +1,27 @@
+<tr>
+    <td></td>
+    <td><%- BH.sharedHelpers.fileHelpers.getFileName(model.attributes) %></td>
+    <td><%- BH.sharedHelpers.fileHelpers.getFiletypeName(model.attributes) %></td>
+    <td><%- model.get('file').level %></td>
+    <td><%- model.get('file').size %></td>
+    <td class="text-center">
+        <% if(canDownloadFiles){ %>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="false">
+                Action <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li><a href="#" class="file-download">Download</a></li>
+                <% if(!model.get('isLocked')) { %>
+                <li><a href="#" class="file-delete">Delete</a></li>
+                <% } %>
+            </ul>
+        </div>
+        <% } else if(!model.get('isLocked')) { %>
+        <button type="button" class="btn btn-danger btn-sm file-delete">
+            <span class="glyphicon glyphicon-trash"></span>
+        </button>
+        <% } %>
+    </td>
+</tr>

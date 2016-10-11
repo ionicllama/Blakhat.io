@@ -105,10 +105,14 @@
             return cpu.cores + '-core ' + cpu.speed + ' MHz';
         },
         getCPUCost: function (cpu) {
+            //total cents cost
             if (!cpu || (cpu.speed === 666 && cpu.cores === 1))
                 return 0;
             else
-                return Math.floor((Math.pow(cpu.speed, 3) / 10000000) * Math.pow(cpu.cores, 2));
+                return Math.floor((Math.pow(cpu.speed * 20, 2) / 10000000) * Math.pow(cpu.cores * 5, 2)) * 100;
+        },
+        getCPUCostDisplay: function (cpu) {
+            return exports.sharedHelpers.formatCurrency(this.getCPUCost(cpu));
         },
         getCPUModifier: function (cpu) {
             //todo: probably change this to be a bit more sophisticated
@@ -121,14 +125,14 @@
             return hdd.size.toString() + "gb";
         },
         getHDDCost: function (hdd) {
+            //total cents cost
             if (!hdd || (hdd.size === 20))
                 return 0;
             else
-                return Math.floor((Math.pow(hdd.size * 3, 2) * .01));
+                return Math.floor((Math.pow(hdd.size * 20, 2) * .01)) * 100;
         },
-        getHDDModifier: function (hdd) {
-            //todo: probably change this to be a bit more sophisticated
-            return hdd ? hdd.size : 0;
+        getHDDCostDisplay: function (hdd) {
+            return exports.sharedHelpers.formatCurrency(this.getHDDCost(hdd));
         }
     };
 
@@ -137,10 +141,14 @@
             return internet.downSpeed + 'mb/s down - ' + internet.upSpeed + 'mb/s up';
         },
         getInternetCost: function (internet) {
+            //total cents cost
             if (!internet || (internet.upSpeed === 1 && internet.downSpeed === 5))
                 return 0;
             else
-                return Math.floor(Math.pow(internet.downSpeed * internet.upSpeed * 25, 1.1) * .03)
+                return Math.floor(Math.pow(internet.downSpeed * internet.upSpeed * 25, 1.1) * .03) * 100;
+        },
+        getInternetCostDisplay: function (internet) {
+            return exports.sharedHelpers.formatCurrency(this.getInternetCost(internet));
         },
         getInternetModifier: function (internet) {
             //todo: probably change this to be a bit more sophisticated
@@ -148,15 +156,29 @@
         }
     };
 
-    exports.sharedHelpers.firewallHelpers = {
-        getFirewallName: function (firewall) {
-            if (!firewall || !firewall.level || firewall.level === 0)
-                return "None";
+    exports.sharedHelpers.fileHelpers = {
+        getFileName: function (file) {
+            if (file)
+                return file.file.name + '.' + file.file.type;
             else
-                return ("Level" + firewall.level.toString());
+                return 'no_name.txt';
         },
-        getFirewallCost: function (firewall) {
-            return Math.floor(Math.pow(firewall.level * 5, 3));
+        getFiletypeName: function (file) {
+            if (file) {
+                switch (file.file.type.toLowerCase()) {
+                    case 'fl':
+                        return 'Firewall';
+                    case 'bps':
+                        return 'Firewall Bypasser';
+                    case 'ck':
+                        return 'Password Cracker';
+                    default:
+                        return Text
+                }
+            }
+            else {
+                return 'Text';
+            }
         }
     };
 
