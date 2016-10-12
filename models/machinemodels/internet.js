@@ -21,6 +21,12 @@ internetSchema.methods = {
     getModifier: function () {
         //todo: probably change this to be a bit more sophisticated
         return this.downSpeed * this.upSpeed;
+    },
+    getMegabyteSpeed: function () {
+        return {
+            downSpeed: this.downSpeed / 8,
+            upSpeed: this.upSpeed / 8
+        };
     }
 };
 

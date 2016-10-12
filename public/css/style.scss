@@ -6,6 +6,7 @@ $accent-color-highlight: #3949AB;
 $primary-color-text: #555;
 $primary-background: #cbcbcb;
 $secondary-inner-background: #f1f1f1;
+$primary-error-color: #F44336;
 $primary-color-button: $accent-color;
 $primary-color-button-border: $accent-color-highlight;
 $primary-color-button-hover: $accent-color-highlight;
@@ -287,8 +288,15 @@ body {
   }
 }
 
+//Progress Styles
+.process-progress {
+  .progress-bar {
+    color: #000
+  }
+  margin: 0;
+}
 
-//Upgrade Styles
+//Datatable styles
 .data-table > tbody > tr {
   height: 50px;
   > td {
@@ -296,7 +304,6 @@ body {
   }
 }
 
-$primary-error-color: #F44336;
 //Internet Styles
 #internetBrowser {
   #internetBrowserWindow {

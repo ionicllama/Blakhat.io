@@ -31,14 +31,20 @@ BH.models.Machine = BH.models.BaseModel.extend({
         return _.extend(data, extraData);
     },
     updateLog: function (logText) {
-        var data = this.getPatchData({
+        //replace with a helper function probably
+        var newProcess = new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.UPDATE_LOG,
+            machine_id: BH.app.localMachine.get('_id'),
+            machine: this,
             log: logText
-        });
-        this.save(data, {
+        }).save(this.getPatchData(), {
                 patch: true,
-                success: function (data) {
-                    BH.helpers.Toastr.showSuccessToast("Log update successful", null);
-                },
+            success: $.proxy(function (data) {
+                BH.helpers.Toastr.showSuccessToast("Log update process started", null);
+
+                if (BH.app.localMachineProcesses)
+                    BH.app.localMachineProcesses.fetch();
+            }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);
                 },
@@ -71,10 +77,11 @@ BH.models.RemoteMachine = BH.models.Machine.extend({
 
 BH.models.LocalMachine = BH.models.Machine.extend({
     renderMachine: function () {
-        new BH.views.LocalMachine({
-            model: this,
-            el: this.get('el')
-        });
+        if (this.get('el'))
+            new BH.views.LocalMachine({
+                model: this,
+                el: this.get('el')
+            });
     },
     canRefreshIP: function () {
         return BH.sharedHelpers.checkDateIsBeforeToday(BH.sharedHelpers.getNewDateAddDays(this.get('machine').lastIPRefresh, 1));
@@ -314,9 +321,10 @@ BH.views.LocalMachine = BH.views.Machine.extend({
         });
     },
     renderProcesses: function () {
-        new BH.collections.Processes(this.model.get('machine').processes,
+        BH.app.localMachineProcesses = new BH.collections.Processes(this.model.get('machine').processes,
             {
-                machine_id: this.model.get('machine')._id,
+                machine_id: BH.app.localMachine.get('_id'),
+                machine: this.model.get('machine'),
                 el: this.$('#processes')
             });
     }

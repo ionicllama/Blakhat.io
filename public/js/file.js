@@ -76,9 +76,10 @@ BH.views.Files = BH.views.BaseCollectionView.extend({
     }
 });
 
-BH.views.File = BH.views.BaseCollectionView.extend({
+BH.views.File = BH.views.BaseView.extend({
     defaults: {
-        template: '/views/partials/machine/file.ejs'
+        template: '/views/partials/machine/file.ejs',
+        isAppend: true
     },
     events: {
         'click .file-download': 'downloadFile',

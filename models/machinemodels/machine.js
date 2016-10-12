@@ -7,6 +7,7 @@ var CPU = require('../../models/machinemodels/cpu');
 var HDD = require('../../models/machinemodels/hdd');
 var Internet = require('../../models/machinemodels/internet');
 var Process = require('../../models/machinemodels/process');
+var BankAccount = require('../../models/bankmodels/bankaccount');
 
 
 var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
@@ -36,12 +37,17 @@ var machineSchema = mongoose.Schema({
 
 machineSchema.statics = {
     findPopulated: function (query, callback) {
-        this.findOne(query).populate(['cpu', 'internet', 'hdd', 'files.file', 'processes']).exec(function (err, machine) {
-            callback(err, machine);
+        var processOpts = {path: 'processes', populate: ['file', {path: 'machine', select: '_id ip'}, 'bankAccount']};
+        this.findOne(query).populate(['cpu', 'internet', 'hdd', 'files.file']).populate(processOpts).exec(function (err, machine) {
+            if (!machine || err)
+                return callback(err, machine);
+
+            return callback(null, machine);
         });
     },
     findByIdPopulated: function (_id, callback) {
-        this.findOne({_id: _id}).populate(['cpu', 'internet', 'hdd', 'files.file', 'processes']).exec(function (err, machine) {
+        var processOpts = {path: 'processes', populate: ['file', {path: 'machine', select: '_id ip'}, 'bankAccount']};
+        this.findOne({_id: _id}).populate(['cpu', 'internet', 'hdd', 'files.file']).populate(processOpts).exec(function (err, machine) {
             callback(err, machine);
         });
     },
@@ -148,7 +154,7 @@ machineSchema.methods = {
     setDefaultHDD: function (callback) {
         if (!this.hdd) {
             var self = this;
-            HDD.findOne({size: 20}, function (err, newHDD) {
+            HDD.findOne({size: 10}, function (err, newHDD) {
                 if (err)
                     console.log(err);
 
@@ -173,14 +179,14 @@ machineSchema.methods = {
             });
         }
     },
-    updateLog: function (log, isAppend, callback) {
+    updateLog: function (log, isAppend, dateOverride, callback) {
         if (isAppend) {
             this.model('machine').findById(this._id, function (err, machine) {
                 if (err && typeof callback == 'function')
                     return callback(err);
 
                 machine.log = machine.log ? machine.log + '\n' + log : log;
-                machine.lastLogUpdate = new Date();
+                machine.lastLogUpdate = dateOverride ? dateOverride : new Date();
                 machine.save(function (err) {
                     if (err && typeof callback == 'function')
                         return callback(err);
@@ -205,7 +211,7 @@ machineSchema.methods = {
     appendLog: function (appendText) {
         //this is synchronous - no need to validate this was done before returning results
         if (appendText && appendText.length > 0) {
-            this.updateLog(appendText, true, function (err) {
+            this.updateLog(appendText, true, null, function (err) {
                 if (err)
                     console.log(err);
             });
@@ -275,11 +281,15 @@ machineSchema.methods = {
 
                 self.cpu = newCPU;
                 self.save(function (err) {
-                    if (err) {
+                    if (err)
                         return callback("Failed to purchase selected CPU", err);
-                    }
 
-                    callback();
+                    self.updateProcessCosts(function (err) {
+                        if (err)
+                            console.log(err);
+
+                        callback();
+                    });
                 });
             });
         });
@@ -353,8 +363,70 @@ machineSchema.methods = {
         else {
             callback(false);
         }
+    },
+    updateProcessCosts: function (callback) {
+        //process.cost == time in seconds the process will take to complete
+        var processes = this.processes,
+            cpuMod = this.cpu.getModifier(),
+            internetSpeed = this.internet.getMegabyteSpeed(),
+            cpuProcesses = 0,
+            internetProcesses = 0,
+            i;
+        //probably refactor this to use underscore
+        for (i = 0; i < processes.length; i++) {
+            if (sharedHelpers.processHelpers.getProgress(processes[i]) >= 100)
+                continue;
+
+            switch (processes[i].type) {
+                case Process.types.UPDATE_LOG:
+                    cpuProcesses++;
+                    break;
+            }
+        }
+
+        //if there is more than one internet or cpu process, split the speeds amongst each process
+        // before we loop back through and calculate
+        if (cpuProcesses > 1)
+            cpuMod = cpuMod / cpuProcesses;
+        if (internetProcesses > 1) {
+            internetSpeed.downSpeed = internetSpeed.downSpeed / internetProcesses;
+            internetSpeed.upSpeed = internetSpeed.upSpeed / internetProcesses;
+        }
+
+        var cbCount = 0;
+
+        if ((internetProcesses + cpuProcesses) > 0) {
+            for (i = 0; i < processes.length; i++) {
+                if (sharedHelpers.processHelpers.getProgress(processes[i]) >= 100)
+                    continue;
+
+                var seconds = 0;
+                switch (processes[i].type) {
+                    case Process.types.UPDATE_LOG:
+                        seconds = calculateSecondsWithCPU(Process.basicCosts.UPDATE_LOG, cpuMod);
+                        break;
+                }
+                processes[i].end = sharedHelpers.getNewDateAddSeconds(new Date(processes[i].start), seconds);
+                //currently doing this async, may want to change for performance and just deal with potential UI lag
+                processes[i].save(function (err) {
+                    if (err)
+                        console.log(err);
+
+                    cbCount++;
+                    if (cbCount === (internetProcesses + cpuProcesses))
+                        callback();
+                });
+            }
+        }
+        else {
+            callback();
+        }
     }
 };
+
+function calculateSecondsWithCPU(seconds, cpuMod) {
+    return seconds * (seconds / (cpuMod / 2));
+}
 
 // create the model for users and expose it to our app
 module.exports = mongoose.model('machine', machineSchema);

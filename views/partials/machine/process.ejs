@@ -1,1 +1,26 @@
-<li class="list-group-item">Process</li>
+<tr>
+    <td><%= BH.sharedHelpers.processHelpers.getProcessNameHTML(model.attributes) %></td>
+    <td>
+        <% if(progress < 100) { %>
+        <div class="process-progress progress">
+            <div class="progress-bar progress-bar-striped progress-bar-success active" role="progressbar"
+                 aria-valuenow="<%- progress %>>" aria-valuemin="0" aria-valuemax="100" style="width: <%- progress %>%">
+                <%= BH.helpers.viewHelpers.getTimeRemainingString(timeRemaining) %>
+            </div>
+        </div>
+        <% } else if(model.attributes.success === null){ %>
+        <button type="button" class="btn btn-success btn-sm process-execute">
+            Execute
+        </button>
+        <% } else if(model.attributes.success) { %>
+        <span class="text-success">Success</span>
+        <% } else { %>
+        <span class="text-danger">Failed</span>
+        <% } %>
+    </td>
+    <td class="text-center">
+        <button type="button" class="btn btn-danger btn-sm process-remove">
+            <span class="glyphicon glyphicon-remove"></span>
+        </button>
+    </td>
+</tr>

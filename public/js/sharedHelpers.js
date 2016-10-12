@@ -40,7 +40,7 @@
                 return date;
             else {
                 date = new Date(date);
-                return new Date(date.setTime(date.getTime() + days * 86400000));
+                return new Date(date.setTime(date.getTime() + (days * 86400000)));
             }
         },
         getNewDateAddHours: function (date, hours) {
@@ -48,7 +48,15 @@
                 return date;
             else {
                 date = new Date(date);
-                return new Date(date.setTime(date.getTime() + hours * 3600000));
+                return new Date(date.setTime(date.getTime() + (hours * 3600000)));
+            }
+        },
+        getNewDateAddSeconds: function (date, seconds) {
+            if (!date)
+                return date;
+            else {
+                date = new Date(date);
+                return new Date(date.setTime(date.getTime() + (seconds * 1000)));
             }
         },
         getDateHoursDiff: function (date1, date2) {
@@ -115,8 +123,8 @@
             return exports.sharedHelpers.formatCurrency(this.getCPUCost(cpu));
         },
         getCPUModifier: function (cpu) {
-            //todo: probably change this to be a bit more sophisticated
-            return cpu ? (cpu.cores * cpu.speed) : 0;
+            //divide by 1.1 for degredation
+            return cpu ? Math.round((cpu.cores * cpu.speed) / 1.1) : 0;
         }
     };
 
@@ -179,6 +187,40 @@
             else {
                 return 'Text';
             }
+        }
+    };
+
+    exports.sharedHelpers.processHelpers = {
+        types: {
+            CRACK_PASSWORD_MACHINE: 0,
+            CRACK_PASSWORD_BANK: 1,
+            FILE_DOWNLOAD: 2,
+            FILE_UPLOAD: 3,
+            UPDATE_LOG: 4
+        },
+        getProcessNameHTML: function (process) {
+            switch (process.type) {
+                case this.types.CRACK_PASSWORD_MACHINE:
+                    return "";
+                    break;
+                case this.types.CRACK_PASSWORD_BANK:
+                    return "";
+                    break;
+                case this.types.FILE_DOWNLOAD:
+                    return "";
+                    break;
+                case this.types.FILE_UPLOAD:
+                    return "";
+                    break;
+                case this.types.UPDATE_LOG:
+                    return "Update Log: " + "<a href='javascript:void(0)' class='ip-address'>" + process.machine.ip + "</a>";
+                    break;
+            }
+        },
+        getProgress: function (process) {
+            var start = new Date(process.start),
+                end = new Date(process.end);
+            return Math.round(((new Date() - start) / (end - start)) * 100);
         }
     };
 

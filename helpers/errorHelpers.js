@@ -6,8 +6,10 @@ var errorHelpers = {
     returnError: function (resText, res, logErr) {
         if (logErr && logErr.length > 0)
             console.log('Error Handled: ' + logErr);
-        if (res)
+        if (res && res.status)
             res.status(500).send(resText);
+        else if (res)
+            res.send(resText);
     },
     returnError_noId: function (res) {
         this.returnError("Missing required _id parameter.", res);

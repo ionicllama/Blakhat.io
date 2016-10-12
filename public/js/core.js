@@ -38,7 +38,7 @@ BH.views = BH.views ? BH.views : {};
 
 BH.views.BaseView = Backbone.View.extend({
     defaults: {
-        isAppend: false,
+        isAppend: false
     },
     initialize: function (options) {
         this.options = _.defaults(options ? options : {}, this.defaults);
@@ -268,12 +268,13 @@ BH.helpers.viewHelpers = {
     createCountdownTimer: function ($el, date, finishCallback) {
         if ($el) {
             var t = BH.sharedHelpers.getTimeRemaining(date);
-            this.createCountdownElement(t, $el);
+            this.createCountdownElement($el, t);
             var interval = setInterval(_.bind(function () {
                 t = BH.sharedHelpers.getTimeRemaining(date);
 
                 if (t.total > 0) {
-                    this.createCountdownElement(t, $el);
+                    this.createCountdownElement($el, t);
+
                 }
                 else {
                     clearInterval(interval);
@@ -282,7 +283,11 @@ BH.helpers.viewHelpers = {
         }
         return interval;
     },
-    createCountdownElement: function (remaining, $el) {
+    createCountdownElement: function ($el, remaining) {
+        var d = this.getTimeRemainingString(remaining);
+        $el.html(d);
+    },
+    getTimeRemainingString: function (remaining) {
         var s = "";
         if (remaining.days > 0)
             s += (remaining.days + "d ");
@@ -292,12 +297,14 @@ BH.helpers.viewHelpers = {
             s += (remaining.minutes + "m ");
         if (remaining.seconds > 0 || remaining.minutes > 0 || remaining.hours > 0 || remaining.days > 0)
             s += (remaining.seconds + "s ");
-
-        $el.html(s);
+        return s;
     },
     setActiveNav: function (id) {
         $(id).addClass('active');
         $('#navTabs').find('li').not(id).removeClass('active');
+    },
+    updateProgressBar: function (progressBar, progress, timeRemaining) {
+        progressBar.css('width', progress + '%').attr('aria-valuenow', progress).html(timeRemaining ? timeRemaining : "");
     }
 };
 BH.helpers.Toastr = {
@@ -384,7 +391,7 @@ BH.Router = Backbone.Router.extend({
     },
     localMachine: function () {
         BH.helpers.viewHelpers.setActiveNav('#navLocalMachine');
-        new BH.models.LocalMachine({
+        BH.app.currentMachine = new BH.models.LocalMachine({
             el: '#pageInnerContainer'
         });
     },
@@ -432,6 +439,7 @@ BH.Router = Backbone.Router.extend({
 //APP
 BH.app = BH.app ? BH.app : {};
 $(function () {
+    BH.app.localMachine = new BH.models.LocalMachine();
     BH.app.router = new BH.Router();
     Backbone.history.start({pushState: true});
     $(document).on('mouseup', '.route', function (e) {
