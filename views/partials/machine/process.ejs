@@ -1,12 +1,13 @@
 <tr>
     <td><%= BH.sharedHelpers.processHelpers.getProcessNameHTML(model.attributes) %></td>
-    <td>
+    <td><a href='javascript:void(0)' class='ip-address'> <%- model.get('machine').ip %> </a></td>
+    <td class="progress-col">
         <% if(progress < 100) { %>
         <div class="process-progress progress">
             <div class="progress-bar progress-bar-striped progress-bar-success active" role="progressbar"
-                 aria-valuenow="<%- progress %>>" aria-valuemin="0" aria-valuemax="100" style="width: <%- progress %>%">
-                <%= BH.helpers.viewHelpers.getTimeRemainingString(timeRemaining) %>
-            </div>
+                 aria-valuenow="<%- progress %>>" aria-valuemin="0" aria-valuemax="100"
+                 style="width: <%- progress %>%"></div>
+            <div class="process-center-text process-time-remaining"><%= BH.helpers.viewHelpers.getTimeRemainingString(timeRemaining) %></div>
         </div>
         <% } else if(model.attributes.success === null){ %>
         <button type="button" class="btn btn-success btn-sm process-execute">

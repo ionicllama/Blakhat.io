@@ -288,12 +288,50 @@ body {
   }
 }
 
+//File styles
+#filesInner {
+  h4 {
+    display: inline-block;
+  }
+  .file-upload {
+    float: right;
+    margin-top: 8px;
+  }
+}
+
 //Progress Styles
+#processesInner {
+  .processes-auto-finish-label {
+    float: right;
+    font-size: 16px;
+    margin-top: 18px;
+  }
+  h4 {
+    display: inline-block;
+  }
+  .progress-col {
+    text-align: center;
+  }
+}
+
 .process-progress {
+  margin: 0;
+}
+
+.process-progress, .hdd-progress {
   .progress-bar {
     color: #000
   }
-  margin: 0;
+  .process-center-text {
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    position: absolute;
+    color: #000;
+    margin-top: 3px;
+  }
+  position: relative;
 }
 
 //Datatable styles
@@ -448,7 +486,7 @@ body {
   .bank-account-balance {
     font-size: 24px;
     text-align: center;
-    margin: 20px;
+    margin: 20px 5px;
   }
   h4, h5 {
     margin: 0

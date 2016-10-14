@@ -3,6 +3,7 @@
  */
 var mongoose = require('mongoose');
 
+var Bot = require('../../models/machinemodels/bot');
 var CPU = require('../../models/machinemodels/cpu');
 var HDD = require('../../models/machinemodels/hdd');
 var Internet = require('../../models/machinemodels/internet');
@@ -18,7 +19,7 @@ var machineSchema = mongoose.Schema({
     user: {type: mongoose.Schema.Types.ObjectId, ref: 'user', default: null},
     bank: {type: mongoose.Schema.Types.ObjectId, ref: 'bank', default: null},
     log: {type: String, default: ""},
-    lastLogUpdate: {type: String, default: new Date()},
+    lastLogUpdate: {type: Date, default: new Date()},
     ip: {type: String, default: ""},
     lastIPRefresh: {type: Date, default: null},
     password: {type: String, default: globalHelpers.getRandomPassword()},
@@ -27,18 +28,29 @@ var machineSchema = mongoose.Schema({
     hdd: {type: mongoose.Schema.Types.ObjectId, ref: 'hdd', default: null},
     internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet', default: null},
     files: [{
-        name: {type: String, default: "no_name.txt"},
+        name: {type: String, default: null},
         file: {type: mongoose.Schema.Types.ObjectId, ref: 'file', default: null},
         isLocked: {type: Boolean, default: false}
     }],
-    processes: [{type: mongoose.Schema.Types.ObjectId, ref: 'process'}]
+    processes: [{type: mongoose.Schema.Types.ObjectId, ref: 'process'}],
+    usersCracked: [{type: mongoose.Schema.Types.ObjectId, ref: 'user'}]
 
 });
 
 machineSchema.statics = {
     findPopulated: function (query, callback) {
-        var processOpts = {path: 'processes', populate: ['file', {path: 'machine', select: '_id ip'}, 'bankAccount']};
-        this.findOne(query).populate(['cpu', 'internet', 'hdd', 'files.file']).populate(processOpts).exec(function (err, machine) {
+        var subPopulate = {
+            path: 'processes',
+            populate: [
+                'file',
+                {
+                    path: 'machine',
+                    select: '_id ip'
+                },
+                'bankAccount'
+            ]
+        };
+        this.findOne(query).populate(['cpu', 'internet', 'hdd', 'files.file']).populate(subPopulate).exec(function (err, machine) {
             if (!machine || err)
                 return callback(err, machine);
 
@@ -46,8 +58,7 @@ machineSchema.statics = {
         });
     },
     findByIdPopulated: function (_id, callback) {
-        var processOpts = {path: 'processes', populate: ['file', {path: 'machine', select: '_id ip'}, 'bankAccount']};
-        this.findOne({_id: _id}).populate(['cpu', 'internet', 'hdd', 'files.file']).populate(processOpts).exec(function (err, machine) {
+        this.findPopulated({_id: _id}, function (err, machine) {
             callback(err, machine);
         });
     },
@@ -56,15 +67,24 @@ machineSchema.statics = {
             callback(err, machine);
         });
     },
+    findForCrackedUser: function (_id, user, callback) {
+        this.findOne({_id: _id, usersCracked: {_id: user._id}}).select('_id').exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
     findWithFiles: function (_id, callback) {
-        this.findOne({_id: _id}).populate(['files.file']).exec(function (err, machine) {
+        this.findOne({_id: _id}).select('_id user password files').populate(['files.file']).exec(function (err, machine) {
             callback(err, machine);
         });
     },
     findWithSingleFile: function (machine_id, file_id, callback) {
-        this.findOne({_id: machine_id}).populate({
+        this.findOne({_id: machine_id}).select('_id user password files').populate({
             path: 'files.file',
-            match: {_id: file_id}
+            match: {
+                file: {
+                    _id: file_id
+                }
+            }
         }).exec(function (err, machine) {
             callback(err, machine);
         });
@@ -221,9 +241,41 @@ machineSchema.methods = {
         var dateStr = (new Date()).toUTCString();
         this.appendLog("Transfer @ " + dateStr.substr(5, dateStr.length) + ": " + sharedHelpers.formatCurrency(amount) + " - " + sourceAccountNumber + " [" + this.ip + "] --> " + destinationAccountNumber + " [" + destinationBankIP + "]");
     },
-    logAccess: function (sourceIP) {
+    logBankAccountLogin: function (sourceIP, accountNumber) {
+        var dateStr = (new Date()).toUTCString();
+        this.appendLog("User logged in to account " + accountNumber + " from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
+    },
+    logAdminLogin: function (sourceIP) {
         var dateStr = (new Date()).toUTCString();
         this.appendLog("Admin logged in from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
+    },
+    logFileDownloadBy: function (sourceIP, file) {
+        var dateStr = (new Date()).toUTCString(),
+            fileName = file.file.name + '.' + file.file.type;
+        if (file.name)
+            fileName = file.name;
+        this.appendLog(fileName + " downloaded by [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
+    },
+    logFileDownloadFrom: function (sourceIP, file) {
+        var dateStr = (new Date()).toUTCString(),
+            fileName = file.file.name + '.' + file.file.type;
+        if (file.name)
+            fileName = file.name;
+        this.appendLog(fileName + " downloaded from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
+    },
+    logFileUploadFrom: function (sourceIP, file) {
+        var dateStr = (new Date()).toUTCString(),
+            fileName = file.file.name + '.' + file.file.type;
+        if (file.name)
+            fileName = file.name;
+        this.appendLog(fileName + " uploaded from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
+    },
+    logFileUploadTo: function (destinationIP, file) {
+        var dateStr = (new Date()).toUTCString(),
+            fileName = file.file.name + '.' + file.file.type;
+        if (file.name)
+            fileName = file.name;
+        this.appendLog(fileName + " uploaded to [" + destinationIP + "] at " + dateStr.substr(5, dateStr.length));
     },
     getFirewallName: function () {
         return sharedHelpers.firewallHelpers.getFirewallName(this.firewall);
@@ -231,34 +283,40 @@ machineSchema.methods = {
     canRefreshIP: function () {
         return sharedHelpers.checkDateIsBeforeToday(sharedHelpers.getNewDateAddDays(this.lastIPRefresh, 1));
     },
-    canResetPassword: function () {
-        return sharedHelpers.checkDateIsBeforeToday(sharedHelpers.getNewDateAddHours(this.lastPasswordReset, 4));
-    },
     refreshIP: function (callback) {
         if (this.canRefreshIP()) {
             this.ip = globalHelpers.getNewIP();
             this.lastIPRefresh = new Date();
-            this.save(function (err) {
-                if (err) {
-                    callback(null, err);
-                    return;
-                }
-                callback();
+            this.usersCracked = [];
+            Bot.find({machine: {id: this._id}}).remove().exec(function () {
+                if (err)
+                    return callback(null, err);
+
+                this.save(function (err) {
+                    if (err)
+                        return callback(null, err);
+
+                    callback();
+                });
             });
+
         }
         else {
             callback("IP address has been already been reset in the last 24 hours");
         }
     },
+    canResetPassword: function () {
+        return sharedHelpers.checkDateIsBeforeToday(sharedHelpers.getNewDateAddHours(this.lastPasswordReset, 4));
+    },
     resetPassword: function (callback) {
         if (this.canResetPassword()) {
             this.password = globalHelpers.getRandomPassword();
             this.lastPasswordReset = new Date();
+            this.usersCracked = [];
             this.save(function (err) {
-                if (err) {
-                    callback(null, err);
-                    return;
-                }
+                if (err)
+                    return callback(null, err);
+
                 callback();
             });
         }
@@ -337,7 +395,12 @@ machineSchema.methods = {
                         return callback("Failed to purchase selected internet speed", err);
                     }
 
-                    callback();
+                    self.updateProcessCosts(function (err) {
+                        if (err)
+                            console.log(err);
+
+                        callback();
+                    });
                 });
             });
         });
@@ -361,17 +424,27 @@ machineSchema.methods = {
             }
         }
         else {
-            callback(false);
+            this.model('bot').findUserBotByMachine(user._id, this._id, function (err, bot) {
+                if (err) {
+                    console.log(err);
+                    callback(false);
+                }
+                else {
+                    callback(bot != null && bot._id != null);
+                }
+            });
         }
     },
     updateProcessCosts: function (callback) {
         //process.cost == time in seconds the process will take to complete
-        var processes = this.processes,
+        var self = this,
+            processes = this.processes,
             cpuMod = this.cpu.getModifier(),
-            internetSpeed = this.internet.getMegabyteSpeed(),
+            localInternetSpeed = this.internet.getMegabyteSpeed(),
             cpuProcesses = 0,
             internetProcesses = 0,
             i;
+
         //probably refactor this to use underscore
         for (i = 0; i < processes.length; i++) {
             if (sharedHelpers.processHelpers.getProgress(processes[i]) >= 100)
@@ -379,7 +452,13 @@ machineSchema.methods = {
 
             switch (processes[i].type) {
                 case Process.types.UPDATE_LOG:
+                case Process.types.CRACK_PASSWORD_MACHINE:
+                case Process.types.CRACK_PASSWORD_BANK:
                     cpuProcesses++;
+                    break;
+                case Process.types.FILE_DOWNLOAD:
+                case Process.types.FILE_UPLOAD:
+                    internetProcesses++;
                     break;
             }
         }
@@ -389,44 +468,104 @@ machineSchema.methods = {
         if (cpuProcesses > 1)
             cpuMod = cpuMod / cpuProcesses;
         if (internetProcesses > 1) {
-            internetSpeed.downSpeed = internetSpeed.downSpeed / internetProcesses;
-            internetSpeed.upSpeed = internetSpeed.upSpeed / internetProcesses;
+            localInternetSpeed.downSpeed = localInternetSpeed.downSpeed / internetProcesses;
+            localInternetSpeed.upSpeed = localInternetSpeed.upSpeed / internetProcesses;
         }
 
         var cbCount = 0;
 
-        if ((internetProcesses + cpuProcesses) > 0) {
-            for (i = 0; i < processes.length; i++) {
-                if (sharedHelpers.processHelpers.getProgress(processes[i]) >= 100)
-                    continue;
-
-                var seconds = 0;
-                switch (processes[i].type) {
-                    case Process.types.UPDATE_LOG:
-                        seconds = calculateSecondsWithCPU(Process.basicCosts.UPDATE_LOG, cpuMod);
-                        break;
+        var processPopulateOpts = [
+            {
+                path: 'machine',
+                populate: {
+                    path: 'internet',
+                    select: 'upSpeed downSpeed'
                 }
-                processes[i].end = sharedHelpers.getNewDateAddSeconds(new Date(processes[i].start), seconds);
-                //currently doing this async, may want to change for performance and just deal with potential UI lag
-                processes[i].save(function (err) {
-                    if (err)
-                        console.log(err);
-
-                    cbCount++;
-                    if (cbCount === (internetProcesses + cpuProcesses))
-                        callback();
-                });
+            },
+            {
+                path: 'file'
             }
-        }
-        else {
-            callback();
-        }
+        ];
+        Process.populate(processes, processPopulateOpts, function (err) {
+            if (err) {
+                console.log(err);
+                return callback();
+            }
+
+            if ((internetProcesses + cpuProcesses) > 0) {
+                for (i = 0; i < processes.length; i++) {
+                    var remoteInternetSpeed = processes[i].machine.internet.getMegabyteSpeed();
+
+                    var progress = sharedHelpers.processHelpers.getProgress(processes[i]);
+                    if (progress >= 100)
+                        continue;
+
+                    var seconds = 0;
+                    switch (processes[i].type) {
+                        case Process.types.UPDATE_LOG:
+                            seconds = calculateUpdateLog(cpuMod);
+                            break;
+                        case Process.types.CRACK_PASSWORD_MACHINE:
+                            seconds = calculateCrackMachinePassword(self, cpuMod, processes[i].machine);
+                            break;
+                        case Process.types.CRACK_PASSWORD_BANK:
+                            break;
+                        case Process.types.FILE_DOWNLOAD:
+                            if (!processes[i].file) {
+                                console.log("No file found to download");
+                            }
+                            seconds = calculateNetworkTransfer(processes[i].file, localInternetSpeed, remoteInternetSpeed, 'down');
+                            break;
+                        case Process.types.FILE_UPLOAD:
+                            if (!processes[i].file) {
+                                console.log("No file found to upload");
+                            }
+                            seconds = calculateNetworkTransfer(processes[i].file, localInternetSpeed, remoteInternetSpeed, 'up');
+                            break;
+                    }
+                    //account for the progress that has already happeend
+                    seconds = seconds - (progress / 100 * seconds);
+
+                    processes[i].end = sharedHelpers.getNewDateAddSeconds(new Date(), seconds);
+                    //currently doing this async, may want to change for performance and just deal with potential UI lag
+                    processes[i].save(function (err) {
+                        if (err)
+                            console.log(err);
+
+                        cbCount++;
+                        if (cbCount === (internetProcesses + cpuProcesses))
+                            callback();
+                    });
+                }
+            }
+            else {
+                callback();
+            }
+        });
     }
 };
 
-function calculateSecondsWithCPU(seconds, cpuMod) {
-    return seconds * (seconds / (cpuMod / 2));
+function calculateUpdateLog(cpuMod) {
+    var s = Process.basicCosts.UPDATE_LOG;
+    return Math.ceil(s * (s / (cpuMod / 2)));
 }
 
-// create the model for users and expose it to our app
+function calculateCrackMachinePassword(processMachine, cpuMod, crackMachine) {
+    console.log(processMachine);
+    console.log(crackMachine);
+    return 30;
+}
+
+function calculateNetworkTransfer(file, localInternetSpeed, remoteInternetSpeed, direction) {
+    if (direction === 'down') {
+        var maxDownloadSpeed = Math.min(localInternetSpeed.downSpeed, remoteInternetSpeed.upSpeed);
+        return Math.ceil(file.size / maxDownloadSpeed);
+    }
+    else {
+        var maxUploadSpeed = Math.min(localInternetSpeed.upSpeed, remoteInternetSpeed.downSpeed);
+        return Math.ceil(file.size / maxUploadSpeed);
+    }
+
+}
+
 module.exports = mongoose.model('machine', machineSchema);

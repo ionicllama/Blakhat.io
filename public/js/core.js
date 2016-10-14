@@ -110,6 +110,7 @@ BH.views.BaseCollectionView = BH.views.BaseView.extend({
             if (this.options.childView && this.options.collection) {
                 for (model in this.options.collection.models) {
                     var options = {
+                        collection: this.options.collection,
                         model: this.options.collection.models[model],
                         el: this.childEl
                     };
@@ -153,8 +154,7 @@ BH.views.BaseModal = BH.views.BaseView.extend({
             this.renderData = this.options.renderData;
         }
 
-        if (this.options.extras)
-            this.renderData.extras = this.options.extras;
+        this.renderData.extras = this.options.extras ? this.options.extras : {};
 
         //force element to null in case one was passed in
         //this view uses modals only so it creates its own container to insert into in the <body>
@@ -269,17 +269,19 @@ BH.helpers.viewHelpers = {
         if ($el) {
             var t = BH.sharedHelpers.getTimeRemaining(date);
             this.createCountdownElement($el, t);
-            var interval = setInterval(_.bind(function () {
-                t = BH.sharedHelpers.getTimeRemaining(date);
+            if (t.total > 0) {
+                var interval = setInterval(_.bind(function () {
+                    t = BH.sharedHelpers.getTimeRemaining(date);
 
-                if (t.total > 0) {
-                    this.createCountdownElement($el, t);
-
-                }
-                else {
-                    clearInterval(interval);
-                }
-            }, this), 1000);
+                    if (t.total > 0) {
+                        this.createCountdownElement($el, t);
+                    }
+                    else {
+                        clearInterval(interval);
+                        finishCallback();
+                    }
+                }, this), 1000);
+            }
         }
         return interval;
     },
@@ -299,14 +301,19 @@ BH.helpers.viewHelpers = {
             s += (remaining.seconds + "s ");
         return s;
     },
+    getFilesSizeUsedString: function (hddSize, filesSize) {
+        return filesSize + 'Mb / ' + hddSize + 'Mb'
+    },
     setActiveNav: function (id) {
         $(id).addClass('active');
         $('#navTabs').find('li').not(id).removeClass('active');
     },
-    updateProgressBar: function (progressBar, progress, timeRemaining) {
-        progressBar.css('width', progress + '%').attr('aria-valuenow', progress).html(timeRemaining ? timeRemaining : "");
+    updateProcessProgress: function (progressBar, progress, timeRemaining) {
+        progressBar.css('width', progress + '%').attr('aria-valuenow', progress);
+        progressBar.siblings('.process-time-remaining').html(timeRemaining ? timeRemaining : "");
     }
 };
+
 BH.helpers.Toastr = {
     defaults: {
         "closeButton": false,
@@ -394,6 +401,7 @@ BH.Router = Backbone.Router.extend({
         BH.app.currentMachine = new BH.models.LocalMachine({
             el: '#pageInnerContainer'
         });
+        BH.app.localMachine = BH.app.currentMachine;
     },
     internetBrowser: function () {
         BH.helpers.viewHelpers.setActiveNav('#navInternet');
@@ -413,7 +421,7 @@ BH.Router = Backbone.Router.extend({
         });
     },
     browserBankAccountLogin: function (bank_id, account_id) {
-        BH.helpers.viewHelpers.setActiveNav('#navFinances');
+        BH.helpers.viewHelpers.setActiveNav('#navInternet');
         new BH.models.InternetBrowser({
             el: '#pageInnerContainer',
             browserLoadData: {

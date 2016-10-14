@@ -30,11 +30,12 @@ BH.models.BrowserBankAccount = BH.models.BankAccount.extend({
     rightAfterRender: function () {
     },
     fetchAccount: function () {
-        if (!this.get('_id')) {
-            var fetchData = {};
+        var fetchData = {};
 
-            if (this.get('sourceIP'))
-                fetchData.sourceIP = this.get('sourceIP');
+        if (this.get('sourceIP'))
+            fetchData.sourceIP = this.get('sourceIP');
+
+        if (!this.get('_id')) {
 
             if (this.get('bank')._id)
                 fetchData.bank_id = this.get('bank')._id;
@@ -44,13 +45,11 @@ BH.models.BrowserBankAccount = BH.models.BankAccount.extend({
 
             if (this.get('account').password)
                 fetchData.password = this.get('account').password;
-            var fetchParams = {
-                data: $.param(fetchData)
-            };
-            this.fetch(fetchParams);
         }
-        else
-            this.fetch()
+        var fetchParams = {
+            data: $.param(fetchData)
+        };
+        this.fetch(fetchParams);
     },
     renderAccount: function () {
         if (this.get('browserModel')) {

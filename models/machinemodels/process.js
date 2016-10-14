@@ -6,6 +6,7 @@ var mongoose = require('mongoose');
 var _ = require('underscore');
 
 var Machine = require('../../models/machinemodels/machine');
+var Bot = require('../../models/machinemodels/bot');
 
 var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
 var globalHelpers = require('../../helpers/globalHelpers');
@@ -47,11 +48,14 @@ processSchema.statics = {
 };
 
 processSchema.methods = {
-    execute: function (callback) {
+    execute: function (user, processMachine, callback) {
         if (new Date(this.end) > new Date())
             return callback("Failed to execute the selected process, its not complete yet.", null);
+
+        var processTypes = this.model('process').types,
+            self = this;
         switch (this.type) {
-            case this.model('process').types.UPDATE_LOG:
+            case processTypes.UPDATE_LOG:
                 var startDate = new Date(this.start);
                 if (new Date(this.machine.lastLogUpdate) > startDate) {
                     this.success = false;
@@ -66,7 +70,6 @@ processSchema.methods = {
                 else {
                     //todo: maybe fail sometimes randomly
                     this.success = true;
-                    var self = this;
                     this.machine.updateLog(this.log ? this.log : "", false, startDate, function (err) {
                         if (err)
                             return callback("Failed to execute the selected process", null);
@@ -80,11 +83,81 @@ processSchema.methods = {
                     })
                 }
                 break;
+            case processTypes.FILE_DOWNLOAD:
+                //todo: maybe fail sometimes randomly
+                this.success = true;
+                var downloadFile = {
+                    name: null,
+                    file: this.file,
+                    isLocked: false
+                };
+                processMachine.files.push(downloadFile);
+
+                processMachine.logFileDownloadFrom(this.machine.ip, downloadFile);
+                this.machine.logFileDownloadBy(processMachine.ip, downloadFile);
+
+                processMachine.save(function (err) {
+                    if (err)
+                        return callback("Failed to execute the selected process", null);
+
+                    self.save(function (err) {
+                        if (err)
+                            return callback("Failed to execute the selected process", null);
+
+                        return callback();
+                    })
+                });
+                break;
+            case processTypes.FILE_UPLOAD:
+                //todo: maybe fail sometimes randomly
+                this.success = true;
+                var uploadFile = {
+                    _id: mongoose.Types.ObjectId(),
+                    name: null,
+                    file: this.file,
+                    isLocked: false
+                };
+
+                processMachine.logFileUploadTo(this.machine.ip, uploadFile);
+                this.machine.logFileUploadFrom(processMachine.ip, uploadFile);
+
+                this.model('machine').findByIdAndUpdate(
+                    this.machine._id,
+                    {$push: {"files": uploadFile}},
+                    {safe: true, upsert: true},
+                    function (err, model) {
+                        if (err)
+                            return callback("Failed to execute the selected process", null);
+
+                        self.save(function (err) {
+                            if (err)
+                                return callback("Failed to execute the selected process", null);
+
+                            return callback();
+                        })
+                    }
+                );
+                break;
+            case processTypes.CRACK_PASSWORD_MACHINE:
+                //todo: maybe fail sometimes randomly
+                this.success = true;
+                var bot = new Bot({
+                    user: user,
+                    machine: this.machine
+                });
+                this.save(function (err) {
+                    if (err)
+                        return callback("Failed to execute the selected process", null);
+
+                    bot.save(function (err, bot) {
+                        return callback();
+                    });
+                });
+                break;
             default:
                 callback();
         }
     }
 };
 
-// create the model for users and expose it to our app
 module.exports = mongoose.model('process', processSchema);

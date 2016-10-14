@@ -1,7 +1,30 @@
 <div id="filesInner" class="col-content-box elevation-2">
 
     <h4>Files</h4>
+    <% if(canDownloadFiles){ %>
+    <div class="btn-group file-upload">
+        <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">
+            Upload <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-right">
+            <% for(var i = 0 ; i < uploadFiles.length ; i++) { %>
+            <li><a href="#" file_id="<%- uploadFiles[i]._id %>"
+                   class="file-download"><%- BH.sharedHelpers.fileHelpers.getFileNameWithSize(uploadFiles[i]) %></a>
+            </li>
+            <% } %>
+        </ul>
+    </div>
+    <% } %>
     <hr>
+
+    <div class="hdd-progress progress">
+        <div class="progress-bar <%- hddProgress < 70 ? 'progress-bar-success' : (hddProgress < 90 ? 'progress-bar-warning' : 'progress-bar-danger') %> active"
+             role="progressbar"
+             aria-valuenow="<%- hddProgress %>>" aria-valuemin="0" aria-valuemax="100"
+             style="width: <%- hddProgress %>%"></div>
+        <div class="process-center-text"><%= hddUsedString %></div>
+    </div>
 
     <table id="fileTable" class="table data-table">
         <thead>
@@ -10,7 +33,7 @@
             <th>Filename</th>
             <th>Type</th>
             <th>Level</th>
-            <th>Size (gb)</th>
+            <th>Size (Mb)</th>
             <th></th>
         </tr>
         </thead>

@@ -31,16 +31,15 @@ BH.models.Machine = BH.models.BaseModel.extend({
         return _.extend(data, extraData);
     },
     updateLog: function (logText) {
-        //replace with a helper function probably
-        var newProcess = new BH.models.Process({
+        new BH.models.Process({
             type: BH.sharedHelpers.processHelpers.types.UPDATE_LOG,
-            machine_id: BH.app.localMachine.get('_id'),
-            machine: this,
+            processMachine_id: BH.app.localMachine.get('machine')._id,
+            machine_id: this.get('_id'),
             log: logText
         }).save(this.getPatchData(), {
-                patch: true,
+            patch: true,
             success: $.proxy(function (data) {
-                BH.helpers.Toastr.showSuccessToast("Log update process started", null);
+                BH.helpers.Toastr.showSuccessToast("Process started: Update Log", null);
 
                 if (BH.app.localMachineProcesses)
                     BH.app.localMachineProcesses.fetch();
@@ -296,7 +295,7 @@ BH.views.Machine = BH.views.BaseView.extend({
     renderFiles: function () {
         new BH.collections.Files(this.model.get('machine').files,
             {
-                machine_id: this.model.get('machine')._id,
+                machine: this.model.get('machine'),
                 el: this.$('#files'),
                 canDownloadFiles: this.options.canDownloadFiles ? this.options.canDownloadFiles : false
             });
@@ -323,7 +322,6 @@ BH.views.LocalMachine = BH.views.Machine.extend({
     renderProcesses: function () {
         BH.app.localMachineProcesses = new BH.collections.Processes(this.model.get('machine').processes,
             {
-                machine_id: BH.app.localMachine.get('_id'),
                 machine: this.model.get('machine'),
                 el: this.$('#processes')
             });

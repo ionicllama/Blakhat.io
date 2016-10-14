@@ -4,6 +4,7 @@
 var express = require('express');
 var router = express.Router();
 
+var Machine = require('../models/machinemodels/machine');
 var Bank = require('../models/bankmodels/bank');
 var BankAccount = require('../models/bankmodels/bankaccount');
 
@@ -63,7 +64,20 @@ router.get('/account/:_id', auth.isLoggedIn, function (req, res) {
                     isAuthenticated: req.user._id.toString() == bankAccount.user.toString()
                 };
 
-            res.json(response);
+            if (req.query.sourceIP) {
+                Machine.findByBank(bankAccount.bank._id, function (err, machine) {
+                    if (err) {
+                        console.log(err);
+                    }
+                    else {
+                        machine.logBankAccountLogin(req.query.sourceIP, bankAccount.accountNumber);
+                    }
+                    res.json(response);
+                });
+            }
+            else {
+                res.json(response);
+            }
         });
     }
     else {
@@ -81,13 +95,21 @@ router.get('/account/', auth.isLoggedIn, function (req, res) {
             if (err)
                 console.log(err);
 
-            if (bankAccount)
+            if (bankAccount) {
                 response = {
                     account: bankAccount,
                     isAuthenticated: true
                 };
-
-            res.json(response);
+                Machine.findByBank(bankAccount.bank._id, function (err, machine) {
+                    if (err) {
+                        console.log(err);
+                    }
+                    else {
+                        machine.logBankAccountLogin(req.query.source, bankAccount.accountNumber);
+                        res.json(response);
+                    }
+                });
+            }
         });
     }
     else {
@@ -158,7 +180,7 @@ router.delete('/account/:_id', auth.isLoggedIn, function (req, res) {
             if (err)
                 return errorHelpers.returnError("Failed to delete the selected account", err, res);
 
-            res.end();
+            res.json(bankAccount);
         });
     });
 });

@@ -130,14 +130,14 @@
 
     exports.sharedHelpers.hddHelpers = {
         getHDDName: function (hdd) {
-            return hdd.size.toString() + "gb";
+            return (hdd.size / 1024).toString() + "gb";
         },
         getHDDCost: function (hdd) {
             //total cents cost
             if (!hdd || (hdd.size === 20))
                 return 0;
             else
-                return Math.floor((Math.pow(hdd.size * 20, 2) * .01)) * 100;
+                return Math.floor((Math.pow(hdd.size / 40, 2) * .01)) * 100;
         },
         getHDDCostDisplay: function (hdd) {
             return exports.sharedHelpers.formatCurrency(this.getHDDCost(hdd));
@@ -166,10 +166,15 @@
 
     exports.sharedHelpers.fileHelpers = {
         getFileName: function (file) {
-            if (file)
+            if (file && file.file && file.file.name)
                 return file.file.name + '.' + file.file.type;
+            else if (file && file.name)
+                return file.name + '.' + file.file.type;
             else
                 return 'no_name.txt';
+        },
+        getFileNameWithSize: function (file) {
+            return this.getFileName(file) + " (" + file.file.size + " Mb)"
         },
         getFiletypeName: function (file) {
             if (file) {
@@ -187,6 +192,22 @@
             else {
                 return 'Text';
             }
+        },
+        getFilesSizeTotal: function (files) {
+            var size = 0;
+            for (var i = 0; i < files.length; i++) {
+                if (files[i].file && files[i].file.size)
+                    size += files[i].file.size
+            }
+            return size;
+        },
+        getHDDSpaceProgress: function (hdd, files) {
+            var size = 0;
+            for (var i = 0; i < files.length; i++) {
+                if (files[i].file && files[i].file.size)
+                    size += files[i].file.size
+            }
+            return size / hdd.size;
         }
     };
 
@@ -201,26 +222,26 @@
         getProcessNameHTML: function (process) {
             switch (process.type) {
                 case this.types.CRACK_PASSWORD_MACHINE:
-                    return "";
+                    return "<strong>Crack Admin Password</strong>";
                     break;
                 case this.types.CRACK_PASSWORD_BANK:
-                    return "";
+                    return "<strong>Crack Bank Password</strong>";
                     break;
                 case this.types.FILE_DOWNLOAD:
-                    return "";
+                    return "<strong>Download:</strong> " + process.file.name + " - Lv. " + process.file.level;
                     break;
                 case this.types.FILE_UPLOAD:
-                    return "";
+                    return "<strong>Upload:</strong> " + process.file.name + " - Lv. " + process.file.level;
                     break;
                 case this.types.UPDATE_LOG:
-                    return "Update Log: " + "<a href='javascript:void(0)' class='ip-address'>" + process.machine.ip + "</a>";
+                    return "<strong>Update Log</strong>";
                     break;
             }
         },
         getProgress: function (process) {
             var start = new Date(process.start),
                 end = new Date(process.end);
-            return Math.round(((new Date() - start) / (end - start)) * 100);
+            return Math.floor(((new Date() - start) / (end - start)) * 100);
         }
     };
 

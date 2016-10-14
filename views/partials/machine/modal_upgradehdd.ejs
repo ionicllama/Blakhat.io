@@ -13,7 +13,7 @@
                     <table id="hddUpgradeTable" class="table data-table">
                         <thead>
                         <tr>
-                            <th>Size (gb)</th>
+                            <th>Size (GB)</th>
                             <th>Cost</th>
                             <th></th>
                         </tr>
@@ -21,7 +21,7 @@
                         <tbody>
                         <% for(var i = 0 ; i < hdds.models.length ; i++){ %>
                         <tr>
-                            <td><%- hdds.models[i].get('size') %></td>
+                            <td><%- (hdds.models[i].get('size') / 1024) %></td>
                             <td><%- BH.sharedHelpers.hddHelpers.getHDDCostDisplay(hdds.models[i].attributes) %></td>
                             <td class="text-center">
                                 <% if(hdds.models[i].attributes.size < model.get('machine').hdd.size){ %>

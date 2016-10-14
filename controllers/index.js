@@ -8,6 +8,23 @@ router.use('/machineParts/', require('../controllers/machineParts'));
 router.use('/internetcontent', require('../controllers/internetcontent'));
 router.use('/bank', require('../controllers/bank'));
 
+router.get('/signup', function (req, res) {
+    res.locals = _.extend({}, res.locals, {
+        page: 'signup',
+        title: 'Blakhat.io | Sign Up',
+        message: req.flash('signupMessage')
+    });
+    res.render('pages/index');
+});
+
+router.get('/about', function (req, res) {
+    res.locals = _.extend({}, res.locals, {
+        title: 'Blakhat.io | About',
+        page: 'about'
+    });
+    res.render('pages/index');
+});
+
 /* Catch All GET - For Single Page App. */
 router.get('*', function (req, res, next) {
     if (!req.isAuthenticated()) {
@@ -25,21 +42,6 @@ router.get('*', function (req, res, next) {
         });
         res.render('pages/index');
     }
-});
-
-router.get('/signup', function (req, res) {
-    res.locals = _.extend({}, res.locals, {
-        page: 'signup',
-        message: req.flash('signupMessage')
-    });
-    res.render('pages/index');
-});
-
-router.get('/about', function (req, res) {
-    res.locals = _.extend({}, res.locals, {
-        page: 'about'
-    });
-    res.render('pages/index');
 });
 
 module.exports = router;

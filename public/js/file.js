@@ -1,12 +1,45 @@
 //MODELS
 BH.models.File = BH.models.BaseModel.extend({
     url: function () {
-        return '/machine/' + this.options.machine_id + '/file/' + this.get('_id');
+        if (this.get('_id'))
+            return '/machine/' + this.get('machine')._id + '/file/' + this.get('_id');
+        else
+            return '/machine/' + this.get('machine')._id + '/file/';
     },
     initialize: function (model, options) {
-        this.options = options;
-        //this.on('sync', this.renderFile, this);
-        //this.fetch();
+        this.options = options ? options : {};
+
+        if (this.options.machine)
+            this.set('machine', this.options.machine);
+    },
+    getPatchData: function () {
+        var data = {};
+        if (this.get('machine').password)
+            data.password = this.get('machine').password;
+        return data;
+    },
+    downloadFile: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_DOWNLOAD,
+            processMachine_id: BH.app.localMachine.get('machine')._id,
+            machine_id: this.get('machine')._id,
+            file: {
+                _id: this.get('file')._id
+            }
+        }).save(this.getPatchData(), {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Download file", null);
+
+                    if (BH.app.localMachineProcesses)
+                        BH.app.localMachineProcesses.fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
     }
 });
 
@@ -15,7 +48,7 @@ BH.models.File = BH.models.BaseModel.extend({
 BH.collections.Files = BH.collections.BaseCollection.extend({
     model: BH.models.File,
     url: function () {
-        return '/machine/' + this.options.machine_id + '/files/';
+        return '/machine/' + this.options.machine._id + '/files/';
     },
     afterInit: function () {
         this.on('sync', this.renderFiles, this);
@@ -27,6 +60,7 @@ BH.collections.Files = BH.collections.BaseCollection.extend({
             el: this.options.el,
             collection: this,
             childView: BH.views.File,
+            machine: this.options.machine,
             childOptions: {
                 canDownloadFiles: this.options.canDownloadFiles
             }
@@ -45,19 +79,30 @@ BH.views.Files = BH.views.BaseCollectionView.extend({
     },
     events: {
         'page.dt .data-table': 'pageNumberChanged',
-        'length.dt .data-table': 'pageLengthChanged'
+        'length.dt .data-table': 'pageLengthChanged',
+        'click .file-upload a': 'uploadFile'
     },
     beforeFirstRender: function (options) {
+        var size = BH.sharedHelpers.fileHelpers.getFilesSizeTotal(this.collection.toJSON());
         this.renderData = {
-            model: this.model
+            hddProgress: (size / this.options.machine.hdd.size) * 100,
+            hddUsedString: BH.helpers.viewHelpers.getFilesSizeUsedString(this.options.machine.hdd.size, size),
+            uploadFiles: this.getUploadFiles(),
+            canDownloadFiles: this.options.childOptions.canDownloadFiles
         };
         //this.listenTo(this.model, "change:log", this.render);
+    },
+    getUploadFiles: function () {
+        return _.uniq(BH.app.localMachine.get("machine").files, function (file, key, a) {
+            return BH.sharedHelpers.fileHelpers.getFileName(file);
+        });
     },
     beforeChildrenRender: function () {
         this.childEl = this.$el.find('#fileList');
     },
     afterChildrenRender: function () {
         if (this.$('.data-table')) {
+            var self = this;
             this.fileTable = this.$('.data-table').DataTable({
                 displayStart: this.options.dataTablePage * this.options.dataTableLength,
                 language: {
@@ -73,6 +118,29 @@ BH.views.Files = BH.views.BaseCollectionView.extend({
                 ]
             });
         }
+    },
+    uploadFile: function (e) {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_UPLOAD,
+            processMachine_id: BH.app.localMachine.get('machine')._id,
+            machine_id: this.options.machine._id,
+            file: {
+                _id: $(e.currentTarget).attr('file_id')
+            }
+        }).save(null, {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Upload File", null);
+
+                    if (BH.app.localMachineProcesses)
+                        BH.app.localMachineProcesses.fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
     }
 });
 
@@ -93,9 +161,16 @@ BH.views.File = BH.views.BaseView.extend({
         this.listenTo(this.model, "destroy", this.remove);
     },
     downloadFile: function () {
-
+        this.model.downloadFile();
     },
     deleteFile: function () {
-        this.model.destroy();
+        new BH.views.DeleteModal({
+            header: "Delete File",
+            body: "Are you sure you want to delete this file?",
+            extras: {
+                buttonText: "Remove"
+            },
+            onConfirm: this.model.destroy.bind(this.model)
+        });
     }
 });

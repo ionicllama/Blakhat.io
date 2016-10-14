@@ -29,17 +29,21 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
         };
         if (this.get('browserLoadData')) {
             if (this.get('browserLoadData').bankAccount && this.get('browserLoadData').bank) {
-                data.bank_id = this.get('browserLoadData').bank._id;
-                var activeAccount = new BH.models.BrowserBankAccount({
+                this.set('bank', this.get('browserLoadData').bank);
+                new BH.models.BrowserBankAccount({
                     sourceIP: this.get('sourceIP'),
                     _id: this.get('browserLoadData').bankAccount._id,
-                    bank: this.get('browserLoadData').bank
+                    bank: this.get('browserLoadData').bank,
+                    browserModel: this
                 });
-                this.setSilent({activeAccount: activeAccount})
             }
             else if (this.get('browserLoadData').ip)
                 data.search = this.get('browserLoadData').ip;
             this.unset('browserLoadData');
+        }
+        else if (this.get('bank')) {
+            data.bank_id = this.get('bank')._id;
+            this.unset('bank');
         }
         else {
             data.search = this.get('search');
@@ -250,13 +254,27 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
     },
     events: {
         "click .navigate-admin-login": "navigateAdminLogin",
-        "click .admin-login-button": "attemptAdminLogin"
+        "click .admin-login-button": "attemptAdminLogin",
+        "click .admin-crack-password": "crackMachinePassword"
     },
     beforeFirstRender: function () {
+        var crackInProgress = false;
+        if (BH.app.localMachine && BH.app.localMachine.get('machine') && BH.app.localMachine.get('machine').processes) {
+            var processes = BH.app.localMachine.get('machine').processes;
+            for (var i = 0; i < processes.length; i++) {
+                if (processes[i].machine &&
+                    this.model.get('machine') &&
+                    processes[i].machine._id === this.model.get('machine')._id &&
+                    BH.sharedHelpers.processHelpers.getProgress(processes[i]) < 100)
+                    crackInProgress = true;
+            }
+        }
+
         this.renderData = {
             model: this.model,
             path: this.options.path,
-            search: this.model.get('search')
+            search: this.model.get('search'),
+            crackInProgress: crackInProgress
         };
     },
     afterRender: function () {
@@ -274,6 +292,28 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
     },
     attemptAdminLogin: function () {
         this.model.set('password', this.$('.admin-login-password').val());
+    },
+    crackMachinePassword: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.CRACK_PASSWORD_MACHINE,
+            processMachine_id: BH.app.localMachine.get('machine')._id,
+            machine_id: this.model.get('machine')._id
+        }).save(null, {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Crack password", null);
+
+                    this.$('.admin-crack-password').addClass('disabled').removeClass('btn-danger').text('In process...');
+
+                    if (BH.app.localMachineProcesses)
+                        BH.app.localMachineProcesses.fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
     }
 });
 
@@ -282,6 +322,7 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
         "click .navigate-admin-login": "navigateAdminLogin",
         "click .admin-login-button": "attemptAdminLogin",
         'click .bank-login-button': 'attemptBankLogin',
+        "click .admin-crack-password": "crackMachinePassword",
         'click .create-bank-account-button': 'createBankAccountStart'
     },
     afterRender: function () {
@@ -367,7 +408,7 @@ BH.views.InternetBrowserBankDOM = BH.views.InternetBrowserDOM.extend({
 BH.views.InternetBrowserAdminDOM = BH.views.InternetBrowserDOM.extend({
     afterRender: function () {
         if (this.model.get('isOwner')) {
-            this.connectedMachine = new BH.models.LocalMachine({
+            BH.app.currentMachine = new BH.models.LocalMachine({
                 el: this.$('.internet-admin-container'),
                 _id: this.model.get('machine')._id,
                 password: this.model.get('password'),
@@ -375,7 +416,7 @@ BH.views.InternetBrowserAdminDOM = BH.views.InternetBrowserDOM.extend({
             });
         }
         else {
-            this.connectedMachine = new BH.models.RemoteMachine({
+            BH.app.currentMachine = new BH.models.RemoteMachine({
                 el: this.$('.internet-admin-container'),
                 _id: this.model.get('machine')._id,
                 password: this.model.get('password'),
@@ -383,5 +424,7 @@ BH.views.InternetBrowserAdminDOM = BH.views.InternetBrowserDOM.extend({
             });
         }
         this.model.setSilent({password: null, isAuthenticated: null});
+
+        this.model.get('browser').showLoading(false);
     }
 });

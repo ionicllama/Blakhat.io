@@ -44,13 +44,14 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
                 console.log(err);
 
             var response = {};
-            if (machine && (machine.user && machine.user.toString() == req.user._id.toString()) || machine.password == req.query.password) {
-                response = {
-                    machine: machine ? machine : {},
-                    isOwner: machine && machine.user && machine.user.toString() == req.user._id.toString()
-                };
-            }
-            res.json(response);
+            machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
+                if (isAuthenticated)
+                    response = {
+                        machine: machine ? machine : {},
+                        isOwner: machine && machine.user && machine.user.toString() == req.user._id.toString()
+                    };
+                res.json(response);
+            });
         });
     }
     else {
@@ -72,7 +73,7 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
 
             machine.validateAuth(req.user, req.body.password, function (isAuthenticated) {
                 if (!isAuthenticated)
-                    return errorHelpers.returnError("You don't have permission to update this.", res);
+                    return errorHelpers.returnError("You don't have admin permissions for this machine.", res);
 
                 if (req.body.log != null) {
                     machine.updateLog(req.body.log, false, function (err) {
@@ -135,12 +136,12 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                             });
                         }
                         else {
-                            res.json(response);
+                            return errorHelpers.returnError("Failed to purchase upgrade.", res, err);
                         }
                     });
                 }
                 else {
-                    res.json(response);
+                    return errorHelpers.returnError("Failed to find action with provided data.", res, err);
                 }
             });
         });
@@ -193,7 +194,10 @@ router.patch('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) {
         if (!process)
             return errorHelpers.returnError("Failed to find a process with provided id", res);
 
-        process.execute(function (UIError, err) {
+        if (process.success)
+            return errorHelpers.returnError("Process is already complete, can't execute again.", res);
+
+        process.execute(req.user, processMachine, function (UIError, err) {
             if (UIError || err)
                 return errorHelpers.returnError(UIError, res, err);
 
@@ -211,60 +215,112 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
     if (!req.params.machine_id)
         return errorHelpers.returnError("No machine id was provided to start the process on", res);
 
-    if (!req.body.type)
-        return errorHelpers.returnError("No job type provided");
+    if (req.body.type == null)
+        return errorHelpers.returnError("No job type provided", res);
 
     Machine.findByIdPopulated(req.params.machine_id, function (err, processMachine) {
         if (err || !processMachine)
             return errorHelpers.returnError("Failed to find a machine to start the process on", res, err);
-
-        if ((!processMachine.user || processMachine.user.toString() != req.user._id.toString()))
+        else if ((!processMachine.user || processMachine.user.toString() != req.user._id.toString()))
             return errorHelpers.returnError("You don't have permission to start processes on this machine.", res);
 
         switch (req.body.type) {
             case sharedHelpers.processHelpers.types.UPDATE_LOG:
-                if (!req.body.machine || !req.body.machine._id)
+                if (!req.body.machine_id)
                     return errorHelpers.returnError("No machine provided to update log on.", res);
 
-                var password = "";
-                if (req.body.password) {
-                    password = req.body.password;
-                }
+                Machine.findByIdPopulated(req.body.machine_id, function (err, machine) {
+                    if (err || !machine)
+                        return errorHelpers.returnError("No machine could be found to update log on.", res, err);
 
-                //Get the machine where the log is being updated
-                // We do this to determine how long the process will take based on the machine specs
-                Machine.findByIdPopulated(req.body.machine._id, function (err, machine) {
-                    if (err)
-                        return errorHelpers.returnError("Failed to find a machine to start the process on", res, err);
-                    else if (!machine)
-                        return errorHelpers.returnError("No machine could be found to update log on.", res);
-                    else if ((!machine.user || machine.user.toString() != req.user._id.toString()) && machine.password != password)
-                        return errorHelpers.returnError("You don't have permission to update the log on this machine.", res);
+                    machine.validateAuth(req.user, req.body.password, function (isAuthenticated) {
+                        if (!isAuthenticated)
+                            return errorHelpers.returnError("You don't have permission to update the log on this machine.", res);
+
+                        var newProcess = new Process({
+                            machine: machine._id,
+                            type: req.body.type,
+                            start: new Date(),
+                            log: req.body.log
+                        });
+
+                        saveProcess(processMachine, newProcess, res);
+                    });
+                });
+                break;
+            case sharedHelpers.processHelpers.types.FILE_DOWNLOAD:
+                if (!req.body.machine_id)
+                    return errorHelpers.returnError("No machine provided to download file from.", res);
+                else if (!req.body.file)
+                    return errorHelpers.returnError("No file selected to download.", res);
+                Machine.findByIdPopulated(req.body.machine_id, function (err, machine) {
+                    if (err || !machine)
+                        return errorHelpers.returnError("No machine could be found to download file from.", res, err);
+
+                    var downloadFile = _.find(machine.files, function (file) {
+                        return file.file._id.toString() === req.body.file._id.toString();
+                    });
+
+                    if (!downloadFile)
+                        return errorHelpers.returnError("The selected file no longer exists.", res);
+
+                    machine.validateAuth(req.user, req.body.password, function (isAuthenticated) {
+                        if (!isAuthenticated)
+                            return errorHelpers.returnError("You don't have permission to download this file.", res);
+
+                        var newProcess = new Process({
+                            machine: machine._id,
+                            type: req.body.type,
+                            start: new Date(),
+                            file: downloadFile.file._id
+                        });
+
+                        saveProcess(processMachine, newProcess, res);
+                    });
+                });
+                break;
+            case sharedHelpers.processHelpers.types.FILE_UPLOAD:
+                if (!req.body.machine_id)
+                    return errorHelpers.returnError("No machine provided to upload file to.", res);
+                else if (!req.body.file)
+                    return errorHelpers.returnError("No file selected to upload.", res);
+                Machine.findByIdPopulated(req.body.machine_id, function (err, machine) {
+                    if (err || !machine)
+                        return errorHelpers.returnError("No machine could be found to upload file to.", res, err);
+
+                    var uploadFile = _.find(processMachine.files, function (file) {
+                        return file._id.toString() === req.body.file._id.toString();
+                    });
+
+                    if (!uploadFile)
+                        return errorHelpers.returnError("The selected file no longer exists.", res);
+
+                    machine.validateAuth(req.user, req.body.password, function (isAuthenticated) {
+                        if (!isAuthenticated)
+                            return errorHelpers.returnError("You don't have permission to upload files to this machine.", res);
+
+                        var newProcess = new Process({
+                            machine: machine._id,
+                            type: req.body.type,
+                            start: new Date(),
+                            file: uploadFile.file._id
+                        });
+
+                        saveProcess(processMachine, newProcess, res);
+                    });
+                });
+                break;
+            case sharedHelpers.processHelpers.types.CRACK_PASSWORD_MACHINE:
+                Machine.findByIdPopulated(req.body.machine_id, function (err, machine) {
+                    if (err || !machine)
+                        return errorHelpers.returnError("No machine could be found to crack password.", res, err);
 
                     var newProcess = new Process({
                         machine: machine._id,
                         type: req.body.type,
-                        start: new Date(),
-                        log: req.body.log
+                        start: new Date()
                     });
-
-                    newProcess.save(function (err) {
-                        if (err)
-                            return errorHelpers.returnError("Failed to start process", res, err);
-
-                        processMachine.processes.push(newProcess);
-                        processMachine.updateProcessCosts(function (UIError, err) {
-                            if (UIError || err)
-                                return errorHelpers.returnError("Failed to start process", res, err);
-                            processMachine.save(function (err) {
-                                if (err)
-                                    return errorHelpers.returnError("Failed to start process", res, err);
-
-                                res.json(newProcess);
-                            });
-                        });
-                    });
-
+                    saveProcess(processMachine, newProcess, res);
                 });
                 break;
             default:
@@ -272,6 +328,25 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
         }
     });
 });
+
+function saveProcess(processMachine, newProcess, res) {
+    newProcess.save(function (err) {
+        if (err)
+            return errorHelpers.returnError("Failed to start process", res, err);
+
+        processMachine.processes.push(newProcess);
+        processMachine.updateProcessCosts(function (UIError, err) {
+            if (UIError || err)
+                return errorHelpers.returnError("Failed to start process", res, err);
+            processMachine.save(function (err) {
+                if (err)
+                    return errorHelpers.returnError("Failed to start process", res, err);
+
+                res.json(newProcess);
+            });
+        });
+    });
+}
 
 router.delete('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) {
     if (!req.params.machine_id)
@@ -284,8 +359,8 @@ router.delete('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) 
             return errorHelpers.returnError("Failed to find a machine with the provided id.", res, err);
         else if (!machine)
             return errorHelpers.returnError("No machine could be found with provided id.", res);
-        else if (machine.user.toString() != req.user._id.toString() && machine.password != password)
-            return errorHelpers.returnError("You don't have permission to update the log on this machine.", res);
+        else if (machine.user.toString() != req.user._id.toString())
+            return errorHelpers.returnError("You don't have permission to delete this process.", res);
 
         var process = _.find(machine.processes, function (process) {
             return process._id.toString() === req.params._id.toString();
@@ -294,13 +369,21 @@ router.delete('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) 
         if (!process)
             return errorHelpers.returnError("Failed to find a process with the provided id.", res, err);
 
-        machine.processes.pull({process: {_id: process._id}});
+        machine.processes.pull(process._id);
         machine.save(function (err) {
             if (err)
                 return errorHelpers("Failed to delete the selected process", err, res);
-            //do this sync, its already removed from the machines process array so it doesnt need to wait to respond
-            process.remove();
-            res.end();
+            process.remove(function () {
+                if (err)
+                    return errorHelpers("Failed to delete the selected process", err, res);
+                machine.updateProcessCosts(function (err) {
+                    if (err)
+                        console.log(err);
+
+                    process.success = true;
+                    res.json(process);
+                });
+            });
         });
     });
 });
@@ -313,6 +396,8 @@ router.get('/:machine_id/files', auth.isLoggedIn, function (req, res) {
                 return errorHelpers.returnError("Unable to find files for requested machine.", res, err ? err : null);
             else if (machine.user.toString() != req.user._id.toString() || (req.query.password && req.query.password === machine.password))
                 return errorHelpers.returnError("Can't view files for this machine, you don't have permission.", res);
+
+            res.json(machine.files);
         });
     }
     else {
@@ -338,21 +423,21 @@ router.delete('/:machine_id/file/:_id', auth.isLoggedIn, function (req, res) {
             if (!isAuthenticated)
                 return errorHelpers.returnError("You don't have permission to delete this file.", res);
 
-            var file = _.find(machine.files, function (file) {
-                return file.file._id.toString() === req.params._id.toString();
+            var deleteFile = _.find(machine.files, function (file) {
+                return file && file._id.toString() === req.params._id.toString();
             });
 
-            if (!file)
+            if (!deleteFile)
                 return errorHelpers.returnError("Couldn't find file with supplied _id", res);
-            else if (file.isLocked)
+            else if (deleteFile.isLocked)
                 return errorHelpers.returnError("You don't have permission to delete this file.", res);
 
-            machine.files.pull({file: {_id: file._id}});
+            machine.files.pull(deleteFile._id);
             machine.save(function (err) {
                 if (err)
                     return errorHelpers("Failed to delete the selected file", err, res);
 
-                res.end();
+                res.json(deleteFile);
             });
         });
     });

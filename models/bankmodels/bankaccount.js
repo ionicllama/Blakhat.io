@@ -101,12 +101,12 @@ bankAccountSchema.methods = {
                         if (err)
                             console.log(err + " - Failed to change balance of the source bank account during a transfer.");
 
-                        Machine.findByBank(self.bank._id, function (err, sourceBankMachine) {
+                        self.model('machine').findByBank(self.bank._id, function (err, sourceBankMachine) {
                             if (err || !sourceBankMachine)
                                 console.log("Couldn't find bank machine.");
 
                             if (sourceBankMachine) {
-                                Machine.findByBank(destinationBankAccount.bank._id, function (err, destinationBankMachine) {
+                                self.model('machine').findByBank(destinationBankAccount.bank._id, function (err, destinationBankMachine) {
                                     if (err || !destinationBankMachine)
                                         console.log("Couldn't find bank machine.");
 

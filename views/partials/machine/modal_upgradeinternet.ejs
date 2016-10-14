@@ -28,7 +28,7 @@
                             <td class="text-center">
                                 <% if(BH.sharedHelpers.internetHelpers.getInternetModifier(internets.models[i].attributes) < BH.sharedHelpers.internetHelpers.getInternetModifier(model.get('machine').internet)){ %>
                                 <span class="text-warning text-owned">Downgrade</span>
-                                <% } else if(internets.models[i].get('id') === model.get('machine').internet._id){ %>
+                                <% } else if(internets.models[i].get('_id') === model.get('machine').internet._id){ %>
                                 <span class="text-info text-owned">Owned</span>
                                 <button style="display:none;" type="button" class="btn btn-success buyButton"
                                         _id="<%- internets.models[i].get('_id') %>">

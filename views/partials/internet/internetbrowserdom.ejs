@@ -26,7 +26,11 @@
                 <div class="button-container">
                     <button type="button" class="btn btn-success btn-block admin-login-button">Login</button>
                     <hr/>
-                    <button type="button" class="btn btn-danger btn-block crack-password">Crack Password</button>
+                    <% if(crackInProgress) { %>
+                    <button type="button" class="btn btn-block admin-crack-password disabled">In Progress...</button>
+                    <% } else { %>
+                    <button type="button" class="btn btn-danger btn-block admin-crack-password">Crack Password</button>
+                    <% } %>
                 </div>
             </div>
                 </div>

@@ -17,7 +17,8 @@ router.get('/', auth.isLoggedIn, function (req, res) {
     if ((!req.query.source || req.query.source.length == 0) && (!req.query.bank_id || req.query.bank_id.length == 0))
         return errorHelpers.returnError("No source IP address found.  Make sure you own at least 1 machine.", res);
 
-    var response = {machine: {}, isOwner: false};
+    var response = {machine: {}, isOwner: false},
+        search = req.query.search.toLowerCase();
     if (req.query.bank_id) {
         Bank.findById(req.query.bank_id, function (err, bank) {
 
@@ -45,7 +46,7 @@ router.get('/', auth.isLoggedIn, function (req, res) {
         });
     }
     else {
-        Machine.findForInternet(req.query.search, req.user, function (err, machine) {
+        Machine.findForInternet(search, req.user, function (err, machine) {
             if (err)
                 console.log(err);
 
@@ -54,11 +55,13 @@ router.get('/', auth.isLoggedIn, function (req, res) {
                 isOwner: machine && machine.user && machine.user.toString() == req.user._id.toString()
             };
 
-            if (req.query.password) {
+            if (search.toLowerCase().indexOf('login') != -1 || search.toLowerCase().indexOf('admin') != -1) {
                 machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
-                    response.isAuthenticated = isAuthenticated;
+                    if (req.query.password != null || isAuthenticated)
+                        response.isAuthenticated = isAuthenticated;
+
                     if (isAuthenticated)
-                        machine.logAccess(req.query.source);
+                        machine.logAdminLogin(req.query.source);
 
                     res.json(response);
                 });
