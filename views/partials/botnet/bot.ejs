@@ -1,0 +1,14 @@
+<tr>
+    <td><a href='javascript:void(0)' class='ip-address'> <%- model.get('machine').ip %> </a></td>
+    <td><%- model.get('machine').password %></td>
+    <td><%- fileStats.spam == 0 ? "N/A" : 'Lvl. ' + fileStats.spam %></td>
+    <td><%- fileStats.warez == 0 ? "N/A" : 'Lvl. ' + fileStats.warez %></td>
+    <td><%- fileStats.miner == 0 ? "N/A" : 'Lvl. ' + fileStats.miner %></td>
+    <td><%- fileStats.ddos == 0 ? "N/A" : 'Lvl. ' + fileStats.ddos %></td>
+    <td></td>
+    <td>
+        <button type="button" class="btn btn-success bot-login">
+            Login
+        </button>
+    </td>
+</tr>

@@ -27,7 +27,16 @@
                     <button type="button" class="btn btn-success btn-block admin-login-button">Login</button>
                     <hr/>
                     <% if(crackInProgress) { %>
-                    <button type="button" class="btn btn-block admin-crack-password disabled">In Progress...</button>
+                    <button type="button" class="btn btn-block admin-crack-password disabled">Crack in progress...
+                    </button>
+                    <% } else if(localFileStats.firewall < model.get('firewall')) { %>
+                    <div class="alert alert-danger">Can't crack this machine's password, your firewall bypasser level is
+                        too low.
+                    </div>
+                    <% } else if(localFileStats.passwordCracker < 1) { %>
+                    <div class="alert alert-danger">Can't crack this machine's password, you don't have a password
+                        cracker.
+                    </div>
                     <% } else { %>
                     <button type="button" class="btn btn-danger btn-block admin-crack-password">Crack Password</button>
                     <% } %>

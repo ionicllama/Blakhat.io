@@ -64,16 +64,25 @@ router.get('/account/:_id', auth.isLoggedIn, function (req, res) {
                     isAuthenticated: req.user._id.toString() == bankAccount.user.toString()
                 };
 
-            if (req.query.sourceIP) {
-                Machine.findByBank(bankAccount.bank._id, function (err, machine) {
-                    if (err) {
-                        console.log(err);
-                    }
-                    else {
-                        machine.logBankAccountLogin(req.query.sourceIP, bankAccount.accountNumber);
-                    }
-                    res.json(response);
+            if (req.query.sourceMachine) {
+                Machine.findByIdForInternet(req.query.sourceMachine, req.user, function (err, sourceMachine) {
+                    if (err)
+                        return errorHelpers.returnError("Unable to find machine to browse with.", res);
+
+                    if (!sourceMachine)
+                        return errorHelpers.returnError("Unable to find machine to browse with.", res, err);
+
+                    Machine.findByBank(bankAccount.bank._id, function (err, machine) {
+                        if (err) {
+                            console.log(err);
+                        }
+                        else {
+                            machine.logBankAccountLogin(sourceMachine.ip, bankAccount.accountNumber);
+                        }
+                        res.json(response);
+                    });
                 });
+
             }
             else {
                 res.json(response);

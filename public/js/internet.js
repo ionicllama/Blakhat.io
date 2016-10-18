@@ -7,7 +7,7 @@ BH.models.InternetBrowser = BH.models.BaseModel.extend({
     },
     renderMachine: function () {
         new BH.views.InternetBrowser({
-            sourceIP: this.get('machine').ip,
+            sourceMachine: this.get('machine'),
             el: this.get('el'),
             browserLoadData: this.get('browserLoadData')
         });
@@ -24,14 +24,14 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
     fetchPage: function () {
         this.get('browser').renderHistoryButtons();
         var data = {
-            source: this.get('sourceIP'),
-            search: this.get('search')
+            search: this.get('search'),
+            sourceMachine: this.get('sourceMachine')._id
         };
         if (this.get('browserLoadData')) {
             if (this.get('browserLoadData').bankAccount && this.get('browserLoadData').bank) {
                 this.set('bank', this.get('browserLoadData').bank);
                 new BH.models.BrowserBankAccount({
-                    sourceIP: this.get('sourceIP'),
+                    sourceMachine: this.get('sourceMachine'),
                     _id: this.get('browserLoadData').bankAccount._id,
                     bank: this.get('browserLoadData').bank,
                     browserModel: this
@@ -174,7 +174,7 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
                 search: search,
                 browserLoadData: this.options.browserLoadData,
                 browser: this,
-                sourceIP: this.options.sourceIP
+                sourceMachine: this.options.sourceMachine
             });
         }
     },
@@ -258,14 +258,15 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
         "click .admin-crack-password": "crackMachinePassword"
     },
     beforeFirstRender: function () {
-        var crackInProgress = false;
-        if (BH.app.localMachine && BH.app.localMachine.get('machine') && BH.app.localMachine.get('machine').processes) {
-            var processes = BH.app.localMachine.get('machine').processes;
+        var crackInProgress = false,
+            processes = BH.app.localMachine.get('machine').processes;
+        if (BH.app.localMachine && BH.app.localMachine.get('machine') && processes) {
             for (var i = 0; i < processes.length; i++) {
                 if (processes[i].machine &&
                     this.model.get('machine') &&
                     processes[i].machine._id === this.model.get('machine')._id &&
-                    BH.sharedHelpers.processHelpers.getProgress(processes[i]) < 100)
+                    processes[i].processSuccess != false &&
+                    processes[i].type === BH.sharedHelpers.fileHelpers.types.CRACK_PASSWORD_MACHINE)
                     crackInProgress = true;
             }
         }
@@ -274,7 +275,8 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
             model: this.model,
             path: this.options.path,
             search: this.model.get('search'),
-            crackInProgress: crackInProgress
+            crackInProgress: crackInProgress,
+            localFileStats: BH.sharedHelpers.fileHelpers.getFileStats(BH.app.localMachine.get('machine').files)
         };
     },
     afterRender: function () {
@@ -303,7 +305,7 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
                 success: $.proxy(function (data) {
                     BH.helpers.Toastr.showSuccessToast("Process started: Crack password", null);
 
-                    this.$('.admin-crack-password').addClass('disabled').removeClass('btn-danger').text('In process...');
+                    this.$('.admin-crack-password').addClass('disabled').removeClass('btn-danger').text('Crack in progress...');
 
                     if (BH.app.localMachineProcesses)
                         BH.app.localMachineProcesses.fetch();
@@ -412,7 +414,7 @@ BH.views.InternetBrowserAdminDOM = BH.views.InternetBrowserDOM.extend({
                 el: this.$('.internet-admin-container'),
                 _id: this.model.get('machine')._id,
                 password: this.model.get('password'),
-                sourceIP: this.model.get('sourceIP')
+                sourceMachine: this.model.get('sourceMachine')
             });
         }
         else {
@@ -420,7 +422,7 @@ BH.views.InternetBrowserAdminDOM = BH.views.InternetBrowserDOM.extend({
                 el: this.$('.internet-admin-container'),
                 _id: this.model.get('machine')._id,
                 password: this.model.get('password'),
-                sourceIP: this.model.get('sourceIP')
+                sourceMachine: this.model.get('sourceMachine')
             });
         }
         this.model.setSilent({password: null, isAuthenticated: null});

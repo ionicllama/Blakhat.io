@@ -9,14 +9,14 @@
                  style="width: <%- progress %>%"></div>
             <div class="process-center-text process-time-remaining"><%= BH.helpers.viewHelpers.getTimeRemainingString(timeRemaining) %></div>
         </div>
-        <% } else if(model.attributes.success === null){ %>
+        <% } else if(model.attributes.processSuccess === null){ %>
         <button type="button" class="btn btn-success btn-sm process-execute">
             Execute
         </button>
-        <% } else if(model.attributes.success) { %>
+        <% } else if(model.attributes.processSuccess) { %>
         <span class="text-success">Success</span>
         <% } else { %>
-        <span class="text-danger">Failed</span>
+        <span class="text-danger">Failed</span> - <a href="#" class="process-retry">Retry?</a>
         <% } %>
     </td>
     <td class="text-center">

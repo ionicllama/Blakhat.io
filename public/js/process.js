@@ -27,58 +27,13 @@ BH.collections.Processes = BH.collections.BaseCollection.extend({
     renderProcesses: function () {
         this.view = new BH.views.Processes({
             el: this.options.el,
-            collection: this,
-            childView: BH.views.Process
+            collection: this
         });
     }
 });
 
 
 //VIEWS
-BH.views.Processes = BH.views.BaseCollectionView.extend({
-    defaults: {
-        template: '/views/partials/machine/processes.ejs',
-        dataTablePage: 0,
-        dataTableLength: 10,
-        initTableColSort: 0
-    },
-    events: {
-        'page.dt .data-table': 'pageNumberChanged',
-        'length.dt .data-table': 'pageLengthChanged',
-        'change .processes-auto-finish': 'executeCompleteProcesses'
-    },
-    beforeFirstRender: function (options) {
-        this.renderData = {
-            model: this.model
-        };
-        //this.listenTo(this.model, "change:log", this.render);
-    },
-    beforeChildrenRender: function () {
-        this.childEl = this.$el.find('#processList');
-    },
-    afterChildrenRender: function () {
-        if (this.$('.data-table')) {
-            this.processTabe = this.$('.data-table').DataTable({
-                displayStart: this.options.dataTablePage * this.options.dataTableLength,
-                language: {
-                    emptyTable: "No processes",
-                    "info": "Showing _START_ to _END_ of _TOTAL_ processes",
-                    "infoEmpty": "Showing 0 to 0 of 0 processes",
-                    "infoFiltered": " - filtered from _MAX_ processes"
-                },
-                pageLength: this.options.dataTableLength,
-                order: [this.options.initTableColSort, 'asc'],
-                columnDefs: [
-                    {orderable: false, targets: [-1]}
-                ]
-            });
-        }
-    },
-    executeCompleteProcesses: function () {
-        this.collection.trigger('execute');
-    }
-});
-
 BH.views.Process = BH.views.BaseView.extend({
     defaults: {
         template: '/views/partials/machine/process.ejs',
@@ -86,6 +41,7 @@ BH.views.Process = BH.views.BaseView.extend({
     },
     events: {
         'click .process-execute': 'executeProcess',
+        'click .process-retry': 'retryProcess',
         'click .process-remove': 'removeProcessConfirm'
     },
     beforeFirstRender: function (options) {
@@ -127,23 +83,58 @@ BH.views.Process = BH.views.BaseView.extend({
         }
     },
     executeProcess: function () {
-        if (!this.model.get('success') && BH.sharedHelpers.processHelpers.getProgress(this.model.attributes) >= 100) {
+        if (!this.model.get('processSuccess') && BH.sharedHelpers.processHelpers.getProgress(this.model.attributes) >= 100) {
             this.model.save(null,
                 {
                     patch: true,
                     success: $.proxy(function (data) {
                         if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.UPDATE_LOG) {
-                            BH.helpers.Toastr.showSuccessToast("Log updated successfully", null);
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("Log update successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("Log update failed", null);
+
                             if (BH.app.currentMachine)
                                 BH.app.currentMachine.fetchMachine();
                         }
-                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_DOWNLOAD && BH.app.currentMachine) {
-                            BH.helpers.Toastr.showSuccessToast("File downloaded successfully", null);
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.CRACK_PASSWORD_MACHINE) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("Crack admin password successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("Crack admin password failed", null);
                             if (BH.app.currentMachine)
                                 BH.app.currentMachine.fetchMachine();
                         }
-                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_UPLOAD && BH.app.currentMachine) {
-                            BH.helpers.Toastr.showSuccessToast("File uploaded successfully", null);
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_DOWNLOAD) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File download successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File download failed", null);
+
+                            if (BH.app.currentMachine)
+                                BH.app.currentMachine.fetchMachine();
+                        }
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_UPLOAD) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File upload successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File upload failed", null);
+                            if (BH.app.currentMachine)
+                                BH.app.currentMachine.fetchMachine();
+                        }
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_INSTALL) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File install successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File install failed", null);
+                            if (BH.app.currentMachine)
+                                BH.app.currentMachine.fetchMachine();
+                        }
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_RUN) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File run successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File upload failed", null);
                             if (BH.app.currentMachine)
                                 BH.app.currentMachine.fetchMachine();
                         }
@@ -157,8 +148,24 @@ BH.views.Process = BH.views.BaseView.extend({
             );
         }
     },
+    retryProcess: function () {
+        this.model.save(null,
+            {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process restarted", null);
+                    if (BH.app.currentMachine)
+                        BH.app.currentMachine.fetchMachine();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
     removeProcessConfirm: function () {
-        if (this.model.get('success'))
+        if (this.model.get('processSuccess'))
             this.removeProcess();
         else
             new BH.views.DeleteModal({
@@ -182,5 +189,49 @@ BH.views.Process = BH.views.BaseView.extend({
             }, this)
         });
 
+    }
+});
+
+BH.views.Processes = BH.views.BaseCollectionView.extend({
+    defaults: {
+        template: '/views/partials/machine/processes.ejs',
+        dataTablePage: 0,
+        dataTableLength: 10,
+        initTableColSort: 0,
+        childView: BH.views.Process
+    },
+    events: {
+        'page.dt .data-table': 'pageNumberChanged',
+        'length.dt .data-table': 'pageLengthChanged',
+        'change .processes-auto-finish': 'executeCompleteProcesses'
+    },
+    beforeFirstRender: function (options) {
+        this.renderData = {
+            model: this.model
+        };
+    },
+    beforeChildrenRender: function () {
+        this.childEl = this.$('#processList');
+    },
+    afterChildrenRender: function () {
+        if (this.$('.data-table')) {
+            this.processTabe = this.$('.data-table').DataTable({
+                displayStart: this.options.dataTablePage * this.options.dataTableLength,
+                language: {
+                    emptyTable: "No processes",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ processes",
+                    "infoEmpty": "Showing 0 to 0 of 0 processes",
+                    "infoFiltered": " - filtered from _MAX_ processes"
+                },
+                pageLength: this.options.dataTableLength,
+                order: [this.options.initTableColSort, 'asc'],
+                columnDefs: [
+                    {orderable: false, targets: [-1]}
+                ]
+            });
+        }
+    },
+    executeCompleteProcesses: function () {
+        this.collection.trigger('execute');
     }
 });

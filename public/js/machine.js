@@ -23,8 +23,8 @@ BH.models.Machine = BH.models.BaseModel.extend({
     },
     getPatchData: function (extraData) {
         var data = {};
-        if (this.get('sourceIP'))
-            data.sourceIP = this.get('sourceIP');
+        if (this.get('sourceMachine'))
+            data.sourceMachine = this.get('sourceMachine')._id;
         if (this.get('password'))
             data.password = this.get('password');
 

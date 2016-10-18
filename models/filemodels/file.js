@@ -1,15 +1,20 @@
 /**
  * Created by Evan on 9/24/2016.
  */
+var FileDef = require('../../models/filemodels/filedef');
+
 var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
 var mongoose = require('mongoose');
 
 var fileSchema = mongoose.Schema({
 
-    name: {type: String, default: "no_name"},
-    type: {type: String, default: 'txt'},
-    level: {type: Number, default: 0},
-    size: {type: Number, default: 0}
+    fileDef: {type: mongoose.Schema.Types.ObjectId, ref: 'filedef', default: null},
+    name: {type: String, default: null},
+    isLocked: {type: Boolean, default: false},
+    isInstalled: {type: Boolean, default: false},
+    hidden: {type: Number, default: null},
+    installedBy: {type: mongoose.Schema.Types.ObjectId, ref: 'user', default: null},
+    uploadedOn: {type: Date, default: new Date()}
 
 });
 

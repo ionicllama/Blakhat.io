@@ -297,8 +297,8 @@ BH.helpers.viewHelpers = {
             s += (remaining.hours + "h ");
         if (remaining.minutes > 0 || remaining.hours > 0 || remaining.days > 0)
             s += (remaining.minutes + "m ");
-        if (remaining.seconds > 0 || remaining.minutes > 0 || remaining.hours > 0 || remaining.days > 0)
-            s += (remaining.seconds + "s ");
+
+        s += (remaining.seconds + "s ");
         return s;
     },
     getFilesSizeUsedString: function (hddSize, filesSize) {
@@ -392,6 +392,7 @@ BH.Router = Backbone.Router.extend({
         "": "localMachine",
         "localmachine": "localMachine",
         "internet": "internetBrowser",
+        "botnet": "botnet",
         "internet/b:bank_id/a:account_id": 'browserBankAccountLogin',
         "internet/ip:ip": 'browserIPNavigate',
         "finances": "userFinances"
@@ -405,14 +406,24 @@ BH.Router = Backbone.Router.extend({
     },
     internetBrowser: function () {
         BH.helpers.viewHelpers.setActiveNav('#navInternet');
+        //BH.app.localMachine = new BH.models.LocalMachine();
         new BH.models.InternetBrowser({
             el: '#pageInnerContainer'
         });
+    },
+    botnet: function () {
+        BH.helpers.viewHelpers.setActiveNav('#navBotnet');
+        //BH.app.localMachine = new BH.models.LocalMachine();
+        new BH.collections.Botnet([],
+            {
+                el: '#pageInnerContainer'
+            });
     },
     browserIPNavigate: function (ip) {
         BH.helpers.viewHelpers.setActiveNav('#navInternet');
         $('#modalsContainer').remove();
         $('.modal-backdrop').remove();
+        //BH.app.localMachine = new BH.models.LocalMachine();
         new BH.models.InternetBrowser({
             el: '#pageInnerContainer',
             browserLoadData: {
@@ -422,6 +433,7 @@ BH.Router = Backbone.Router.extend({
     },
     browserBankAccountLogin: function (bank_id, account_id) {
         BH.helpers.viewHelpers.setActiveNav('#navInternet');
+        //BH.app.localMachine = new BH.models.LocalMachine();
         new BH.models.InternetBrowser({
             el: '#pageInnerContainer',
             browserLoadData: {

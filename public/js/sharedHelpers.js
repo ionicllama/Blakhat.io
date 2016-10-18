@@ -165,28 +165,54 @@
     };
 
     exports.sharedHelpers.fileHelpers = {
+        types: {
+            FIREWALL: 'fl',
+            FIREWALL_BYPASSER: 'bps',
+            PASSWORD_CRACKER: 'ck',
+            SPAM: 'spm',
+            WAREZ: 'wrz',
+            MINER: 'mnr',
+            DDOS: 'ds',
+            ANTIVIRUS: 'av',
+            HIDER: 'hdr',
+            FINDER: 'fdr'
+        },
         getFileName: function (file) {
-            if (file && file.file && file.file.name)
-                return file.file.name + '.' + file.file.type;
+            if (file && file.fileDef && file.fileDef.name)
+                return file.fileDef.name + '.' + file.fileDef.type;
             else if (file && file.name)
-                return file.name + '.' + file.file.type;
+                return file.name + '.' + file.fileDef.type;
             else
                 return 'no_name.txt';
         },
         getFileNameWithSize: function (file) {
-            return this.getFileName(file) + " (" + file.file.size + " Mb)"
+            return this.getFileName(file) + " Lv. " + file.fileDef.level + " (" + file.fileDef.size + " Mb)"
         },
         getFiletypeName: function (file) {
             if (file) {
-                switch (file.file.type.toLowerCase()) {
-                    case 'fl':
+                switch (file.fileDef.type.toLowerCase()) {
+                    case this.types.FIREWALL:
                         return 'Firewall';
-                    case 'bps':
+                    case this.types.FIREWALL_BYPASSER:
                         return 'Firewall Bypasser';
-                    case 'ck':
+                    case this.types.PASSWORD_CRACKER:
                         return 'Password Cracker';
+                    case this.types.SPAM:
+                        return file.isInstalled ? 'Spam (Installed)' : 'Spam (Not Installed)';
+                    case this.types.WAREZ:
+                        return file.isInstalled ? 'Spam (Installed)' : 'Spam (Not Installed)';
+                    case this.types.MINER:
+                        return file.isInstalled ? 'Miner (Installed)' : 'Miner (Not Installed)';
+                    case this.types.DDOS:
+                        return file.isInstalled ? 'DDOS (Installed)' : 'DDOS (Not Installed)';
+                    case this.types.ANTIVIRUS:
+                        return 'Anti-Virus';
+                    case this.types.HIDER:
+                        return 'File Hider';
+                    case this.types.FINDER:
+                        return 'File Finder';
                     default:
-                        return Text
+                        return 'Text';
                 }
             }
             else {
@@ -196,18 +222,82 @@
         getFilesSizeTotal: function (files) {
             var size = 0;
             for (var i = 0; i < files.length; i++) {
-                if (files[i].file && files[i].file.size)
-                    size += files[i].file.size
+                if (files[i].fileDef && files[i].fileDef.size)
+                    size += files[i].fileDef.size
             }
             return size;
         },
         getHDDSpaceProgress: function (hdd, files) {
             var size = 0;
             for (var i = 0; i < files.length; i++) {
-                if (files[i].file && files[i].file.size)
-                    size += files[i].file.size
+                if (files[i].file && files[i].fileDef.size)
+                    size += files[i].fileDef.size
             }
             return size / hdd.size;
+        },
+        getFileStats: function (files) {
+            var stats = {
+                firewall: 0,
+                firewallBypasser: 0,
+                passwordCracker: 0,
+                spam: 0,
+                warez: 0,
+                miner: 0,
+                ddos: 0,
+                antivirus: 0,
+                hider: 0,
+                finder: 0
+            };
+            if (files) {
+                for (var i = 0; i < files.length; i++) {
+                    if (!files[i].fileDef)
+                        continue;
+                    switch (files[i].fileDef.type.toLowerCase()) {
+                        case this.types.FIREWALL:
+                            stats.firewall = files[i].fileDef.level;
+                            break;
+                        case this.types.FIREWALL_BYPASSER:
+                            stats.firewallBypasser = files[i].fileDef.level;
+                            break;
+                        case this.types.PASSWORD_CRACKER:
+                            stats.passwordCracker = files[i].fileDef.level;
+                            break;
+                        case this.types.SPAM:
+                            stats.spam = files[i].fileDef.level;
+                            break;
+                        case this.types.WAREZ:
+                            stats.warez = files[i].fileDef.level;
+                            break;
+                        case this.types.MINER:
+                            stats.bitcoin = files[i].fileDef.level;
+                            break;
+                        case this.types.DDOS:
+                            stats.ddos = files[i].fileDef.level;
+                            break;
+                        case this.types.ANTIVIRUS:
+                            stats.antivirus = files[i].fileDef.level;
+                            break;
+                        case this.types.HIDER:
+                            stats.hider = files[i].fileDef.level;
+                            break;
+                        case this.types.FINDER:
+                            stats.finder = files[i].fileDef.level;
+                            break;
+                    }
+                }
+            }
+            return stats;
+        },
+        isVirus: function (fileDef) {
+            return (fileDef.type === this.types.SPAM ||
+            fileDef.type === this.types.WAREZ ||
+            fileDef.type === this.types.MINER ||
+            fileDef.type === this.types.DDOS);
+        },
+        canRun: function (fileDef) {
+            return (fileDef.type === BH.sharedHelpers.fileHelpers.types.ANTIVIRUS ||
+            fileDef.type === BH.sharedHelpers.fileHelpers.types.FINDER ||
+            fileDef.type === BH.sharedHelpers.fileHelpers.types.HIDER)
         }
     };
 
@@ -217,7 +307,9 @@
             CRACK_PASSWORD_BANK: 1,
             FILE_DOWNLOAD: 2,
             FILE_UPLOAD: 3,
-            UPDATE_LOG: 4
+            FILE_INSTALL: 4,
+            FILE_RUN: 5,
+            UPDATE_LOG: 6
         },
         getProcessNameHTML: function (process) {
             switch (process.type) {
@@ -228,10 +320,16 @@
                     return "<strong>Crack Bank Password</strong>";
                     break;
                 case this.types.FILE_DOWNLOAD:
-                    return "<strong>Download:</strong> " + process.file.name + " - Lv. " + process.file.level;
+                    return "<strong>Download:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
                     break;
                 case this.types.FILE_UPLOAD:
-                    return "<strong>Upload:</strong> " + process.file.name + " - Lv. " + process.file.level;
+                    return "<strong>Upload:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    break;
+                case this.types.FILE_INSTALL:
+                    return "<strong>Install:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    break;
+                case this.types.FILE_RUN:
+                    return "<strong>Run:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
                     break;
                 case this.types.UPDATE_LOG:
                     return "<strong>Update Log</strong>";

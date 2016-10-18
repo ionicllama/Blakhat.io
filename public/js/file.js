@@ -18,18 +18,64 @@ BH.models.File = BH.models.BaseModel.extend({
             data.password = this.get('machine').password;
         return data;
     },
-    downloadFile: function () {
+    download: function () {
         new BH.models.Process({
             type: BH.sharedHelpers.processHelpers.types.FILE_DOWNLOAD,
             processMachine_id: BH.app.localMachine.get('machine')._id,
             machine_id: this.get('machine')._id,
             file: {
-                _id: this.get('file')._id
+                _id: this.get('_id')
             }
         }).save(this.getPatchData(), {
                 patch: true,
                 success: $.proxy(function (data) {
                     BH.helpers.Toastr.showSuccessToast("Process started: Download file", null);
+
+                    if (BH.app.localMachineProcesses)
+                        BH.app.localMachineProcesses.fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    install: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_INSTALL,
+            processMachine_id: BH.app.localMachine.get('machine')._id,
+            machine_id: this.get('machine')._id,
+            file: {
+                _id: this.get('_id')
+            }
+        }).save(this.getPatchData(), {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Install file", null);
+
+                    if (BH.app.localMachineProcesses)
+                        BH.app.localMachineProcesses.fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    run: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_RUN,
+            processMachine_id: BH.app.localMachine.get('machine')._id,
+            machine_id: this.get('machine')._id,
+            file: {
+                _id: this.get('_id')
+            }
+        }).save(this.getPatchData(), {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Run " + BH.sharedHelpers.fileHelpers.getFileName(this.toJSON()), null);
 
                     if (BH.app.localMachineProcesses)
                         BH.app.localMachineProcesses.fetch();
@@ -59,7 +105,6 @@ BH.collections.Files = BH.collections.BaseCollection.extend({
         this.view = new BH.views.Files({
             el: this.options.el,
             collection: this,
-            childView: BH.views.File,
             machine: this.options.machine,
             childOptions: {
                 canDownloadFiles: this.options.canDownloadFiles
@@ -70,12 +115,49 @@ BH.collections.Files = BH.collections.BaseCollection.extend({
 
 
 //VIEWS
+BH.views.File = BH.views.BaseView.extend({
+    defaults: {
+        template: '/views/partials/machine/file.ejs',
+        isAppend: true
+    },
+    events: {
+        'click .file-download': 'download',
+        'click .file-run': 'run',
+        'click .file-install': 'install',
+        'click .file-delete': 'delete'
+    },
+    beforeFirstRender: function (options) {
+        this.renderData = {
+            model: this.model,
+            canDownloadFiles: this.options.canDownloadFiles
+        };
+        this.listenTo(this.model, "destroy", this.remove);
+    },
+    download: function () {
+        this.model.download();
+    },
+    run: function () {
+        this.model.run();
+    },
+    install: function () {
+        this.model.install();
+    },
+    delete: function () {
+        new BH.views.DeleteModal({
+            header: "Delete File",
+            body: "Are you sure you want to delete this file?",
+            onConfirm: this.model.destroy.bind(this.model)
+        });
+    }
+});
+
 BH.views.Files = BH.views.BaseCollectionView.extend({
     defaults: {
         template: '/views/partials/machine/files.ejs',
         dataTablePage: 0,
         dataTableLength: 10,
-        initTableColSort: 1
+        initTableColSort: 4,
+        childView: BH.views.File
     },
     events: {
         'page.dt .data-table': 'pageNumberChanged',
@@ -141,36 +223,5 @@ BH.views.Files = BH.views.BaseCollectionView.extend({
                 wait: true
             }
         );
-    }
-});
-
-BH.views.File = BH.views.BaseView.extend({
-    defaults: {
-        template: '/views/partials/machine/file.ejs',
-        isAppend: true
-    },
-    events: {
-        'click .file-download': 'downloadFile',
-        'click .file-delete': 'deleteFile'
-    },
-    beforeFirstRender: function (options) {
-        this.renderData = {
-            model: this.model,
-            canDownloadFiles: this.options.canDownloadFiles
-        };
-        this.listenTo(this.model, "destroy", this.remove);
-    },
-    downloadFile: function () {
-        this.model.downloadFile();
-    },
-    deleteFile: function () {
-        new BH.views.DeleteModal({
-            header: "Delete File",
-            body: "Are you sure you want to delete this file?",
-            extras: {
-                buttonText: "Remove"
-            },
-            onConfirm: this.model.destroy.bind(this.model)
-        });
     }
 });

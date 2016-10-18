@@ -32,8 +32,8 @@ BH.models.BrowserBankAccount = BH.models.BankAccount.extend({
     fetchAccount: function () {
         var fetchData = {};
 
-        if (this.get('sourceIP'))
-            fetchData.sourceIP = this.get('sourceIP');
+        if (this.get('sourceMachine'))
+            fetchData.sourceMachine = this.get('sourceMachine')._id;
 
         if (!this.get('_id')) {
 

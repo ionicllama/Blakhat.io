@@ -13,9 +13,52 @@ var botSchema = mongoose.Schema({
 });
 
 botSchema.statics = {
+    findPopulated: function (user, query, callback) {
+        var subPopulate = [
+            {
+                path: 'machine',
+                select: '_id ip password files',
+                populate: {
+                    path: 'files',
+                    populate: [
+                        'fileDef'
+                    ],
+                    match: {
+                        isInstalled: true,
+                        installedBy: user._id
+                    }
+                }
+            }
+        ];
+        this.find(query).populate(subPopulate).exec(function (err, bots) {
+            if (err)
+                return callback(err);
+
+            return callback(null, bots);
+        });
+    },
+    findByUserPopulated: function (user, callback) {
+        this.findPopulated(user, {user: {_id: user._id}}, function (err, bots) {
+            if (err)
+                return callback(err);
+
+            callback(null, bots);
+        });
+    },
+    findByIdPopulated: function (_id, callback) {
+        this.findPopulated({_id: _id}, function (err, bots) {
+            if (err)
+                return callback(err);
+
+            callback(null, bots);
+        });
+    },
     findUserBotByMachine: function (user_id, machine_id, callback) {
         this.findOne({machine: {_id: machine_id}, user: {_id: user_id}}, function (err, bot) {
-            callback(err, bot);
+            if (err)
+                return callback(err);
+
+            callback(null, bot);
         });
     }
 };

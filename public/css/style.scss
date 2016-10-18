@@ -201,7 +201,8 @@ body {
 }
 
 .col-content-box {
-  margin-top: 50px;
+  margin-top: 15px;
+  margin-bottom: 15px;
   background-color: #FFF;
   padding: 0 10px;
   > h2, h4 {
@@ -329,7 +330,7 @@ body {
     width: 100%;
     position: absolute;
     color: #000;
-    margin-top: 3px;
+    margin-top: 4px;
   }
   position: relative;
 }
@@ -421,6 +422,15 @@ body {
       }
     }
   }
+}
+
+.bot-container {
+  width: 225px;
+  background: $secondary-inner-background;
+  padding: 10px;
+  margin: 20px;
+  display: inline-block;
+  position: relative;
 }
 
 //Bank Styles

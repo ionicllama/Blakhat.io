@@ -14,7 +14,7 @@ var errorHelpers = require('../helpers/errorHelpers');
 var _ = require('underscore');
 
 router.get('/', auth.isLoggedIn, function (req, res) {
-    if ((!req.query.source || req.query.source.length == 0) && (!req.query.bank_id || req.query.bank_id.length == 0))
+    if ((!req.query.sourceMachine) && (!req.query.bank_id || req.query.bank_id.length == 0))
         return errorHelpers.returnError("No source IP address found.  Make sure you own at least 1 machine.", res);
 
     var response = {machine: {}, isOwner: false},
@@ -46,29 +46,40 @@ router.get('/', auth.isLoggedIn, function (req, res) {
         });
     }
     else {
-        Machine.findForInternet(search, req.user, function (err, machine) {
+        Machine.findByIdForInternet(req.query.sourceMachine, req.user, function (err, sourceMachine) {
             if (err)
-                console.log(err);
+                return errorHelpers.returnError("Unable to find machine to browse with.", res);
 
-            response = {
-                machine: machine ? machine : {},
-                isOwner: machine && machine.user && machine.user.toString() == req.user._id.toString()
-            };
+            if (!sourceMachine)
+                return errorHelpers.returnError("Unable to find machine to browse with.", res, err);
 
-            if (search.toLowerCase().indexOf('login') != -1 || search.toLowerCase().indexOf('admin') != -1) {
-                machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
-                    if (req.query.password != null || isAuthenticated)
-                        response.isAuthenticated = isAuthenticated;
+            Machine.findBySearchForInternet(search, req.user, function (err, machineInfo) {
+                if (err)
+                    console.log(err);
 
-                    if (isAuthenticated)
-                        machine.logAdminLogin(req.query.source);
+                response = {
+                    isOwner: machineInfo.machine && machineInfo.machine.user && machineInfo.machine.user.toString() == req.user._id.toString()
+                };
 
+                response = _.extend(response, machineInfo);
+
+                if (search.toLowerCase().indexOf('login') != -1 || search.toLowerCase().indexOf('admin') != -1) {
+                    machineInfo.machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
+                        if (req.query.password != null || isAuthenticated)
+                            response.isAuthenticated = isAuthenticated;
+
+                        if (isAuthenticated) {
+                            sourceMachine.machine.logAdminLoginTo(machineInfo.machine.ip);
+                            machineInfo.machine.logAdminLoginBy(sourceMachine.machine.ip);
+                        }
+
+                        res.json(response);
+                    });
+                }
+                else {
                     res.json(response);
-                });
-            }
-            else {
-                res.json(response);
-            }
+                }
+            });
         });
     }
 });
