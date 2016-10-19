@@ -1,0 +1,52 @@
+<div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div id="gpuUpgradeRender" class="modal-content">
+
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title">Upgrade GPU</h4>
+        </div>
+        <div id="gpuUpgradeContainer" class="modal-body">
+            <div class="table-responsive">
+                <table id="gpuUpgradeTable" class="table data-table">
+                    <thead>
+                    <tr>
+                        <th>Cores</th>
+                        <th>Speed (MHz)</th>
+                        <th>Cost</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <% for(var i = 0 ; i < gpus.models.length ; i++){ %>
+                    <tr>
+                        <td><%- gpus.models[i].get('cores') %></td>
+                        <td><%- gpus.models[i].get('speed') %></td>
+                        <td><%- BH.sharedHelpers.gpuHelpers.getGPUCostDisplay(gpus.models[i].attributes) %></td>
+                        <td class="text-center">
+                            <% if(BH.sharedHelpers.gpuHelpers.getGPUModifier(gpus.models[i].attributes) < BH.sharedHelpers.gpuHelpers.getGPUModifier(model.get('machine').gpu)){ %>
+                            <span class="text-warning text-owned">Downgrade</span>
+                            <% } else if(gpus.models[i].get('_id') === model.get('machine').gpu._id){ %>
+                            <span class="text-info text-owned">Owned</span>
+                            <% } else { %>
+                            <button type="button" class="btn btn-success buyButton"
+                                    amount="<%- BH.sharedHelpers.gpuHelpers.getGPUCost(gpus.models[i].attributes) %>"
+                                    _id="<%- gpus.models[i].get('_id') %>">
+                                Buy
+                            </button>
+                            <% } %>
+                        </td>
+                    </tr>
+                    <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+
+    </div>
+
+</div>

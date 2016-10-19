@@ -1,6 +1,7 @@
 /**
  * Created by Evan on 9/24/2016.
  */
+var User = require('../../models/user');
 var FileDef = require('../../models/filemodels/filedef');
 
 var sharedHelpers = require('../../public/js/sharedHelpers').sharedHelpers;
@@ -13,8 +14,9 @@ var fileSchema = mongoose.Schema({
     isLocked: {type: Boolean, default: false},
     isInstalled: {type: Boolean, default: false},
     hidden: {type: Number, default: null},
+    uploadedOn: {type: Date, default: new Date()},
     installedBy: {type: mongoose.Schema.Types.ObjectId, ref: 'user', default: null},
-    uploadedOn: {type: Date, default: new Date()}
+    lastCollected: {Type: Date}
 
 });
 

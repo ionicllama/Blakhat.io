@@ -41,8 +41,8 @@ BH.models.Machine = BH.models.BaseModel.extend({
             success: $.proxy(function (data) {
                 BH.helpers.Toastr.showSuccessToast("Process started: Update Log", null);
 
-                if (BH.app.localMachineProcesses)
-                    BH.app.localMachineProcesses.fetch();
+                if (BH.app.localMachine.get('processes'))
+                    BH.app.localMachine.get('processes').fetch();
             }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);
@@ -54,8 +54,14 @@ BH.models.Machine = BH.models.BaseModel.extend({
     getCPUName: function () {
         return BH.sharedHelpers.cpuHelpers.getCPUName(this.get('machine').cpu);
     },
+    getGPUName: function () {
+        return BH.sharedHelpers.gpuHelpers.getGPUName(this.get('machine').gpu);
+    },
     getHDDName: function () {
         return BH.sharedHelpers.hddHelpers.getHDDName(this.get('machine').hdd);
+    },
+    getExternalHDDName: function () {
+        return BH.sharedHelpers.externalHDDHelpers.getExternalHDDName(this.get('machine').externalHDD);
     },
     getInternetName: function () {
         return BH.sharedHelpers.internetHelpers.getInternetName(this.get('machine').internet);
@@ -142,6 +148,26 @@ BH.models.LocalMachine = BH.models.Machine.extend({
             }
         );
     },
+    upgradeGPU: function (purchaseAccount, options) {
+        this.save(
+            {
+                purchaseAccount: purchaseAccount.get('account'),
+                gpu: {
+                    _id: options.upgradeId
+                }
+            },
+            {
+                patch: true,
+                success: function (data) {
+                    BH.helpers.Toastr.showSuccessToast("GPU Upgrade Successful", null);
+                },
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
     upgradeHDD: function (purchaseAccount, options) {
         this.save(
             {
@@ -154,6 +180,26 @@ BH.models.LocalMachine = BH.models.Machine.extend({
                 patch: true,
                 success: function (data) {
                     BH.helpers.Toastr.showSuccessToast("HDD Upgrade Successful", null);
+                },
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    upgradeExternalHDD: function (purchaseAccount, options) {
+        this.save(
+            {
+                purchaseAccount: purchaseAccount.get('account'),
+                externalHDD: {
+                    _id: options.upgradeId
+                }
+            },
+            {
+                patch: true,
+                success: function (data) {
+                    BH.helpers.Toastr.showSuccessToast("External HDD Upgrade Successful", null);
                 },
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);
@@ -192,6 +238,14 @@ BH.models.CPU = BH.models.BaseModel.extend({
     }
 });
 
+BH.models.GPU = BH.models.BaseModel.extend({
+    urlRoot: '/GPU',
+    initialize: function () {
+        //this.on('sync', this.renderMachine, this);
+        //this.fetch();
+    }
+});
+
 BH.models.HDD = BH.models.BaseModel.extend({
     urlRoot: '/HDD',
     initialize: function () {
@@ -210,14 +264,14 @@ BH.models.Internet = BH.models.BaseModel.extend({
 
 
 //COLLECTIONS
-BH.collections.CPUS = BH.collections.BaseCollection.extend({
+BH.collections.CPUs = BH.collections.BaseCollection.extend({
     model: BH.models.CPU,
     url: '/machineParts/cpus',
     afterInit: function () {
-        this.on('sync', this.renderCPU, this);
+        this.on('sync', this.renderCPUs, this);
         this.fetch();
     },
-    renderCPU: function () {
+    renderCPUs: function () {
         new BH.views.MachineUpgradeModal({
             model: this.options.machine,
             renderData: {
@@ -231,14 +285,35 @@ BH.collections.CPUS = BH.collections.BaseCollection.extend({
     }
 });
 
-BH.collections.HDDS = BH.collections.BaseCollection.extend({
+BH.collections.GPUs = BH.collections.BaseCollection.extend({
+    model: BH.models.GPU,
+    url: '/machineParts/gpus',
+    afterInit: function () {
+        this.on('sync', this.renderGPUs, this);
+        this.fetch();
+    },
+    renderGPUs: function () {
+        new BH.views.MachineUpgradeModal({
+            model: this.options.machine,
+            renderData: {
+                model: this.options.machine,
+                gpus: this
+            },
+            template: '/views/partials/machine/modal_upgradegpu.ejs',
+            initTableColSort: 2,
+            upgradeCallback: this.options.machine.upgradeGPU.bind(this.options.machine)
+        });
+    }
+});
+
+BH.collections.HDDs = BH.collections.BaseCollection.extend({
     model: BH.models.HDD,
     url: '/machineParts/hdds',
     afterInit: function () {
-        this.on('sync', this.renderHDD, this);
+        this.on('sync', this.renderHDDs, this);
         this.fetch();
     },
-    renderHDD: function () {
+    renderHDDs: function () {
         new BH.views.MachineUpgradeModal({
             model: this.options.machine,
             renderData: {
@@ -248,6 +323,27 @@ BH.collections.HDDS = BH.collections.BaseCollection.extend({
             template: '/views/partials/machine/modal_upgradehdd.ejs',
             initTableColSort: 1,
             upgradeCallback: this.options.machine.upgradeHDD.bind(this.options.machine)
+        });
+    }
+});
+
+BH.collections.ExternalHDDs = BH.collections.BaseCollection.extend({
+    model: BH.models.HDD,
+    url: '/machineParts/externalhdds',
+    afterInit: function () {
+        this.on('sync', this.renderExternalHDDs, this);
+        this.fetch();
+    },
+    renderExternalHDDs: function () {
+        new BH.views.MachineUpgradeModal({
+            model: this.options.machine,
+            renderData: {
+                model: this.options.machine,
+                externalHDDs: this
+            },
+            template: '/views/partials/machine/modal_upgradeexternalhdd.ejs',
+            initTableColSort: 1,
+            upgradeCallback: this.options.machine.upgradeExternalHDD.bind(this.options.machine)
         });
     }
 });
@@ -287,18 +383,43 @@ BH.views.Machine = BH.views.BaseView.extend({
         });
     },
     renderMachineLog: function () {
-        new BH.views.MachineLog({
+        this.machineLog = new BH.views.MachineLog({
             model: this.model,
             el: this.$('#machineLog')
         });
+        this.model.set('machineLog', this.machineLog);
     },
-    renderFiles: function () {
-        new BH.collections.Files(this.model.get('machine').files,
+    toggleMachinePassword: function () {
+        if (!this.isPasswordVisible) {
+            this.$('#machinePassword').text(this.model.get('machine').password);
+            this.$('#toggleMachinePassword').text('Hide');
+            this.isPasswordVisible = true;
+        }
+        else {
+            this.$('#machinePassword').text("******");
+            this.$('#toggleMachinePassword').text('Show');
+            this.isPasswordVisible = false;
+        }
+    },
+    renderInternalFiles: function () {
+        this.internalFiles = new BH.collections.Files(this.model.get('machine').files,
             {
                 machine: this.model.get('machine'),
-                el: this.$('#files'),
+                el: this.$('#internalFiles'),
+                fileLocation: 'internal',
                 canDownloadFiles: this.options.canDownloadFiles ? this.options.canDownloadFiles : false
             });
+        this.model.set('internalFiles', this.internalFiles);
+    },
+    renderExternalFiles: function () {
+        this.externalFiles = new BH.collections.Files(this.model.get('machine').externalFiles,
+            {
+                machine: this.model.get('machine'),
+                el: this.$('#externalFiles'),
+                fileLocation: 'external',
+                canDownloadFiles: false
+            });
+        this.model.set('externalFiles', this.externalFiles);
     }
 });
 
@@ -311,28 +432,35 @@ BH.views.LocalMachine = BH.views.Machine.extend({
         this.renderMachineInfo();
         this.renderMachineLog();
         this.renderProcesses();
-        this.renderFiles();
+        this.renderInternalFiles();
+        if (this.model.get('machine').externalHDD && this.model.get('machine').externalHDD._id.length > 0)
+            this.renderExternalFiles();
     },
     renderMachineInfo: function () {
-        new BH.views.LocalMachineInfo({
+        this.machineInfo = new BH.views.LocalMachineInfo({
             model: this.model,
             el: this.$('#machineInfo')
         });
+        this.model.set('machineInfo', this.machineInfo);
     },
     renderProcesses: function () {
-        BH.app.localMachineProcesses = new BH.collections.Processes(this.model.get('machine').processes,
+        this.processes = new BH.collections.Processes(this.model.get('machine').processes,
             {
                 machine: this.model.get('machine'),
                 el: this.$('#processes')
             });
+        this.model.set('processes', this.processes);
     }
 });
 
 BH.views.RemoteMachine = BH.views.Machine.extend({
+    events: {
+        'click #toggleMachinePassword': 'toggleMachinePassword'
+    },
     afterRender: function () {
         this.renderMachineInfo();
         this.renderMachineLog();
-        this.renderFiles();
+        this.renderInternalFiles();
     }
 });
 
@@ -354,7 +482,9 @@ BH.views.LocalMachineInfo = BH.views.MachineInfo.extend({
         'click #toggleMachinePassword': 'toggleMachinePassword',
         'click #passwordResetButton': 'resetPasswordConfirm',
         'click #cpuUpgradeButton': 'initCPUUpgradeModal',
+        'click #gpuUpgradeButton': 'initGPUUpgradeModal',
         'click #hddUpgradeButton': 'initHDDUpgradeModal',
+        'click #externalHDDUpgradeButton': 'initExternalHDDUpgradeModal',
         'click #internetUpgradeButton': 'initInternetUpgradeModal'
     },
     beforeFirstRender: function () {
@@ -365,18 +495,6 @@ BH.views.LocalMachineInfo = BH.views.MachineInfo.extend({
     afterRender: function () {
         this.createPasswordResetCountdown(this.$('.password-reset-countdown'));
         this.createIPRefreshCountdown(this.$('.ip-refresh-countdown'));
-    },
-    toggleMachinePassword: function () {
-        if (!this.isPasswordVisible) {
-            this.$('#machinePassword').text(this.model.get('machine').password);
-            this.$('#toggleMachinePassword').text('Hide');
-            this.isPasswordVisible = true;
-        }
-        else {
-            this.$('#machinePassword').text("******");
-            this.$('#toggleMachinePassword').text('Show');
-            this.isPasswordVisible = false;
-        }
     },
     refreshIPConfirm: function () {
         new BH.views.ConfirmModal({
@@ -405,12 +523,22 @@ BH.views.LocalMachineInfo = BH.views.MachineInfo.extend({
         BH.helpers.viewHelpers.createCountdownTimer($el, BH.sharedHelpers.getNewDateAddHours(this.model.get('machine').lastIPRefresh, 24), this.render.bind(this));
     },
     initCPUUpgradeModal: function () {
-        new BH.collections.CPUS([], {
+        new BH.collections.CPUs([], {
+            machine: this.model
+        });
+    },
+    initGPUUpgradeModal: function () {
+        new BH.collections.GPUs([], {
             machine: this.model
         });
     },
     initHDDUpgradeModal: function () {
-        new BH.collections.HDDS([], {
+        new BH.collections.HDDs([], {
+            machine: this.model
+        });
+    },
+    initExternalHDDUpgradeModal: function () {
+        new BH.collections.ExternalHDDs([], {
             machine: this.model
         });
     },

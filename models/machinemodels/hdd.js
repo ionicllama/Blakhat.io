@@ -16,9 +16,6 @@ hddScheme.methods = {
     },
     getCost: function () {
         return sharedHelpers.hddHelpers.getHDDCost(this);
-    },
-    getModifier: function () {
-        return sharedHelpers.hddHelpers.getModifier(this);
     }
 };
 

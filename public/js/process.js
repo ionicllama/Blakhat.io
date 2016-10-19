@@ -34,7 +34,7 @@ BH.collections.Processes = BH.collections.BaseCollection.extend({
 
 
 //VIEWS
-BH.views.Process = BH.views.BaseView.extend({
+BH.views.Process = BH.views.BaseCollectionChildView.extend({
     defaults: {
         template: '/views/partials/machine/process.ejs',
         isAppend: true
@@ -94,16 +94,17 @@ BH.views.Process = BH.views.BaseView.extend({
                             else
                                 BH.helpers.Toastr.showErrorToast("Log update failed", null);
 
-                            if (BH.app.currentMachine)
-                                BH.app.currentMachine.fetchMachine();
+                            if (BH.app.currentMachine) {
+                                BH.app.currentMachine.get('machine').log = this.model.get('log');
+                                if (BH.app.currentMachine.get('machineLog'))
+                                    BH.app.currentMachine.get('machineLog').render();
+                            }
                         }
                         else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.CRACK_PASSWORD_MACHINE) {
                             if (this.model.get('processSuccess'))
                                 BH.helpers.Toastr.showSuccessToast("Crack admin password successful", null);
                             else
                                 BH.helpers.Toastr.showErrorToast("Crack admin password failed", null);
-                            if (BH.app.currentMachine)
-                                BH.app.currentMachine.fetchMachine();
                         }
                         else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_DOWNLOAD) {
                             if (this.model.get('processSuccess'))
@@ -111,34 +112,93 @@ BH.views.Process = BH.views.BaseView.extend({
                             else
                                 BH.helpers.Toastr.showErrorToast("File download failed", null);
 
-                            if (BH.app.currentMachine)
-                                BH.app.currentMachine.fetchMachine();
+                            if (BH.app.currentMachine.get('internalFiles'))
+                                BH.app.currentMachine.get('internalFiles').fetch();
                         }
                         else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_UPLOAD) {
                             if (this.model.get('processSuccess'))
                                 BH.helpers.Toastr.showSuccessToast("File upload successful", null);
                             else
                                 BH.helpers.Toastr.showErrorToast("File upload failed", null);
-                            if (BH.app.currentMachine)
-                                BH.app.currentMachine.fetchMachine();
+
+                            if (BH.app.currentMachine.get('internalFiles'))
+                                BH.app.currentMachine.get('internalFiles').fetch();
                         }
                         else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_INSTALL) {
                             if (this.model.get('processSuccess'))
                                 BH.helpers.Toastr.showSuccessToast("File install successful", null);
                             else
                                 BH.helpers.Toastr.showErrorToast("File install failed", null);
-                            if (BH.app.currentMachine)
-                                BH.app.currentMachine.fetchMachine();
+
+                            if (BH.app.currentMachine.get('internalFiles'))
+                                BH.app.currentMachine.get('internalFiles').fetch();
                         }
                         else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_RUN) {
                             if (this.model.get('processSuccess'))
                                 BH.helpers.Toastr.showSuccessToast("File run successful", null);
                             else
                                 BH.helpers.Toastr.showErrorToast("File upload failed", null);
-                            if (BH.app.currentMachine)
-                                BH.app.currentMachine.fetchMachine();
+
+                            if (BH.app.currentMachine.get('internalFiles'))
+                                BH.app.currentMachine.get('internalFiles').fetch();
+                        }
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_COPY_EXTERNAL) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File copy to external hdd successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File copy to external hdd failed", null);
+
+                            if (BH.app.localMachine.get('externalFiles'))
+                                BH.app.localMachine.get('externalFiles').fetch();
+                        }
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_MOVE_EXTERNAL) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File move to external hdd successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File move to external hdd failed", null);
+
+                            if (BH.app.localMachine.get('internalFiles'))
+                                BH.app.localMachine.get('internalFiles').fetch();
+
+                            if (BH.app.localMachine.get('externalFiles'))
+                                BH.app.localMachine.get('externalFiles').fetch();
+                        }
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_COPY_INTERNAL) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File copy to internal hdd successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File copy to internal hdd failed", null);
+
+                            if (BH.app.localMachine.get('internalFiles'))
+                                BH.app.localMachine.get('internalFiles').fetch();
+                        }
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_MOVE_INTERNAL) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File move to internal hdd successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File move to internal hdd failed", null);
+
+                            if (BH.app.localMachine.get('internalFiles'))
+                                BH.app.localMachine.get('internalFiles').fetch();
+
+                            if (BH.app.localMachine.get('externalFiles'))
+                                BH.app.localMachine.get('externalFiles').fetch();
+                        }
+                        else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.FILE_DELETE) {
+                            if (this.model.get('processSuccess'))
+                                BH.helpers.Toastr.showSuccessToast("File deletion successful", null);
+                            else
+                                BH.helpers.Toastr.showErrorToast("File deletion successful", null);
+
+                            if (BH.app.localMachine.get('internalFiles'))
+                                BH.app.localMachine.get('internalFiles').fetch();
+
+                            if (BH.app.localMachine.get('externalFiles'))
+                                BH.app.localMachine.get('externalFiles').fetch();
                         }
 
+                        if (BH.app.localMachine.get('processes'))
+                            BH.app.localMachine.get('processes').fetch();
                     }, this),
                     error: function (model, response) {
                         BH.helpers.Toastr.showBBResponseErrorToast(response, null);
@@ -154,8 +214,9 @@ BH.views.Process = BH.views.BaseView.extend({
                 patch: true,
                 success: $.proxy(function (data) {
                     BH.helpers.Toastr.showSuccessToast("Process restarted", null);
-                    if (BH.app.currentMachine)
-                        BH.app.currentMachine.fetchMachine();
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
                 }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);
@@ -215,7 +276,7 @@ BH.views.Processes = BH.views.BaseCollectionView.extend({
     },
     afterChildrenRender: function () {
         if (this.$('.data-table')) {
-            this.processTabe = this.$('.data-table').DataTable({
+            this.$('.data-table').DataTable({
                 displayStart: this.options.dataTablePage * this.options.dataTableLength,
                 language: {
                     emptyTable: "No processes",

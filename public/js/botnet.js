@@ -76,7 +76,7 @@ BH.views.Botnet = BH.views.BaseCollectionView.extend({
     },
     afterChildrenRender: function () {
         if (this.$('.data-table')) {
-            this.botTable = this.$('.data-table').DataTable({
+            this.$('.data-table').DataTable({
                 displayStart: this.options.dataTablePage * this.options.dataTableLength,
                 language: {
                     emptyTable: "No bots available",

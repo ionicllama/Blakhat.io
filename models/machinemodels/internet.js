@@ -19,7 +19,6 @@ internetSchema.methods = {
         return sharedHelpers.internetHelpers.getInternetCost(this);
     },
     getModifier: function () {
-        //todo: probably change this to be a bit more sophisticated
         return this.downSpeed * this.upSpeed;
     },
     getMegabyteSpeed: function () {

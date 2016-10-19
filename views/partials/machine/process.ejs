@@ -1,6 +1,12 @@
 <tr>
     <td><%= BH.sharedHelpers.processHelpers.getProcessNameHTML(model.attributes) %></td>
-    <td><a href='javascript:void(0)' class='ip-address'> <%- model.get('machine').ip %> </a></td>
+    <td>
+        <% if(model.get('machine')) { %>
+        <a href='javascript:void(0)' class='ip-address'><%- model.get('machine').ip %></a>
+        <% } else { %>
+        Local Machine
+        <% } %>
+    </td>
     <td class="progress-col">
         <% if(progress < 100) { %>
         <div class="process-progress progress">
@@ -16,7 +22,7 @@
         <% } else if(model.attributes.processSuccess) { %>
         <span class="text-success">Success</span>
         <% } else { %>
-        <span class="text-danger">Failed</span> - <a href="#" class="process-retry">Retry?</a>
+        <span class="text-danger">Failed</span> - <a href="javascript:void(0)" class="process-retry">Retry?</a>
         <% } %>
     </td>
     <td class="text-center">

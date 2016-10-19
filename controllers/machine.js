@@ -25,16 +25,25 @@ router.get('/', auth.isLoggedIn, function (req, res) {
             if (err)
                 return errorHelpers.returnError("Failed to initialize this machine.  Please try again later.", res, err);
 
-            var fileStats = machine.getFileStats();
-            //filter out hidden files where the hider level > the current machine's finder
-            //if a user needs to find a hidden file on a remote machine, they need to upload a seeker
-            machine.files = machine.files.filter(function (file) {
-                return file.hidden === null || file.hidden <= fileStats.finder;
-            });
             response = {
                 machine: machine ? machine : {},
                 isOwner: machine && machine.user && machine.user.toString() == req.user._id.toString()
             };
+
+            //filter out hidden files where the hider level > the current machine's finder
+            //if a user needs to find a hidden file on a remote machine, they need to upload a seeker
+            var fileStats = machine.getFileStats();
+            machine.files = machine.files.filter(function (file) {
+                return file.hidden === null || file.hidden <= fileStats.finder;
+            });
+
+            if (!response.isOwner) {
+                machine.externaLFiles = machine.externaLFiles.filter(function (file) {
+                    return false;
+                });
+            }
+
+
             res.json(response);
         })
     }
@@ -50,7 +59,7 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
                 console.log(err);
 
             var response = {};
-            machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
+            machine.validateAuth(req.user, req.query.password, function (isAuthenticated, isOwner, bot) {
                 if (isAuthenticated) {
                     var fileStats = machine.getFileStats();
                     //filter out hidden files where the hider level > the current machine's finder
@@ -58,9 +67,18 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
                     machine.files = machine.files.filter(function (file) {
                         return file.hidden === null || file.hidden <= fileStats.finder;
                     });
+                    if (!isOwner) {
+                        if (!bot || !bot.isAnalyzed) {
+                            machine.cpu = null;
+                            machine.gpu = null;
+                            machine.externalHDD = null;
+                            machine.internet = null;
+                        }
+                    }
+
                     response = {
                         machine: machine ? machine : {},
-                        isOwner: machine && machine.user && machine.user.toString() == req.user._id.toString()
+                        isOwner: isOwner
                     };
                 }
                 res.json(response);
@@ -137,8 +155,26 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                                 res.json(response);
                             });
                         }
+                        else if (req.body.gpu && req.body.gpu._id && req.body.gpu._id.length > 0) {
+                            machine.upgradeGPU(req.user, bankAccount, req.body.gpu._id, function (UIError, err) {
+                                if (err || UIError) {
+                                    errorHelpers.returnError(UIError, res, err);
+                                    return;
+                                }
+                                res.json(response);
+                            });
+                        }
                         else if (req.body.hdd && req.body.hdd._id && req.body.hdd._id.length > 0) {
                             machine.upgradeHDD(req.user, bankAccount, req.body.hdd._id, function (UIError, err) {
+                                if (err || UIError) {
+                                    errorHelpers.returnError(UIError, res, err);
+                                    return;
+                                }
+                                res.json(response);
+                            });
+                        }
+                        else if (req.body.externalHDD && req.body.externalHDD._id && req.body.externalHDD._id.length > 0) {
+                            machine.upgradeExternalHDD(req.user, bankAccount, req.body.externalHDD._id, function (UIError, err) {
                                 if (err || UIError) {
                                     errorHelpers.returnError(UIError, res, err);
                                     return;
@@ -182,10 +218,19 @@ router.get('/:machine_id/processes', auth.isLoggedIn, function (req, res) {
 
             var processOpts = {
                 path: 'processes',
-                populate: [{path: 'file', populate: {path: 'fileDef'}}, {
-                    path: 'machine',
-                    select: '_id ip'
-                }, 'bankAccount']
+                populate: [
+                    {
+                        path: 'file',
+                        populate: {
+                            path: 'fileDef'
+                        }
+                    },
+                    {
+                        path: 'machine',
+                        select: '_id ip'
+                    },
+                    'bankAccount'
+                ]
             };
             machine.populate(processOpts, function (err, machine) {
                 if (err || !machine)
@@ -227,12 +272,20 @@ router.patch('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) {
             },
             {
                 path: 'machine',
-                populate: {
-                    path: 'files',
-                    populate: {
-                        path: 'fileDef'
+                populate: [
+                    {
+                        path: 'files',
+                        populate: {
+                            path: 'fileDef'
+                        }
+                    },
+                    {
+                        path: 'externalFiles',
+                        populate: {
+                            path: 'fileDef'
+                        }
                     }
-                }
+                ]
             }
         ];
         Process.populate(process, populate, function (err, process) {
@@ -284,6 +337,7 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
         else if ((!processMachine.user || processMachine.user.toString() != req.user._id.toString()))
             return errorHelpers.returnError("You don't have permission to start processes on this machine.", res);
 
+        var newProcess;
         switch (req.body.type) {
             case sharedHelpers.processHelpers.types.UPDATE_LOG:
                 if (!req.body.machine_id)
@@ -297,7 +351,7 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                         if (!isAuthenticated)
                             return errorHelpers.returnError("You don't have permission to update the log on this machine.", res);
 
-                        var newProcess = new Process({
+                        newProcess = new Process({
                             machine: machine._id,
                             type: req.body.type,
                             start: new Date(),
@@ -315,11 +369,10 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
 
                     var fileStatsP = processMachine.getFileStats(),
                         fileStatsC = machine.getFileStats();
-
                     if (fileStatsC.firewall > fileStatsP.firewall)
                         return errorHelpers.returnError("Your firewall bypasser level is too low to crack this machine's admin password.", res, err);
 
-                    var newProcess = new Process({
+                    newProcess = new Process({
                         machine: machine._id,
                         type: req.body.type,
                         start: new Date()
@@ -339,7 +392,6 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                     var downloadFile = _.find(machine.files, function (file) {
                         return file._id.toString() === req.body.file._id.toString();
                     });
-
                     if (!downloadFile)
                         return errorHelpers.returnError("The selected file no longer exists.", res);
 
@@ -351,7 +403,7 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                         if (!isAuthenticated)
                             return errorHelpers.returnError("You don't have permission to download this file.", res);
 
-                        var newProcess = new Process({
+                        newProcess = new Process({
                             machine: machine._id,
                             type: req.body.type,
                             start: new Date(),
@@ -374,7 +426,6 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                     var uploadFile = _.find(processMachine.files, function (file) {
                         return file._id.toString() === req.body.file._id.toString();
                     });
-
                     if (!uploadFile)
                         return errorHelpers.returnError("The selected file no longer exists.", res);
 
@@ -386,7 +437,7 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                         if (!isAuthenticated)
                             return errorHelpers.returnError("You don't have permission to upload files to this machine.", res);
 
-                        var newProcess = new Process({
+                        newProcess = new Process({
                             machine: machine._id,
                             type: req.body.type,
                             start: new Date(),
@@ -409,7 +460,6 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                     var installFile = _.find(machine.files, function (file) {
                         return file._id.toString() === req.body.file._id.toString() && !file.isInstalled;
                     });
-
                     if (!installFile)
                         return errorHelpers.returnError("The selected file no longer exists.", res);
 
@@ -417,7 +467,7 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                         if (!isAuthenticated)
                             return errorHelpers.returnError("You don't have permission to install files on this machine.", res);
 
-                        var newProcess = new Process({
+                        newProcess = new Process({
                             machine: machine._id,
                             type: req.body.type,
                             start: new Date(),
@@ -440,7 +490,6 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                     var runFile = _.find(machine.files, function (file) {
                         return file._id.toString() === req.body.file._id.toString() && !file.isInstalled;
                     });
-
                     if (!runFile)
                         return errorHelpers.returnError("The selected file no longer exists.", res);
 
@@ -448,7 +497,7 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                         if (!isAuthenticated)
                             return errorHelpers.returnError("You don't have permission to run files on this machine.", res);
 
-                        var newProcess = new Process({
+                        newProcess = new Process({
                             machine: machine._id,
                             type: req.body.type,
                             start: new Date(),
@@ -458,6 +507,120 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                         saveProcess(processMachine, newProcess, res);
                     });
                 });
+                break;
+            case sharedHelpers.processHelpers.types.FILE_COPY_EXTERNAL:
+                if (!req.body.file)
+                    return errorHelpers.returnError("No file selected to copy.", res);
+
+                var copyFile = _.find(processMachine.files, function (file) {
+                    return file._id.toString() === req.body.file._id.toString() && !file.isInstalled;
+                });
+                if (!copyFile)
+                    return errorHelpers.returnError("The selected file no longer exists.", res);
+
+                var usedSpaceCopySpace = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.externalFiles);
+                if (copyFile.fileDef.size > (processMachine.externalHDD.size - usedSpaceCopySpace))
+                    return errorHelpers.returnError("Not enough space on this machine's external hard drive to copy this file.", res);
+
+                newProcess = new Process({
+                    type: req.body.type,
+                    start: new Date(),
+                    file: copyFile._id
+                });
+
+                saveProcess(processMachine, newProcess, res);
+                break;
+            case sharedHelpers.processHelpers.types.FILE_MOVE_EXTERNAL:
+                if (!req.body.file)
+                    return errorHelpers.returnError("No file selected to move.", res);
+
+                var moveFile = _.find(processMachine.files, function (file) {
+                    return file._id.toString() === req.body.file._id.toString() && !file.isInstalled;
+                });
+                if (!moveFile)
+                    return errorHelpers.returnError("The selected file no longer exists.", res);
+
+                var usedSpaceMoveSpace = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.externalFiles);
+                if (moveFile.fileDef.size > (processMachine.externalHDD.size - usedSpaceMoveSpace))
+                    return errorHelpers.returnError("Not enough space on this machine's external hard drive to move this file.", res);
+
+                newProcess = new Process({
+                    type: req.body.type,
+                    start: new Date(),
+                    file: moveFile._id
+                });
+
+                saveProcess(processMachine, newProcess, res);
+                break;
+            case sharedHelpers.processHelpers.types.FILE_COPY_INTERNAL:
+                if (!req.body.file)
+                    return errorHelpers.returnError("No file selected to copy.", res);
+
+                var copyFileIn = _.find(processMachine.externalFiles, function (file) {
+                    return file._id.toString() === req.body.file._id.toString() && !file.isInstalled;
+                });
+                if (!copyFileIn)
+                    return errorHelpers.returnError("The selected file no longer exists.", res);
+
+                var usedSpaceCopySpaceIn = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.files);
+                if (copyFileIn.fileDef.size > (processMachine.hdd.size - usedSpaceCopySpaceIn))
+                    return errorHelpers.returnError("Not enough space on this machine's hard drive to copy this file.", res);
+
+                newProcess = new Process({
+                    type: req.body.type,
+                    start: new Date(),
+                    file: copyFileIn._id
+                });
+
+                saveProcess(processMachine, newProcess, res);
+                break;
+            case sharedHelpers.processHelpers.types.FILE_MOVE_INTERNAL:
+                if (!req.body.file)
+                    return errorHelpers.returnError("No file selected to move.", res);
+
+                var moveFileIn = _.find(processMachine.externalFiles, function (file) {
+                    return file._id.toString() === req.body.file._id.toString() && !file.isInstalled;
+                });
+                if (!moveFileIn)
+                    return errorHelpers.returnError("The selected file no longer exists.", res);
+
+                var usedSpaceMoveSpaceIn = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.files);
+                if (moveFileIn.fileDef.size > (processMachine.hdd.size - usedSpaceMoveSpaceIn))
+                    return errorHelpers.returnError("Not enough space on this machine's hard drive to move this file.", res);
+
+                newProcess = new Process({
+                    type: req.body.type,
+                    start: new Date(),
+                    file: moveFileIn._id
+                });
+
+                saveProcess(processMachine, newProcess, res);
+                break;
+            case sharedHelpers.processHelpers.types.FILE_DELETE:
+                if (!req.body.file)
+                    return errorHelpers.returnError("No file selected to move.", res);
+
+                var deleteFile;
+                //Check if its an internal file
+                deleteFile = _.find(processMachine.files, function (file) {
+                    return file && file._id.toString() === req.body.file._id.toString();
+                });
+                //If not internal, check if its external
+                if (!deleteFile) {
+                    deleteFile = _.find(processMachine.externalFiles, function (file) {
+                        return file && file._id.toString() === req.body.file._id.toString();
+                    });
+                }
+                if (!deleteFile)
+                    return errorHelpers.returnError("The selected file no longer exists.", res);
+
+                newProcess = new Process({
+                    type: req.body.type,
+                    start: new Date(),
+                    file: deleteFile._id
+                });
+
+                saveProcess(processMachine, newProcess, res);
                 break;
             default:
                 return errorHelpers.returnError("No valid job type provided");
@@ -478,7 +641,9 @@ function saveProcess(processMachine, newProcess, res) {
                 if (err)
                     return errorHelpers.returnError("Failed to start process", res, err);
 
-                res.json(newProcess);
+                newProcess.populate('file, machine, bankAccount', function (err, newProcess) {
+                    res.json(newProcess);
+                });
             });
         });
     });
@@ -525,9 +690,9 @@ router.delete('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) 
 });
 
 //Files
-router.get('/:machine_id/files', auth.isLoggedIn, function (req, res) {
+router.get('/:machine_id/files/internal', auth.isLoggedIn, function (req, res) {
     if (req.params.machine_id) {
-        Machine.findWithFiles(req.params.machine_id, function (err, machine) {
+        Machine.findWithInternalFiles(req.params.machine_id, function (err, machine) {
             if (err || !machine)
                 return errorHelpers.returnError("Unable to find files for requested machine.", res, err ? err : null);
             else if (machine.user.toString() != req.user._id.toString() || (req.query.password && req.query.password === machine.password))
@@ -541,47 +706,20 @@ router.get('/:machine_id/files', auth.isLoggedIn, function (req, res) {
     }
 });
 
-router.delete('/:machine_id/file/:_id', auth.isLoggedIn, function (req, res) {
-    if (!req.params.machine_id || !req.params._id)
-        return errorHelpers.returnError_noId(res);
+router.get('/:machine_id/files/external', auth.isLoggedIn, function (req, res) {
+    if (req.params.machine_id) {
+        Machine.findWithExternalFiles(req.params.machine_id, function (err, machine) {
+            if (err || !machine)
+                return errorHelpers.returnError("Unable to find external files for requested machine.", res, err ? err : null);
+            else if (machine.user.toString() != req.user._id.toString())
+                return errorHelpers.returnError("Can't view external files for this machine, you don't have permission.", res);
 
-    Machine.findWithSingleFile(req.params.machine_id, req.params._id, function (err, machine) {
-        if (err)
-            return errorHelpers.returnError("Couldn't find machine with supplied _id.", res, err);
-        else if (!machine)
-            return errorHelpers.returnError("Couldn't find machine with supplied _id.", res);
-
-        var password = "";
-        if (req.query.password)
-            password = req.query.password;
-
-        machine.validateAuth(req.user, password, function (isAuthenticated) {
-            if (!isAuthenticated)
-                return errorHelpers.returnError("You don't have permission to delete this file.", res);
-
-            var deleteFile = _.find(machine.files, function (file) {
-                return file && file._id.toString() === req.params._id.toString();
-            });
-
-            if (!deleteFile)
-                return errorHelpers.returnError("Couldn't find file with supplied _id", res);
-            else if (deleteFile.isLocked)
-                return errorHelpers.returnError("You don't have permission to delete this file.", res);
-
-            machine.files.pull(deleteFile._id);
-            machine.save(function (err) {
-                if (err)
-                    return errorHelpers("Failed to delete the selected file", err, res);
-
-                deleteFile.remove(function (err) {
-                    if (err)
-                        console.log(err);
-
-                    res.json(deleteFile);
-                });
-            });
+            res.json(machine.externalFiles);
         });
-    });
+    }
+    else {
+        return errorHelpers.returnError("Unable to find files for requested machine.", res);
+    }
 });
 
 module.exports = router;

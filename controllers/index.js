@@ -26,8 +26,7 @@ router.get('/about', function (req, res) {
     res.render('pages/index');
 });
 
-/* Catch All GET - For Single Page App. */
-router.get('*', function (req, res, next) {
+router.get('/', function (req, res, next) {
     if (!req.isAuthenticated()) {
         res.locals = _.extend({}, res.locals, {
             page: 'login',
@@ -37,12 +36,25 @@ router.get('*', function (req, res, next) {
         res.render('pages/index');
     }
     else {
-        res.locals = _.extend({}, res.locals, {
-            page: 'app',
-            title: 'Blakhat.io'
-        });
-        res.render('pages/index');
+        routeAppMain(req, res, next);
     }
 });
+
+router.get('*', function (req, res, next) {
+    if (!req.isAuthenticated()) {
+        res.redirect('/');
+    }
+    else {
+        routeAppMain(req, res, next);
+    }
+});
+
+function routeAppMain(req, res, next) {
+    res.locals = _.extend({}, res.locals, {
+        page: 'app',
+        title: 'Blakhat.io'
+    });
+    res.render('pages/index');
+}
 
 module.exports = router;

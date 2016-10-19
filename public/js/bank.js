@@ -139,10 +139,9 @@ BH.collections.UserBankAccountManagement = BH.collections.UserBankAccounts.exten
         this.fetch();
     },
     renderAccounts: function () {
-        this.view = new BH.views.BaseCollectionView({
+        this.view = new BH.views.UserBankAccountManagement({
             el: this.options.el,
-            collection: this,
-            childView: BH.views.BankAccountManage
+            collection: this
         });
     }
 });
@@ -282,5 +281,17 @@ BH.views.BankAccountManage = BH.views.BaseView.extend({
     },
     bankAccountDelete: function () {
         this.model.destroy();
+    }
+});
+
+BH.views.UserBankAccountManagement = BH.views.BaseCollectionView.extend({
+    defaults: {
+        template: '/views/partials/bank/userbankaccountmanagement.ejs',
+        childView: BH.views.BankAccountManage
+    },
+    beforeFirstRender: function (options) {
+        this.renderData = {
+            models: this.collection.models
+        };
     }
 });

@@ -1,6 +1,11 @@
 <div id="filesInner" class="col-content-box elevation-2">
 
-    <h4>Files</h4>
+    <% if(fileLocation === 'internal') { %>
+    <h4>Internal Files</h4>
+    <% } else { %>
+    <h4>External Files</h4>
+    <% } %>
+
     <% if(canDownloadFiles){ %>
     <div class="btn-group file-upload">
         <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"
@@ -9,7 +14,7 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-right">
             <% for(var i = 0 ; i < uploadFiles.length ; i++) { %>
-            <li><a href="#" file_id="<%- uploadFiles[i]._id %>"
+            <li><a href="javascript:void(0)" file_id="<%- uploadFiles[i]._id %>"
                    class="file-download"><%- BH.sharedHelpers.fileHelpers.getFileNameWithSize(uploadFiles[i]) %></a>
             </li>
             <% } %>

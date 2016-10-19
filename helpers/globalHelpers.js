@@ -14,7 +14,6 @@ var globalHelpers = {
             sharedHelpers.randomNumber_255();
     },
     getRandomPassword: function () {
-        //todo: generates a random 10 character alphanumeric password
         return Math.random().toString(32).slice(2).substr(0, 10);
     },
     getNewAccountNumber: function () {

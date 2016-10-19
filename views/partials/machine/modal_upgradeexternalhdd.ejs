@@ -1,0 +1,52 @@
+<div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div id="hddUpgradeRender" class="modal-content">
+
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Upgrade External Hard Drive</h4>
+            </div>
+            <div id="hddUpgradeContainer" class="modal-body">
+                <div class="table-responsive">
+                    <table id="hddUpgradeTable" class="table data-table">
+                        <thead>
+                        <tr>
+                            <th>Size (GB)</th>
+                            <th>Cost</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <% for(var i = 0 ; i < externalHDDs.models.length ; i++){ %>
+                        <tr>
+                            <td><%- (externalHDDs.models[i].get('size') / 1024) %></td>
+                            <td><%- BH.sharedHelpers.externalHDDHelpers.getExternalHDDCostDisplay(externalHDDs.models[i].attributes) %></td>
+                            <td class="text-center">
+                                <% if(externalHDDs.models[i].attributes.size < model.get('machine').externalHDD.size){ %>
+                                <span class="text-warning text-owned">Downgrade</span>
+                                <% } else if(externalHDDs.models[i].get('_id') === model.get('machine').externalHDD._id){ %>
+                                <span class="text-info text-owned">Owned</span>
+                                <% } else { %>
+                                <button type="button" class="btn btn-success buyButton"
+                                        amount="<%- BH.sharedHelpers.externalHDDHelpers.getExternalHDDCost(externalHDDs.models[i].attributes) %>"
+                                        _id="<%- externalHDDs.models[i].get('_id') %>">
+                                    Buy
+                                </button>
+                                <% } %>
+                            </td>
+                        </tr>
+                        <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+
+</div>

@@ -63,8 +63,6 @@ BH.views.BaseView = Backbone.View.extend({
         return this;
     },
     rightAfterRender: function (content) {
-        if (content)
-            this.setElement(content);
         this.afterRender();
     },
     afterRender: function () {
@@ -96,11 +94,18 @@ BH.views.BaseView = Backbone.View.extend({
     }
 });
 
+BH.views.BaseCollectionChildView = BH.views.BaseView.extend({
+    rightAfterRender: function (content) {
+        if (content)
+            this.setElement(content);
+        this.afterRender();
+    }
+});
+
 BH.views.BaseCollectionView = BH.views.BaseView.extend({
     beforeRender: function () {
         if (!this.childEl)
             this.childEl = this.el;
-        this.$el.empty();
     },
     beforeChildrenRender: function () {
         return true;

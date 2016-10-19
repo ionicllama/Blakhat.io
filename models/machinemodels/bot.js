@@ -8,7 +8,8 @@ var globalHelpers = require('../../helpers/globalHelpers');
 var botSchema = mongoose.Schema({
 
     user: {type: mongoose.Schema.Types.ObjectId, ref: 'user', default: null},
-    machine: {type: mongoose.Schema.Types.ObjectId, ref: 'machine', default: null}
+    machine: {type: mongoose.Schema.Types.ObjectId, ref: 'machine', default: null},
+    isAnalyzed: {type: Boolean, default: false}
 
 });
 
@@ -28,6 +29,21 @@ botSchema.statics = {
                         installedBy: user._id
                     }
                 }
+            },
+            {
+                path: 'cpu'
+            },
+            {
+                path: 'gpu'
+            },
+            {
+                path: 'hdd'
+            },
+            {
+                path: 'externalHDD'
+            },
+            {
+                path: 'internet'
             }
         ];
         this.find(query).populate(subPopulate).exec(function (err, bots) {

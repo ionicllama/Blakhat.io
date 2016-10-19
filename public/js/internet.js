@@ -21,48 +21,52 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
         this.fetchPage();
         this.listenTo(this, "change:search change:password change:activeAccount", this.fetchPage);
     },
-    fetchPage: function () {
+    fetchPage: function (isRefresh) {
         this.get('browser').renderHistoryButtons();
-        var data = {
-            search: this.get('search'),
-            sourceMachine: this.get('sourceMachine')._id
-        };
-        if (this.get('browserLoadData')) {
-            if (this.get('browserLoadData').bankAccount && this.get('browserLoadData').bank) {
-                this.set('bank', this.get('browserLoadData').bank);
-                new BH.models.BrowserBankAccount({
-                    sourceMachine: this.get('sourceMachine'),
-                    _id: this.get('browserLoadData').bankAccount._id,
-                    bank: this.get('browserLoadData').bank,
-                    browserModel: this
-                });
-            }
-            else if (this.get('browserLoadData').ip)
-                data.search = this.get('browserLoadData').ip;
-            this.unset('browserLoadData');
-        }
-        else if (this.get('bank')) {
-            data.bank_id = this.get('bank')._id;
-            this.unset('bank');
+        var path = this.getCurrentPath();
+        if (isRefresh && path == '/admin') {
+            this.set('isAuthenticated', true);
+            this.renderInternetDOM();
         }
         else {
-            data.search = this.get('search');
-            if (this.get('password')) {
-                data.password = this.get('password');
+            var data = {
+                search: this.get('search'),
+                sourceMachine: this.get('sourceMachine')._id
+            };
+            if (this.get('browserLoadData')) {
+                if (this.get('browserLoadData').bankAccount && this.get('browserLoadData').bank) {
+                    this.set('bank', this.get('browserLoadData').bank);
+                    new BH.models.BrowserBankAccount({
+                        sourceMachine: this.get('sourceMachine'),
+                        _id: this.get('browserLoadData').bankAccount._id,
+                        bank: this.get('browserLoadData').bank,
+                        browserModel: this
+                    });
+                }
+                else if (this.get('browserLoadData').ip)
+                    data.search = this.get('browserLoadData').ip;
+                this.unset('browserLoadData');
             }
-        }
+            else if (this.get('bank')) {
+                data.bank_id = this.get('bank')._id;
+                this.unset('bank');
+            }
+            else {
+                data.search = this.get('search');
+                if (this.get('password')) {
+                    data.password = this.get('password');
+                }
+            }
 
-        var fetchParams = {
-            data: $.param(data)
-        };
-        this.fetch(fetchParams);
+            var fetchParams = {
+                data: $.param(data)
+            };
+            this.fetch(fetchParams);
+        }
     },
     renderInternetDOM: function () {
-        var path = "",
+        var path = this.getCurrentPath(),
             search = this.get('search');
-
-        if (search.length > 0 && search.indexOf('/') != -1)
-            path = search.substr(search.indexOf('/'));
 
         if (this.get('machine') && this.get('machine').ip)
             this.get('browser').$('#internetSearchText').val(this.get('machine').ip + path);
@@ -113,13 +117,22 @@ BH.models.InternetBrowserDOM = BH.models.BaseModel.extend({
             this.get('browser').$('#internetSearchText').val(newSearch);
             this.setSilent({search: newSearch})
         }
+    },
+    getCurrentPath: function () {
+        var path = "",
+            search = this.get('search');
+
+        if (search.length > 0 && search.indexOf('/') != -1)
+            path = search.substr(search.indexOf('/'));
+
+        return path;
     }
 });
 
 
 //VIEWS
 BH.views = BH.views ? BH.views : {};
-BH.views.InternetBrowser = BH.views.BaseView.extend({
+BH.views.InternetBrowser = BH.views.BaseCollectionChildView.extend({
     internetHistory: {},
     historyIndex: 0,
     defaults: {
@@ -194,7 +207,8 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
         this.getInternetContent(this.options.homepage);
     },
     refreshPage: function () {
-        this.model.fetchPage();
+        this.showLoading();
+        this.model.fetchPage(true);
     },
     addToHistory: function (search) {
         if (this.internetHistory && this.internetHistory[this.historyIndex - 1] && this.internetHistory[this.historyIndex - 1] == search)
@@ -248,7 +262,7 @@ BH.views.InternetBrowser = BH.views.BaseView.extend({
     }
 });
 
-BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
+BH.views.InternetBrowserDOM = BH.views.BaseCollectionChildView.extend({
     defaults: {
         template: '/views/partials/internet/internetbrowserdom.ejs'
     },
@@ -307,8 +321,8 @@ BH.views.InternetBrowserDOM = BH.views.BaseView.extend({
 
                     this.$('.admin-crack-password').addClass('disabled').removeClass('btn-danger').text('Crack in progress...');
 
-                    if (BH.app.localMachineProcesses)
-                        BH.app.localMachineProcesses.fetch();
+                    if (BH.app.localMachine.processes)
+                        BH.app.localMachine.processes.fetch();
                 }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);

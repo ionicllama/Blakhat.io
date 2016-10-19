@@ -77,7 +77,7 @@ router.get('/account/:_id', auth.isLoggedIn, function (req, res) {
                             console.log(err);
                         }
                         else {
-                            machine.logBankAccountLogin(sourceMachine.ip, bankAccount.accountNumber);
+                            machine.logBankAccountLogin(sourceMachine.machine.ip, bankAccount.accountNumber);
                         }
                         res.json(response);
                     });

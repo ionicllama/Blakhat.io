@@ -31,8 +31,8 @@ BH.models.File = BH.models.BaseModel.extend({
                 success: $.proxy(function (data) {
                     BH.helpers.Toastr.showSuccessToast("Process started: Download file", null);
 
-                    if (BH.app.localMachineProcesses)
-                        BH.app.localMachineProcesses.fetch();
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
                 }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);
@@ -54,8 +54,8 @@ BH.models.File = BH.models.BaseModel.extend({
                 success: $.proxy(function (data) {
                     BH.helpers.Toastr.showSuccessToast("Process started: Install file", null);
 
-                    if (BH.app.localMachineProcesses)
-                        BH.app.localMachineProcesses.fetch();
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
                 }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);
@@ -77,8 +77,113 @@ BH.models.File = BH.models.BaseModel.extend({
                 success: $.proxy(function (data) {
                     BH.helpers.Toastr.showSuccessToast("Process started: Run " + BH.sharedHelpers.fileHelpers.getFileName(this.toJSON()), null);
 
-                    if (BH.app.localMachineProcesses)
-                        BH.app.localMachineProcesses.fetch();
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    copyToExternal: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_COPY_EXTERNAL,
+            file: {
+                _id: this.get('_id')
+            }
+        }).save(this.getPatchData(), {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Copy file to external hdd", null);
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    moveToExternal: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_MOVE_EXTERNAL,
+            file: {
+                _id: this.get('_id')
+            }
+        }).save(this.getPatchData(), {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Move file to external hdd", null);
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    copyToInternal: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_COPY_INTERNAL,
+            file: {
+                _id: this.get('_id')
+            }
+        }).save(this.getPatchData(), {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Copy file to internal hdd", null);
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    moveToInternal: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_MOVE_INTERNAL,
+            file: {
+                _id: this.get('_id')
+            }
+        }).save(this.getPatchData(), {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Move file to internal hdd", null);
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    delete: function () {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_DELETE,
+            file: {
+                _id: this.get('_id')
+            }
+        }).save(this.getPatchData(), {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Delete file", null);
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
                 }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);
@@ -94,7 +199,7 @@ BH.models.File = BH.models.BaseModel.extend({
 BH.collections.Files = BH.collections.BaseCollection.extend({
     model: BH.models.File,
     url: function () {
-        return '/machine/' + this.options.machine._id + '/files/';
+        return '/machine/' + this.options.machine._id + '/files/' + this.options.fileLocation;
     },
     afterInit: function () {
         this.on('sync', this.renderFiles, this);
@@ -107,7 +212,8 @@ BH.collections.Files = BH.collections.BaseCollection.extend({
             collection: this,
             machine: this.options.machine,
             childOptions: {
-                canDownloadFiles: this.options.canDownloadFiles
+                canDownloadFiles: this.options.canDownloadFiles,
+                fileLocation: this.options.fileLocation
             }
         });
     }
@@ -115,7 +221,7 @@ BH.collections.Files = BH.collections.BaseCollection.extend({
 
 
 //VIEWS
-BH.views.File = BH.views.BaseView.extend({
+BH.views.File = BH.views.BaseCollectionChildView.extend({
     defaults: {
         template: '/views/partials/machine/file.ejs',
         isAppend: true
@@ -124,12 +230,17 @@ BH.views.File = BH.views.BaseView.extend({
         'click .file-download': 'download',
         'click .file-run': 'run',
         'click .file-install': 'install',
+        'click .file-copy-external': 'copyToExternal',
+        'click .file-move-external': 'moveToExternal',
+        'click .file-copy-internal': 'copyToInternal',
+        'click .file-move-internal': 'moveToInternal',
         'click .file-delete': 'delete'
     },
     beforeFirstRender: function (options) {
         this.renderData = {
             model: this.model,
-            canDownloadFiles: this.options.canDownloadFiles
+            canDownloadFiles: this.options.canDownloadFiles,
+            fileLocation: this.options.fileLocation
         };
         this.listenTo(this.model, "destroy", this.remove);
     },
@@ -142,12 +253,20 @@ BH.views.File = BH.views.BaseView.extend({
     install: function () {
         this.model.install();
     },
+    copyToExternal: function () {
+        this.model.copyToExternal();
+    },
+    moveToExternal: function () {
+        this.model.moveToExternal();
+    },
+    copyToInternal: function () {
+        this.model.copyToInternal();
+    },
+    moveToInternal: function () {
+        this.model.moveToInternal();
+    },
     delete: function () {
-        new BH.views.DeleteModal({
-            header: "Delete File",
-            body: "Are you sure you want to delete this file?",
-            onConfirm: this.model.destroy.bind(this.model)
-        });
+        this.model.delete();
     }
 });
 
@@ -166,10 +285,14 @@ BH.views.Files = BH.views.BaseCollectionView.extend({
     },
     beforeFirstRender: function (options) {
         var size = BH.sharedHelpers.fileHelpers.getFilesSizeTotal(this.collection.toJSON());
+        this.hdd = this.options.machine.hdd;
+        if (this.options.childOptions.fileLocation === 'external')
+            this.hdd = this.options.machine.externalHDD;
         this.renderData = {
-            hddProgress: (size / this.options.machine.hdd.size) * 100,
-            hddUsedString: BH.helpers.viewHelpers.getFilesSizeUsedString(this.options.machine.hdd.size, size),
+            hddProgress: (size / this.hdd.size) * 100,
+            hddUsedString: BH.helpers.viewHelpers.getFilesSizeUsedString(this.hdd.size, size),
             uploadFiles: this.getUploadFiles(),
+            fileLocation: this.options.childOptions.fileLocation,
             canDownloadFiles: this.options.childOptions.canDownloadFiles
         };
         //this.listenTo(this.model, "change:log", this.render);
@@ -184,8 +307,7 @@ BH.views.Files = BH.views.BaseCollectionView.extend({
     },
     afterChildrenRender: function () {
         if (this.$('.data-table')) {
-            var self = this;
-            this.fileTable = this.$('.data-table').DataTable({
+            this.$('.data-table').DataTable({
                 displayStart: this.options.dataTablePage * this.options.dataTableLength,
                 language: {
                     emptyTable: "No files",
@@ -214,8 +336,8 @@ BH.views.Files = BH.views.BaseCollectionView.extend({
                 success: $.proxy(function (data) {
                     BH.helpers.Toastr.showSuccessToast("Process started: Upload File", null);
 
-                    if (BH.app.localMachineProcesses)
-                        BH.app.localMachineProcesses.fetch();
+                    if (BH.app.localMachine.processes)
+                        BH.app.localMachine.processes.fetch();
                 }, this),
                 error: function (model, response) {
                     BH.helpers.Toastr.showBBResponseErrorToast(response, null);

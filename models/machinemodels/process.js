@@ -28,13 +28,18 @@ var processSchema = mongoose.Schema({
 
 processSchema.statics = {
     types: {
+        UPDATE_LOG: sharedHelpers.processHelpers.types.UPDATE_LOG,
         CRACK_PASSWORD_MACHINE: sharedHelpers.processHelpers.types.CRACK_PASSWORD_MACHINE,
         CRACK_PASSWORD_BANK: sharedHelpers.processHelpers.types.CRACK_PASSWORD_BANK,
         FILE_DOWNLOAD: sharedHelpers.processHelpers.types.FILE_DOWNLOAD,
         FILE_UPLOAD: sharedHelpers.processHelpers.types.FILE_UPLOAD,
         FILE_INSTALL: sharedHelpers.processHelpers.types.FILE_INSTALL,
+        FILE_COPY_EXTERNAL: sharedHelpers.processHelpers.types.FILE_COPY_EXTERNAL,
+        FILE_MOVE_EXTERNAL: sharedHelpers.processHelpers.types.FILE_MOVE_EXTERNAL,
+        FILE_COPY_INTERNAL: sharedHelpers.processHelpers.types.FILE_COPY_INTERNAL,
+        FILE_MOVE_INTERNAL: sharedHelpers.processHelpers.types.FILE_MOVE_INTERNAL,
         FILE_RUN: sharedHelpers.processHelpers.types.FILE_RUN,
-        UPDATE_LOG: sharedHelpers.processHelpers.types.UPDATE_LOG
+        FILE_DELETE: sharedHelpers.processHelpers.types.FILE_DELETE
     },
     basicCosts: {
         UPDATE_LOG: 180
@@ -59,7 +64,7 @@ processSchema.statics = {
 processSchema.methods = {
     execute: function (user, processMachine, callback) {
         if (new Date(this.end) > new Date())
-            return callback("Failed to execute the selected process, its not complete yet.", null);
+            return callback("Failed to execute the selected process, its not complete yet.");
 
         var processTypes = this.model('process').types,
             self = this;
@@ -92,13 +97,36 @@ processSchema.methods = {
                     })
                 }
                 break;
+            case processTypes.CRACK_PASSWORD_MACHINE:
+                this.machine.determinePasswordCrackSuccess(processMachine, function (success) {
+                    self.processSuccess = success;
+                    var bot = new Bot({
+                        user: user,
+                        machine: self.machine
+                    });
+                    self.save(function (err) {
+                        if (err)
+                            return callback("Failed to execute the selected process", null);
+
+                        if (success) {
+                            bot.save(function (err, bot) {
+                                if (err)
+                                    console.log(err);
+                                return callback();
+                            });
+                        }
+                        else
+                            callback();
+                    });
+                });
+                break;
             case processTypes.FILE_DOWNLOAD:
                 if (!this.file)
                     return callback("Couldn't find file to download");
 
                 var usedDownloadSpace = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.files);
                 if (this.file.fileDef.size > (processMachine.hdd.size - usedDownloadSpace))
-                    return callback("Not enough space on your hard drive to download this file.", res);
+                    return callback("Not enough space on your hard drive to download this file.");
 
                 //todo: maybe fail sometimes randomly
                 this.processSuccess = true;
@@ -135,7 +163,7 @@ processSchema.methods = {
 
                 var usedUploadSpace = sharedHelpers.fileHelpers.getFilesSizeTotal(this.machine.files);
                 if (this.file.fileDef.size > (this.machine.hdd.size - usedUploadSpace))
-                    return callback("Not enough space on destination machine's hard drive to upload this file.", res);
+                    return callback("Not enough space on destination machine's hard drive to upload this file.");
 
                 //todo: maybe fail sometimes randomly
                 this.processSuccess = true;
@@ -199,7 +227,7 @@ processSchema.methods = {
                 // processMachine.logInstallFileTo(this.machine.ip, installFile);
                 // this.machine.logInstallFileBy(processMachine.ip, installFile);
 
-                //todo: fail sometimes maybe
+                //todo: maybe fail sometimes randomly
                 this.processSuccess = true;
                 switch (this.file.fileDef.type.toLowerCase()) {
                     case sharedHelpers.fileHelpers.types.HIDER:
@@ -217,7 +245,7 @@ processSchema.methods = {
                                 this.machine.files[i].isInstalled &&
                                 this.machine.files[i].hidden <= this.machine.getFileStats().finder) {
                                 removeArr.push(this.machine.files[i]);
-                            }
+                        }
                         }
                         for (i = 0; i < removeArr.length; i++) {
                             this.machine.files.pull(removeArr[i]);
@@ -235,26 +263,158 @@ processSchema.methods = {
                     })
                 });
                 break;
-            case processTypes.CRACK_PASSWORD_MACHINE:
-                this.machine.determinePasswordCrackSuccess(processMachine, function (success) {
-                    self.processSuccess = success;
-                    var bot = new Bot({
-                        user: user,
-                        machine: self.machine
+            case processTypes.FILE_COPY_EXTERNAL:
+                if (!this.file)
+                    return callback("File copy failed: Couldn't find file to copy");
+
+                var usedCopySpaceEx = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.externalFiles);
+                if (this.file.fileDef.size > (processMachine.externalHDD.size - usedCopySpaceEx))
+                    return callback("Not enough space on this machine's external hard drive to copy this file.");
+
+                //todo: maybe fail sometimes randomly
+                this.processSuccess = true;
+                var copyFileEx = new File({
+                    name: null,
+                    fileDef: this.file.fileDef,
+                    isLocked: false
+                });
+
+                processMachine.logFileCopyExternal(copyFileEx);
+
+                copyFileEx.save(function (err) {
+                    if (err)
+                        return callback("Failed to execute the selected process", err);
+
+                    processMachine.externalFiles.push(copyFileEx);
+                    processMachine.save(function (err) {
+                        if (err)
+                            return callback("Failed to execute the selected process", err);
+
+                        self.save(function (err) {
+                            if (err)
+                                return callback("Failed to execute the selected process", err);
+
+                            return callback();
+                        })
                     });
+                });
+                break;
+            case processTypes.FILE_MOVE_EXTERNAL:
+                if (!this.file)
+                    return callback("File copy failed: Couldn't find file to move");
+
+                var usedMoveSpaceEx = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.externalFiles);
+                if (this.file.fileDef.size > (processMachine.externalHDD.size - usedMoveSpaceEx))
+                    return callback("Not enough space on this machine's external hard drive to move this file.");
+
+                //todo: maybe fail sometimes randomly
+                this.processSuccess = true;
+
+                processMachine.logFileMoveExternal(this.file);
+
+                processMachine.files.pull(this.file);
+                processMachine.externalFiles.push(this.file);
+                processMachine.save(function (err) {
+                    if (err)
+                        return callback("Failed to execute the selected process", err);
+
                     self.save(function (err) {
                         if (err)
-                            return callback("Failed to execute the selected process", null);
+                            return callback("Failed to execute the selected process", err);
 
-                        if (success) {
-                            bot.save(function (err, bot) {
-                                if (err)
-                                    console.log(err);
-                                return callback();
-                            });
-                        }
-                        else
-                            callback();
+                        return callback();
+                    })
+                });
+                break;
+            case processTypes.FILE_COPY_INTERNAL:
+                if (!this.file)
+                    return callback("File copy failed: Couldn't find file to copy");
+
+                var usedCopySpaceIn = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.files);
+                if (this.file.fileDef.size > (processMachine.hdd.size - usedCopySpaceIn))
+                    return callback("Not enough space on this machine's hard drive to copy this file.");
+
+                //todo: maybe fail sometimes randomly
+                this.processSuccess = true;
+                var copyFileIn = new File({
+                    name: null,
+                    fileDef: this.file.fileDef,
+                    isLocked: false
+                });
+
+                processMachine.logFileCopyInternal(copyFileIn);
+
+                copyFileIn.save(function (err) {
+                    if (err)
+                        return callback("Failed to execute the selected process", err);
+
+                    processMachine.files.push(copyFileIn);
+                    processMachine.save(function (err) {
+                        if (err)
+                            return callback("Failed to execute the selected process", err);
+
+                        self.save(function (err) {
+                            if (err)
+                                return callback("Failed to execute the selected process", err);
+
+                            return callback();
+                        })
+                    });
+                });
+                break;
+            case processTypes.FILE_MOVE_INTERNAL:
+                if (!this.file)
+                    return callback("File copy failed: Couldn't find file to move");
+
+                var usedMoveSpaceIn = sharedHelpers.fileHelpers.getFilesSizeTotal(processMachine.files);
+                if (this.file.fileDef.size > (processMachine.hdd.size - usedMoveSpaceIn))
+                    return callback("Not enough space on this machine's hard drive to move this file.");
+
+                //todo: maybe fail sometimes randomly
+                this.processSuccess = true;
+
+                processMachine.logFileMoveInternal(this.file);
+
+                processMachine.externalFiles.pull(this.file);
+                processMachine.files.push(this.file);
+                processMachine.save(function (err) {
+                    if (err)
+                        return callback("Failed to execute the selected process", err);
+
+                    self.save(function (err) {
+                        if (err)
+                            return callback("Failed to execute the selected process", err);
+
+                        return callback();
+                    })
+                });
+                break;
+            case processTypes.FILE_DELETE:
+                if (!this.file)
+                    return callback("File copy failed: Couldn't find file to delete");
+
+                //todo: maybe fail sometimes randomly
+                this.processSuccess = true;
+
+                processMachine.logFileDelete(this.file);
+
+                //pull from both external and internal files, files are unique so it will only be in one or the other
+                processMachine.externalFiles.pull(this.file);
+                processMachine.files.pull(this.file);
+                processMachine.save(function (err) {
+                    if (err)
+                        return callback("Failed to execute the selected process", err);
+
+                    self.file.remove(function (err) {
+                        if (err)
+                            console.log("Failed to delete file model after removing fom machine files array.", err);
+
+                        self.save(function (err) {
+                            if (err)
+                                return callback("Failed to execute the selected process", err);
+
+                            return callback();
+                        })
                     });
                 });
                 break;

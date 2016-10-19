@@ -5,7 +5,9 @@ var mongoose = require('mongoose');
 
 var Bot = require('../../models/machinemodels/bot');
 var CPU = require('../../models/machinemodels/cpu');
+var GPU = require('../../models/machinemodels/gpu');
 var HDD = require('../../models/machinemodels/hdd');
+var ExternalHDD = require('../../models/machinemodels/externalhdd');
 var Internet = require('../../models/machinemodels/internet');
 var Process = require('../../models/machinemodels/process');
 var BankAccount = require('../../models/bankmodels/bankaccount');
@@ -25,9 +27,16 @@ var machineSchema = mongoose.Schema({
     password: {type: String, default: globalHelpers.getRandomPassword()},
     lastPasswordReset: {type: Date, default: null},
     cpu: {type: mongoose.Schema.Types.ObjectId, ref: 'cpu', default: null},
+    gpu: {type: mongoose.Schema.Types.ObjectId, ref: 'gpu', default: null},
     hdd: {type: mongoose.Schema.Types.ObjectId, ref: 'hdd', default: null},
+    externalHDD: {type: mongoose.Schema.Types.ObjectId, ref: 'externalhdd', default: null},
     internet: {type: mongoose.Schema.Types.ObjectId, ref: 'internet', default: null},
     files: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'file',
+        default: null
+    }],
+    externalFiles: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'file',
         default: null
@@ -62,10 +71,22 @@ machineSchema.statics = {
                 ]
             },
             {
+                path: 'externalFiles',
+                populate: [
+                    'fileDef'
+                ]
+            },
+            {
                 path: 'cpu'
             },
             {
+                path: 'gpu'
+            },
+            {
                 path: 'hdd'
+            },
+            {
+                path: 'externalHDD'
             },
             {
                 path: 'internet'
@@ -88,7 +109,7 @@ machineSchema.statics = {
             callback(err, machine);
         });
     },
-    findWithFiles: function (_id, callback) {
+    findWithInternalFiles: function (_id, callback) {
         var subPopulate = {
             path: 'files',
             populate: [
@@ -99,13 +120,32 @@ machineSchema.statics = {
             callback(err, machine);
         });
     },
+    findWithExternalFiles: function (_id, callback) {
+        var subPopulate = {
+            path: 'externalFiles',
+            populate: [
+                'fileDef'
+            ]
+        };
+        this.findOne({_id: _id}).select('_id user password externalFiles').populate(subPopulate).exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
     findWithSingleFile: function (machine_id, file_id, callback) {
-        this.findOne({_id: machine_id}).select('_id user password files').populate({
-            path: 'files',
-            match: {
-                _id: file_id
+        this.findOne({_id: machine_id}).select('_id user password files externalFiles').populate([
+            {
+                path: 'files',
+                match: {
+                    _id: file_id
+                }
+            },
+            {
+                path: 'externalFiles',
+                match: {
+                    _id: file_id
+                }
             }
-        }).exec(function (err, machine) {
+        ]).exec(function (err, machine) {
             callback(err, machine);
         });
     },
@@ -122,10 +162,10 @@ machineSchema.statics = {
                 return callback(err);
 
             if (!machine) {
-                machine = new self({user: user});
-                machine.setDefaults(function () {
-                    self.findPopulated(query, function (err, machine) {
-                        callback(err, machine);
+                var newMachine = new self({user: user});
+                newMachine.setDefaults(function () {
+                    self.findPopulated(query, function (err, newMachine) {
+                        callback(err, newMachine);
                     });
                 });
             }
@@ -201,26 +241,43 @@ machineSchema.methods = {
         this.setDefaultCPU(function (err) {
             if (err)
                 console.log(err);
-            self.setDefaultHDD(function (err) {
+            console.log("CPU");
+            self.setDefaultGPU(function (err) {
                 if (err)
                     console.log(err);
-                self.setDefaultInternet(function (err) {
+                console.log("GPU");
+                self.setDefaultHDD(function (err) {
                     if (err)
                         console.log(err);
-                    self.ip = globalHelpers.getNewIP();
-                    self.save(function (err) {
+                    console.log("HDD");
+                    self.setDefaultExternalHDD(function (err) {
                         if (err)
                             console.log(err);
-                        return callback();
+                        console.log("ExternalHDD");
+                        self.setDefaultInternet(function (err) {
+                            if (err)
+                                console.log(err);
+
+                            self.ip = globalHelpers.getNewIP();
+                            self.save(function (err) {
+                                if (err)
+                                    console.log(err);
+                                return callback();
+                            });
+                        });
                     });
-                })
+                });
             });
         });
     },
     setDefaultCPU: function (callback) {
         if (!this.cpu) {
-            var self = this;
-            CPU.findOne({cores: 1, speed: 666}, function (err, newCPU) {
+            var self = this,
+                defaultFilter = {
+                    speed: sharedHelpers.cpuHelpers.cpuDefaults.speed,
+                    cores: sharedHelpers.cpuHelpers.cpuDefaults.cores
+                };
+            CPU.findOne(defaultFilter, function (err, newCPU) {
                 if (err)
                     console.log(err);
 
@@ -230,11 +287,36 @@ machineSchema.methods = {
                 callback();
             });
         }
+        else
+            callback();
+    },
+    setDefaultGPU: function (callback) {
+        if (!this.gpu) {
+            var self = this,
+                defaultFilter = {
+                    speed: sharedHelpers.gpuHelpers.gpuDefaults.speed,
+                    cores: sharedHelpers.gpuHelpers.gpuDefaults.cores
+                };
+            GPU.findOne(defaultFilter, function (err, newGPU) {
+                if (err)
+                    console.log(err);
+
+                if (newGPU)
+                    self.gpu = newGPU;
+
+                callback();
+            });
+        }
+        else
+            callback();
     },
     setDefaultHDD: function (callback) {
         if (!this.hdd) {
-            var self = this;
-            HDD.findOne({size: 10}, function (err, newHDD) {
+            var self = this,
+                defaultFilter = {
+                    size: sharedHelpers.hddHelpers.hddDefaults.size
+                };
+            HDD.findOne(defaultFilter, function (err, newHDD) {
                 if (err)
                     console.log(err);
 
@@ -244,11 +326,36 @@ machineSchema.methods = {
                 callback();
             });
         }
+        else
+            callback();
+    },
+    setDefaultExternalHDD: function (callback) {
+        if (!this.externalHDD) {
+            var self = this,
+                defaultFilter = {
+                    size: sharedHelpers.externalHDDHelpers.externalHDDDefaults.size
+                };
+            ExternalHDD.findOne(defaultFilter, function (err, newExternalHDD) {
+                if (err)
+                    console.log(err);
+
+                if (newExternalHDD)
+                    self.externalHDD = newExternalHDD;
+
+                callback();
+            });
+        }
+        else
+            callback();
     },
     setDefaultInternet: function (callback) {
         if (!this.internet) {
-            var self = this;
-            Internet.findOne({downSpeed: 5, upSpeed: 1}, function (err, newInternet) {
+            var self = this,
+                defaultFilter = {
+                    downSpeed: sharedHelpers.internetHelpers.internetDefaults.downSpeed,
+                    upSpeed: sharedHelpers.internetHelpers.internetDefaults.upSpeed
+                };
+            Internet.findOne(defaultFilter, function (err, newInternet) {
                 if (err)
                     console.log(err);
 
@@ -258,6 +365,8 @@ machineSchema.methods = {
                 callback();
             });
         }
+        else
+            callback();
     },
     updateLog: function (log, isAppend, dateOverride, callback) {
         if (isAppend) {
@@ -339,62 +448,53 @@ machineSchema.methods = {
         });
     },
     logBankTransfer: function (sourceAccountNumber, destinationAccountNumber, destinationBankIP, amount) {
+        this.appendLog("Transfer @ " + this.getLogDateString() + ": " + sharedHelpers.formatCurrency(amount) + " - " + sourceAccountNumber + " [" + this.ip + "] --> " + destinationAccountNumber + " [" + destinationBankIP + "]");
+    },
+    logBankAccountLogin: function (ip, accountNumber) {
+        this.appendLog("User logged in to account " + accountNumber + " from [" + ip + "] at " + this.getLogDateString());
+    },
+    logAdminLoginBy: function (ip) {
+        this.appendLog("Admin logged in from [" + ip + "] at " + this.getLogDateString());
+    },
+    logAdminLoginTo: function (ip) {
+        this.appendLog("Logged in to [" + ip + "] at " + this.getLogDateString());
+    },
+    logFileDownloadBy: function (ip, file) {
+        this.appendLog(file.getName() + " downloaded by [" + ip + "] at " + this.getLogDateString());
+    },
+    logFileDownloadFrom: function (ip, file) {
+        this.appendLog(file.getName() + " downloaded from [" + ip + "] at " + this.getLogDateString());
+    },
+    logFileUploadTo: function (ip, file) {
+        this.appendLog(file.getName() + " uploaded to [" + ip + "] at " + this.getLogDateString());
+    },
+    logFileUploadFrom: function (ip, file) {
+        this.appendLog(file.getName() + " uploaded from [" + ip + "] at " + this.getLogDateString());
+    },
+    logInstallFileBy: function (ip, file) {
+        this.appendLog(file.getName() + " installed by [" + ip + "] at " + this.getLogDateString());
+    },
+    logInstallFileTo: function (ip, file) {
+        this.appendLog(file.getName() + " installed on [" + ip + "] at " + this.getLogDateString());
+    },
+    logFileCopyExternal: function (file) {
+        this.appendLog(file.getName() + " copied from internal hdd to external hdd at " + this.getLogDateString());
+    },
+    logFileMoveExternal: function (file) {
+        this.appendLog(file.getName() + " moved from internal hdd to external hdd at " + this.getLogDateString());
+    },
+    logFileCopyInternal: function (file) {
+        this.appendLog(file.getName() + " copied from external hdd to internal hdd at " + this.getLogDateString());
+    },
+    logFileMoveInternal: function (file) {
+        this.appendLog(file.getName() + " moved from external hdd to external hdd at " + this.getLogDateString());
+    },
+    logFileDelete: function (file) {
+        this.appendLog(file.getName() + " deleted at " + this.getLogDateString());
+    },
+    getLogDateString: function () {
         var dateStr = (new Date()).toUTCString();
-        this.appendLog("Transfer @ " + dateStr.substr(5, dateStr.length) + ": " + sharedHelpers.formatCurrency(amount) + " - " + sourceAccountNumber + " [" + this.ip + "] --> " + destinationAccountNumber + " [" + destinationBankIP + "]");
-    },
-    logBankAccountLogin: function (sourceIP, accountNumber) {
-        var dateStr = (new Date()).toUTCString();
-        this.appendLog("User logged in to account " + accountNumber + " from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
-    },
-    logAdminLoginBy: function (sourceIP) {
-        var dateStr = (new Date()).toUTCString();
-        this.appendLog("Admin logged in from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
-    },
-    logAdminLoginTo: function (destinationIP) {
-        var dateStr = (new Date()).toUTCString();
-        this.appendLog("Logged in to [" + destinationIP + "] at " + dateStr.substr(5, dateStr.length));
-    },
-    logFileDownloadBy: function (sourceIP, file) {
-        var dateStr = (new Date()).toUTCString(),
-            fileName = file.fileDef.name + '.' + file.fileDef.type;
-        if (file.name)
-            fileName = file.name;
-        this.appendLog(fileName + " downloaded by [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
-    },
-    logFileDownloadFrom: function (sourceIP, file) {
-        var dateStr = (new Date()).toUTCString(),
-            fileName = file.fileDef.name + '.' + file.fileDef.type;
-        if (file.name)
-            fileName = file.name;
-        this.appendLog(fileName + " downloaded from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
-    },
-    logFileUploadTo: function (destinationIP, file) {
-        var dateStr = (new Date()).toUTCString(),
-            fileName = file.fileDef.name + '.' + file.fileDef.type;
-        if (file.name)
-            fileName = file.name;
-        this.appendLog(fileName + " uploaded to [" + destinationIP + "] at " + dateStr.substr(5, dateStr.length));
-    },
-    logFileUploadFrom: function (sourceIP, file) {
-        var dateStr = (new Date()).toUTCString(),
-            fileName = file.fileDef.name + '.' + file.fileDef.type;
-        if (file.name)
-            fileName = file.name;
-        this.appendLog(fileName + " uploaded from [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
-    },
-    logInstallFileBy: function (sourceIP, file) {
-        var dateStr = (new Date()).toUTCString(),
-            fileName = file.fileDef.name + '.' + file.fileDef.type;
-        if (file.name)
-            fileName = file.name;
-        this.appendLog(fileName + " installed by [" + sourceIP + "] at " + dateStr.substr(5, dateStr.length));
-    },
-    logInstallFileTo: function (destinationIP, file) {
-        var dateStr = (new Date()).toUTCString(),
-            fileName = file.fileDef.name + '.' + file.fileDef.type;
-        if (file.name)
-            fileName = file.name;
-        this.appendLog(fileName + " installed on [" + destinationIP + "] at " + dateStr.substr(5, dateStr.length));
+        return dateStr.substr(5, dateStr.length);
     },
     getFirewallName: function () {
         return sharedHelpers.firewallHelpers.getFirewallName(this.firewall);
@@ -403,15 +503,16 @@ machineSchema.methods = {
         return sharedHelpers.checkDateIsBeforeToday(sharedHelpers.getNewDateAddDays(this.lastIPRefresh, 1));
     },
     refreshIP: function (callback) {
+        var self = this;
         if (this.canRefreshIP()) {
             this.ip = globalHelpers.getNewIP();
             this.lastIPRefresh = new Date();
             this.usersCracked = [];
-            Bot.find({machine: {id: this._id}}).remove().exec(function () {
+            Bot.find({machine: {id: this._id}}).remove().exec(function (err) {
                 if (err)
-                    return callback(null, err);
+                    console.log(err);
 
-                this.save(function (err) {
+                self.save(function (err) {
                     if (err)
                         return callback(null, err);
 
@@ -445,7 +546,7 @@ machineSchema.methods = {
     },
     upgradeCPU: function (user, paymentAccount, upgrade_id, callback) {
         if (this.cpu._id == upgrade_id)
-            return callback("The selected upgrade different than existing hardware");
+            return callback("The selected upgrade isn't different than existing hardware");
 
         var self = this;
         CPU.findOne({'_id': upgrade_id}, function (err, newCPU) {
@@ -471,9 +572,37 @@ machineSchema.methods = {
             });
         });
     },
+    upgradeGPU: function (user, paymentAccount, upgrade_id, callback) {
+        if (this.cpu._id == upgrade_id)
+            return callback("The selected upgrade isn't different than existing hardware");
+
+        var self = this;
+        GPU.findOne({'_id': upgrade_id}, function (err, newGPU) {
+            if (err || !newGPU)
+                callback("Failed to purchase selected GPU", err);
+
+            paymentAccount.makePurchase(user, newGPU.getCost(), function (err) {
+                if (err)
+                    return callback("Failed to purchase selected GPU", err);
+
+                self.gpu = newGPU;
+                self.save(function (err) {
+                    if (err)
+                        return callback("Failed to purchase selected GPU", err);
+
+                    self.updateProcessCosts(function (err) {
+                        if (err)
+                            console.log(err);
+
+                        callback();
+                    });
+                });
+            });
+        });
+    },
     upgradeHDD: function (user, paymentAccount, upgrade_id, callback) {
         if (this.hdd._id == upgrade_id)
-            return callback("The selected upgrade different than existing hardware");
+            return callback("The selected upgrade isn't different than existing hardware");
 
         var self = this;
         HDD.findOne({'_id': upgrade_id}, function (err, newHDD) {
@@ -495,9 +624,33 @@ machineSchema.methods = {
             });
         });
     },
+    upgradeExternalHDD: function (user, paymentAccount, upgrade_id, callback) {
+        if (this.externalHDD._id == upgrade_id)
+            return callback("The selected upgrade isn't different than existing hardware");
+
+        var self = this;
+        ExternalHDD.findOne({'_id': upgrade_id}, function (err, newExternalHDD) {
+            if (err || !newExternalHDD)
+                callback("Failed to purchase selected external hard drive", err);
+
+            paymentAccount.makePurchase(user, newExternalHDD.getCost(), function (err) {
+                if (err)
+                    return callback("Failed to purchase selected external hard drive", err);
+
+                self.externalHDD = newExternalHDD;
+                self.save(function (err) {
+                    if (err) {
+                        return callback("Failed to purchase selected external hard drive", err);
+                    }
+
+                    callback();
+                });
+            });
+        });
+    },
     upgradeInternet: function (user, paymentAccount, upgrade_id, callback) {
         if (this.internet._id == upgrade_id)
-            return callback("The selected upgrade different than existing hardware");
+            return callback("The selected upgrade isn't different than existing hardware");
 
         var self = this;
         Internet.findOne({'_id': upgrade_id}, function (err, newInternet) {
@@ -525,68 +678,75 @@ machineSchema.methods = {
         });
     },
     validateAuth: function (user, password, callback) {
+        var self = this;
         if (user && this.user && user._id.toString() === this.user.toString())
-            return callback(true);
+            return callback(true, true);
         else if (password && password.length > 0) {
             if (this.password) {
                 if (password === this.password) {
-                    var newBot = {
-                            user: user,
-                            machine: this
-                        },
-                        newBotOptions = {
-                            upsert: true,
-                            new: true,
-                            setDefaultsOnInsert: true
-                        };
-                    Bot.findOneAndUpdate(newBot, newBot, newBotOptions, function (err, bot) {
-                        if (err)
-                            console.log(err);
-
-                        if (!bot) {
-                            bot = new Bot(newBot);
-                            bot.save(function (err) {
-                                if (err) {
-                                    console.log(err);
-                                }
-
-                                return callback(true);
-                            });
-                        }
-                        else {
-                            callback(true);
-                        }
+                    this.createUserBot(user, function (bot) {
+                        callback(true, false, bot)
                     });
-
-
                 }
                 else {
-                    return callback(false);
+                    return callback(false, false);
                 }
             }
             else {
                 this.model('machine').findWithPassword(this._id, function (err, machine) {
                     if (err) {
                         console.log(err);
-                        return callback(false);
+                        return callback(false, false);
                     }
                     else {
-                        return callback(password === machine.password);
+                        if (password === machine.password) {
+                            self.createUserBot(user, function (bot) {
+                                callback(true, false, bot)
+                            });
+                        }
+                        else {
+                            return callback(false, false);
+                        }
                     }
                 });
             }
         }
         else {
             this.model('bot').findUserBotByMachine(user._id, this._id, function (err, bot) {
-                if (err) {
+                if (err)
                     console.log(err);
-                    return callback(false);
-                }
-                else {
-                    return callback(bot != null && bot._id != null);
-                }
+
+                return callback(bot != null, false, bot);
             });
         }
+    },
+    createUserBot: function (user, callback) {
+        var newBot = {
+                user: user,
+                machine: this
+            },
+            dbOpts = {
+                upsert: true,
+                new: true,
+                setDefaultsOnInsert: true
+            };
+        Bot.findOneAndUpdate(newBot, newBot, dbOpts, function (err, bot) {
+            if (err)
+                console.log(err);
+
+            if (!bot) {
+                bot = new Bot(newBot);
+                bot.save(function (err) {
+                    if (err)
+                        console.log(err);
+
+                    return callback(bot);
+                });
+            }
+            else {
+                callback(bot);
+            }
+        });
     },
     updateProcessCosts: function (callback) {
         //process.cost == time in seconds the process will take to complete
@@ -609,6 +769,11 @@ machineSchema.methods = {
                 case Process.types.CRACK_PASSWORD_BANK:
                 case Process.types.FILE_INSTALL:
                 case Process.types.FILE_RUN:
+                case Process.types.FILE_COPY_EXTERNAL:
+                case Process.types.FILE_MOVE_EXTERNAL:
+                case Process.types.FILE_COPY_INTERNAL:
+                case Process.types.FILE_MOVE_INTERNAL:
+                case Process.types.FILE_DELETE:
                     cpuProcesses++;
                     break;
                 case Process.types.FILE_DOWNLOAD:
@@ -665,8 +830,13 @@ machineSchema.methods = {
 
             if ((internetProcesses + cpuProcesses) > 0) {
                 for (i = 0; i < processes.length; i++) {
-                    var internetSpeedRemote = processes[i].machine.internet.getMegabyteSpeed(),
+                    var internetSpeedRemote = 0,
+                        cpuModRemote = 0;
+                    if (processes[i].machine) {
+                        internetSpeedRemote = processes[i].machine.internet.getMegabyteSpeed();
                         cpuModRemote = processes[i].machine.cpu.getModifier();
+                    }
+
                     var progress = sharedHelpers.processHelpers.getProgress(processes[i]);
                     if (progress >= 100)
                         continue;
@@ -712,6 +882,32 @@ machineSchema.methods = {
                             }
 
                             seconds = calculateFileRun(processes[i].file, cpuModRemote);
+                            break;
+                        case Process.types.FILE_COPY_EXTERNAL:
+                        case Process.types.FILE_COPY_INTERNAL:
+                            if (!processes[i].file) {
+                                console.log("No file found to copy");
+                                break;
+                            }
+
+                            seconds = calculateFileMoveCopy(processes[i].file, cpuModRemote);
+                            break;
+                        case Process.types.FILE_MOVE_EXTERNAL:
+                        case Process.types.FILE_MOVE_INTERNAL:
+                            if (!processes[i].file) {
+                                console.log("No file found to move");
+                                break;
+                            }
+
+                            seconds = calculateFileMoveCopy(processes[i].file, cpuModRemote);
+                            break;
+                        case Process.types.FILE_DELETE:
+                            if (!processes[i].file) {
+                                console.log("No file found to delete");
+                                break;
+                            }
+
+                            seconds = calculateFileDelete(processes[i].file, cpuModRemote);
                             break;
                     }
                     //account for the progress that has already happened
@@ -776,6 +972,16 @@ function calculateFileInstall(file, cpuMod) {
 }
 
 function calculateFileRun(file, cpuMod) {
+
+    return 30;
+}
+
+function calculateFileMoveCopy(file, cpuMod) {
+
+    return 30;
+}
+
+function calculateFileDelete(file, cpuMod) {
 
     return 30;
 }

@@ -109,12 +109,16 @@
     };
 
     exports.sharedHelpers.cpuHelpers = {
+        cpuDefaults: {
+            speed: 666,
+            cores: 1
+        },
         getCPUName: function (cpu) {
             return cpu.cores + '-core ' + cpu.speed + ' MHz';
         },
         getCPUCost: function (cpu) {
             //total cents cost
-            if (!cpu || (cpu.speed === 666 && cpu.cores === 1))
+            if (!cpu || (cpu.speed === this.cpuDefaults.speed && cpu.cores === this.cpuDefaults.cores))
                 return 0;
             else
                 return Math.floor((Math.pow(cpu.speed * 20, 2) / 10000000) * Math.pow(cpu.cores * 5, 2)) * 100;
@@ -128,13 +132,46 @@
         }
     };
 
+    exports.sharedHelpers.gpuHelpers = {
+        gpuDefaults: {
+            speed: 800,
+            cores: 8
+        },
+        getGPUName: function (gpu) {
+            if (gpu)
+                return gpu.cores + '-core ' + gpu.speed + ' MHz';
+            else
+                return "None";
+        },
+        getGPUCost: function (gpu) {
+            //total cents cost
+            if (!gpu || (gpu.speed === this.gpuDefaults.cores && gpu.cores === this.gpuDefaults.cores))
+                return 0;
+            else
+                return Math.floor((Math.pow(gpu.speed * 5, 2) / 10000000) * Math.pow(gpu.cores * 2, 2)) * 160;
+        },
+        getGPUCostDisplay: function (gpu) {
+            return exports.sharedHelpers.formatCurrency(this.getGPUCost(gpu));
+        },
+        getGPUModifier: function (gpu) {
+            //divide by 1.1 for degredation
+            return gpu ? Math.round((gpu.cores * gpu.speed) / 1.1) : 0;
+        }
+    };
+
     exports.sharedHelpers.hddHelpers = {
+        hddDefaults: {
+            size: 10240
+        },
         getHDDName: function (hdd) {
-            return (hdd.size / 1024).toString() + "gb";
+            if (hdd)
+                return (hdd.size / 1024).toString() + "gb";
+            else
+                return "None";
         },
         getHDDCost: function (hdd) {
             //total cents cost
-            if (!hdd || (hdd.size === 20))
+            if (!hdd || (hdd.size === this.hddDefaults.size))
                 return 0;
             else
                 return Math.floor((Math.pow(hdd.size / 40, 2) * .01)) * 100;
@@ -144,13 +181,36 @@
         }
     };
 
+    exports.sharedHelpers.externalHDDHelpers = {
+        externalHDDDefaults: {
+            size: 5120
+        },
+        getExternalHDDName: function (hdd) {
+            return exports.sharedHelpers.hddHelpers.getHDDName(hdd);
+        },
+        getExternalHDDCost: function (hdd) {
+            //total cents cost
+            if (!hdd || (hdd.size === this.externalHDDDefaults.size))
+                return 0;
+            else
+                return Math.floor((Math.pow(hdd.size / 40, 2) * .1)) * 140;
+        },
+        getExternalHDDCostDisplay: function (hdd) {
+            return exports.sharedHelpers.formatCurrency(this.getExternalHDDCost(hdd));
+        }
+    };
+
     exports.sharedHelpers.internetHelpers = {
+        internetDefaults: {
+            upSpeed: 3,
+            downSpeed: 5
+        },
         getInternetName: function (internet) {
             return internet.downSpeed + 'mb/s down - ' + internet.upSpeed + 'mb/s up';
         },
         getInternetCost: function (internet) {
             //total cents cost
-            if (!internet || (internet.upSpeed === 1 && internet.downSpeed === 5))
+            if (!internet || (internet.upSpeed === this.internetDefaults.upSpeed && internet.downSpeed === this.internetDefaults.downSpeed))
                 return 0;
             else
                 return Math.floor(Math.pow(internet.downSpeed * internet.upSpeed * 25, 1.1) * .03) * 100;
@@ -159,7 +219,6 @@
             return exports.sharedHelpers.formatCurrency(this.getInternetCost(internet));
         },
         getInternetModifier: function (internet) {
-            //todo: probably change this to be a bit more sophisticated
             return internet ? (internet.downSpeed * internet.upSpeed) : 0;
         }
     };
@@ -175,7 +234,8 @@
             DDOS: 'ds',
             ANTIVIRUS: 'av',
             HIDER: 'hdr',
-            FINDER: 'fdr'
+            FINDER: 'fdr',
+            ANALYZER: 'az'
         },
         getFileName: function (file) {
             if (file && file.fileDef && file.fileDef.name)
@@ -211,6 +271,8 @@
                         return 'File Hider';
                     case this.types.FINDER:
                         return 'File Finder';
+                    case this.types.ANALYZER:
+                        return 'Hardware Analyzer';
                     default:
                         return 'Text';
                 }
@@ -246,7 +308,8 @@
                 ddos: 0,
                 antivirus: 0,
                 hider: 0,
-                finder: 0
+                finder: 0,
+                analyzer: 0
             };
             if (files) {
                 for (var i = 0; i < files.length; i++) {
@@ -283,6 +346,9 @@
                         case this.types.FINDER:
                             stats.finder = files[i].fileDef.level;
                             break;
+                        case this.types.ANALYZER:
+                            stats.analyzer = files[i].fileDef.level;
+                            break;
                     }
                 }
             }
@@ -303,16 +369,24 @@
 
     exports.sharedHelpers.processHelpers = {
         types: {
-            CRACK_PASSWORD_MACHINE: 0,
-            CRACK_PASSWORD_BANK: 1,
-            FILE_DOWNLOAD: 2,
-            FILE_UPLOAD: 3,
-            FILE_INSTALL: 4,
-            FILE_RUN: 5,
-            UPDATE_LOG: 6
+            UPDATE_LOG: 0,
+            CRACK_PASSWORD_MACHINE: 1,
+            CRACK_PASSWORD_BANK: 2,
+            FILE_DOWNLOAD: 3,
+            FILE_UPLOAD: 4,
+            FILE_INSTALL: 5,
+            FILE_RUN: 6,
+            FILE_COPY_EXTERNAL: 7,
+            FILE_MOVE_EXTERNAL: 8,
+            FILE_COPY_INTERNAL: 9,
+            FILE_MOVE_INTERNAL: 10,
+            FILE_DELETE: 11
         },
         getProcessNameHTML: function (process) {
             switch (process.type) {
+                case this.types.UPDATE_LOG:
+                    return "<strong>Update Log</strong>";
+                    break;
                 case this.types.CRACK_PASSWORD_MACHINE:
                     return "<strong>Crack Admin Password</strong>";
                     break;
@@ -320,19 +394,34 @@
                     return "<strong>Crack Bank Password</strong>";
                     break;
                 case this.types.FILE_DOWNLOAD:
-                    return "<strong>Download:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    return "<strong>Download file:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
                     break;
                 case this.types.FILE_UPLOAD:
-                    return "<strong>Upload:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    return "<strong>Upload file:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
                     break;
                 case this.types.FILE_INSTALL:
-                    return "<strong>Install:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    return "<strong>Install file:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
                     break;
                 case this.types.FILE_RUN:
-                    return "<strong>Run:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    return "<strong>Run file:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
                     break;
-                case this.types.UPDATE_LOG:
-                    return "<strong>Update Log</strong>";
+                case this.types.FILE_COPY_EXTERNAL:
+                    return "<strong>Copy file to External HDD:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    break;
+                case this.types.FILE_MOVE_EXTERNAL:
+                    return "<strong>Move file to External HDD:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    break;
+                case this.types.FILE_COPY_INTERNAL:
+                    return "<strong>Copy file to Internal HDD:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    break;
+                case this.types.FILE_MOVE_INTERNAL:
+                    return "<strong>Move file to Internal HDD:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    break;
+                case this.types.FILE_DELETE:
+                    if (process.file && process.file.fileDef)
+                        return "<strong>Delete file:</strong> " + process.file.fileDef.name + " - Lv. " + process.file.fileDef.level;
+                    else
+                        return "<strong>Delete file</strong>";
                     break;
             }
         },

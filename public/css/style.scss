@@ -158,8 +158,8 @@ $colHighlight: #EEE;
 }
 
 //Footer Styles
-.site-footer {
-  margin-top: 40px;
+footer {
+  margin-top: 20px;
 }
 
 //Global Styles
@@ -247,7 +247,6 @@ body {
   }
 }
 
-
 //Login Container Styles
 .login-container {
   margin-top: 60px;
@@ -270,20 +269,24 @@ body {
 //Local Machine Styles
 #machineInfo,
 #machineLog {
+  .machine-analyze {
+    margin: 0 auto;
+    display: block;
+  }
   #toggleMachinePassword {
     margin-left: 5px;
   }
   #machineInfoInner,
   #machineLogInner {
-    height: 285px;
+    height: 380px;
     .log-text {
       resize: none;
       width: 113%;
-      height: 212px;
+      height: 305px;
       margin: 2px 0;
       font-size: 12px;
     }
-    button {
+    .row button {
       width: 80px;
     }
   }
@@ -298,6 +301,15 @@ body {
     float: right;
     margin-top: 8px;
   }
+}
+
+#internalFiles,
+#externalFiles {
+  z-index: 10000
+}
+
+.modal {
+  z-index: 100000
 }
 
 //Progress Styles
@@ -494,7 +506,7 @@ body {
     margin: 8px 8px 0;
   }
   .bank-account-balance {
-    font-size: 24px;
+    font-size: 20px;
     text-align: center;
     margin: 20px 5px;
   }
