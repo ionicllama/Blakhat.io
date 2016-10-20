@@ -1,3 +1,4 @@
+//noinspection SillyAssignmentJS
 /**
  * Created by Evan on 9/25/2016.
  */

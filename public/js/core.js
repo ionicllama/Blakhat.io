@@ -113,7 +113,7 @@ BH.views.BaseCollectionView = BH.views.BaseView.extend({
     afterRender: function () {
         if (this.beforeChildrenRender() != false) {
             if (this.options.childView && this.options.collection) {
-                for (model in this.options.collection.models) {
+                for (var model in this.options.collection.models) {
                     var options = {
                         collection: this.options.collection,
                         model: this.options.collection.models[model],
@@ -251,7 +251,7 @@ BH.views.BaseCollectionModal = BH.views.BaseModal.extend({
     afterRender: function () {
         this.setElement(this.$('.modal-body-inner'));
         if (this.options.childView && this.options.collection) {
-            for (model in this.options.collection.models) {
+            for (var model in this.options.collection.models) {
                 var options = {
                     model: this.options.collection.models[model],
                     el: this.el

@@ -29,45 +29,6 @@ BH.models.Machine = BH.models.BaseModel.extend({
             data.password = this.get('password');
 
         return _.extend(data, extraData);
-    },
-    updateLog: function (logText) {
-        new BH.models.Process({
-            type: BH.sharedHelpers.processHelpers.types.UPDATE_LOG,
-            processMachine_id: BH.app.localMachine.get('machine')._id,
-            machine_id: this.get('_id'),
-            log: logText
-        }).save(this.getPatchData(), {
-            patch: true,
-            success: $.proxy(function (data) {
-                BH.helpers.Toastr.showSuccessToast("Process started: Update Log", null);
-
-                if (BH.app.localMachine.get('processes'))
-                    BH.app.localMachine.get('processes').fetch();
-            }, this),
-                error: function (model, response) {
-                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
-                },
-                wait: true
-            }
-        );
-    },
-    getCPUName: function () {
-        return BH.sharedHelpers.cpuHelpers.getCPUName(this.get('machine').cpu);
-    },
-    getGPUName: function () {
-        return BH.sharedHelpers.gpuHelpers.getGPUName(this.get('machine').gpu);
-    },
-    getHDDName: function () {
-        return BH.sharedHelpers.hddHelpers.getHDDName(this.get('machine').hdd);
-    },
-    getExternalHDDName: function () {
-        return BH.sharedHelpers.externalHDDHelpers.getExternalHDDName(this.get('machine').externalHDD);
-    },
-    getInternetName: function () {
-        return BH.sharedHelpers.internetHelpers.getInternetName(this.get('machine').internet);
-    },
-    getFirewallName: function () {
-        return BH.sharedHelpers.firewallHelpers.getFirewallName(this.get('machine').firewall);
     }
 });
 
@@ -87,12 +48,126 @@ BH.models.LocalMachine = BH.models.Machine.extend({
                 model: this,
                 el: this.get('el')
             });
+    }
+});
+
+BH.models.CPU = BH.models.BaseModel.extend({
+    urlRoot: '/CPU',
+    initialize: function () {
+        //this.on('sync', this.renderMachine, this);
+        //this.fetch();
+    }
+});
+
+BH.models.GPU = BH.models.BaseModel.extend({
+    urlRoot: '/GPU',
+    initialize: function () {
+        //this.on('sync', this.renderMachine, this);
+        //this.fetch();
+    }
+});
+
+BH.models.HDD = BH.models.BaseModel.extend({
+    urlRoot: '/HDD',
+    initialize: function () {
+        //this.on('sync', this.renderMachine, this);
+        //this.fetch();
+    }
+});
+
+BH.models.Internet = BH.models.BaseModel.extend({
+    urlRoot: '/Internet',
+    initialize: function () {
+        //this.on('sync', this.renderMachine, this);
+        //this.fetch();
+    }
+});
+
+BH.models.MachineLog = BH.models.BaseModel.extend({
+    urlRoot: function () {
+        return '/machine/' + this.get('machine')._id + '/log'
+    },
+    initialize: function () {
+        this.on('sync', this.renderLog, this);
+        this.renderLog();
+    },
+    renderLog: function () {
+        if (this.machineLogView)
+            this.machineLogView.render();
+        else
+            this.machineLogView = new BH.views.MachineLog({
+                model: this,
+                el: this.get('el')
+            });
+    },
+    getPatchData: function (extraData) {
+        var data = {};
+        if (this.get('machine').password)
+            data.password = this.get('machine').password;
+
+        return _.extend(data, extraData);
+    },
+    updateLog: function (logText) {
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.UPDATE_LOG,
+            processMachine_id: BH.app.localMachine.get('machine')._id,
+            machine_id: this.get('machine')._id,
+            log: logText
+        }).save(this.getPatchData(), {
+            patch: true,
+            success: $.proxy(function (data) {
+                BH.helpers.Toastr.showSuccessToast("Process started: Update Log", null);
+
+                if (BH.app.localMachine.get('processes'))
+                    BH.app.localMachine.get('processes').fetch();
+            }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    }
+});
+
+BH.models.MachineInfo = BH.models.BaseModel.extend({
+    urlRoot: function () {
+        return '/machine/' + this.get('machine')._id + '/info'
+    },
+    initialize: function () {
+        this.on('sync', this.renderLog, this);
+        this.renderInfo();
+    },
+    renderInfo: function () {
+        if (this.machineLogView)
+            this.machineInfoView.render();
+        else
+            this.machineInfoView = new BH.views.MachineInfo({
+                model: this,
+                el: this.get('el'),
+                isOwner: this.get('isOwner')
+            });
     },
     canRefreshIP: function () {
         return BH.sharedHelpers.checkDateIsBeforeToday(BH.sharedHelpers.getNewDateAddDays(this.get('machine').lastIPRefresh, 1));
     },
     canResetPassword: function () {
         return BH.sharedHelpers.checkDateIsBeforeToday(BH.sharedHelpers.getNewDateAddHours(this.get('machine').lastPasswordReset, 4));
+    },
+    getCPUName: function () {
+        return BH.sharedHelpers.cpuHelpers.getCPUName(this.get('machine').cpu);
+    },
+    getGPUName: function () {
+        return BH.sharedHelpers.gpuHelpers.getGPUName(this.get('machine').gpu);
+    },
+    getHDDName: function () {
+        return BH.sharedHelpers.hddHelpers.getHDDName(this.get('machine').hdd);
+    },
+    getExternalHDDName: function () {
+        return BH.sharedHelpers.externalHDDHelpers.getExternalHDDName(this.get('machine').externalHDD);
+    },
+    getInternetName: function () {
+        return BH.sharedHelpers.internetHelpers.getInternetName(this.get('machine').internet);
     },
     refreshIP: function () {
         this.save(
@@ -230,38 +305,6 @@ BH.models.LocalMachine = BH.models.Machine.extend({
     }
 });
 
-BH.models.CPU = BH.models.BaseModel.extend({
-    urlRoot: '/CPU',
-    initialize: function () {
-        //this.on('sync', this.renderMachine, this);
-        //this.fetch();
-    }
-});
-
-BH.models.GPU = BH.models.BaseModel.extend({
-    urlRoot: '/GPU',
-    initialize: function () {
-        //this.on('sync', this.renderMachine, this);
-        //this.fetch();
-    }
-});
-
-BH.models.HDD = BH.models.BaseModel.extend({
-    urlRoot: '/HDD',
-    initialize: function () {
-        //this.on('sync', this.renderMachine, this);
-        //this.fetch();
-    }
-});
-
-BH.models.Internet = BH.models.BaseModel.extend({
-    urlRoot: '/Internet',
-    initialize: function () {
-        //this.on('sync', this.renderMachine, this);
-        //this.fetch();
-    }
-});
-
 
 //COLLECTIONS
 BH.collections.CPUs = BH.collections.BaseCollection.extend({
@@ -377,29 +420,19 @@ BH.views.Machine = BH.views.BaseView.extend({
         canDownloadFiles: true
     },
     renderMachineInfo: function () {
-        new BH.views.MachineInfo({
-            model: this.model,
+        this.machineInfo = new BH.models.MachineInfo({
+            machine: this.model.get('machine'),
+            isOwner: this.model.get('isOwner'),
             el: this.$('#machineInfo')
         });
+        this.model.set('machineInfo', this.machineInfo);
     },
     renderMachineLog: function () {
-        this.machineLog = new BH.views.MachineLog({
-            model: this.model,
+        this.machineLog = new BH.models.MachineLog({
+            machine: this.model.get('machine'),
             el: this.$('#machineLog')
         });
         this.model.set('machineLog', this.machineLog);
-    },
-    toggleMachinePassword: function () {
-        if (!this.isPasswordVisible) {
-            this.$('#machinePassword').text(this.model.get('machine').password);
-            this.$('#toggleMachinePassword').text('Hide');
-            this.isPasswordVisible = true;
-        }
-        else {
-            this.$('#machinePassword').text("******");
-            this.$('#toggleMachinePassword').text('Show');
-            this.isPasswordVisible = false;
-        }
     },
     renderInternalFiles: function () {
         this.internalFiles = new BH.collections.Files(this.model.get('machine').files,
@@ -436,13 +469,6 @@ BH.views.LocalMachine = BH.views.Machine.extend({
         if (this.model.get('machine').externalHDD && this.model.get('machine').externalHDD._id.length > 0)
             this.renderExternalFiles();
     },
-    renderMachineInfo: function () {
-        this.machineInfo = new BH.views.LocalMachineInfo({
-            model: this.model,
-            el: this.$('#machineInfo')
-        });
-        this.model.set('machineInfo', this.machineInfo);
-    },
     renderProcesses: function () {
         this.processes = new BH.collections.Processes(this.model.get('machine').processes,
             {
@@ -473,6 +499,18 @@ BH.views.MachineInfo = BH.views.BaseView.extend({
             model: this.model
         };
         this.listenTo(this.model, "change:ip change:password change:cpu change:hdd change:internet", this.render);
+    },
+    toggleMachinePassword: function () {
+        if (!this.isPasswordVisible) {
+            this.$('#machinePassword').text(this.model.get('machine').password);
+            this.$('#toggleMachinePassword').text('Hide');
+            this.isPasswordVisible = true;
+        }
+        else {
+            this.$('#machinePassword').text("******");
+            this.$('#toggleMachinePassword').text('Show');
+            this.isPasswordVisible = false;
+        }
     }
 });
 
@@ -605,13 +643,18 @@ BH.views.MachineLog = BH.views.BaseView.extend({
         };
         this.listenTo(this.model, "change:log", this.render);
     },
+    afterRender: function () {
+        this.saveButton = this.$('.log-save-button');
+        this.logText = this.$('.log-text');
+    },
     logChanged: function () {
-        if (this.$('.log-text').val().length > 0 || this.model.get('machine').log.length > 0)
-            this.$('.log-save-button').prop('disabled', false);
+        if (this.logText.val().length > 0 || this.model.get('machine').log.length > 0)
+            this.saveButton.prop('disabled', false);
         else
-            this.$('.log-save-button').prop('disabled', true);
+            this.saveButton.prop('disabled', true);
     },
     saveLog: function () {
-        this.model.updateLog(this.$('.log-text').val());
+        this.model.updateLog(this.logText.val());
+        this.saveButton.prop('disabled', true);
     }
 });

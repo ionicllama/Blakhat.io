@@ -104,6 +104,11 @@ machineSchema.statics = {
             callback(err, machine);
         });
     },
+    findByIdWithLog: function (_id, callback) {
+        this.findOne({_id: _id}).select('_id log user').exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
     findWithPassword: function (_id, callback) {
         this.findOne({_id: _id}).select('password').exec(function (err, machine) {
             callback(err, machine);
@@ -678,8 +683,15 @@ machineSchema.methods = {
         });
     },
     validateAuth: function (user, password, callback) {
-        var self = this;
-        if (user && this.user && user._id.toString() === this.user.toString())
+        //callback : isValid, isOwner, bot
+        var self = this,
+            machineUserId;
+        if (this.user && this.user._id)
+            machineUserId = this.user._id.toString();
+        else if (this.user)
+            machineUserId = this.user.toString();
+
+        if (user && user._id.toString() === machineUserId)
             return callback(true, true);
         else if (password && password.length > 0) {
             if (this.password) {

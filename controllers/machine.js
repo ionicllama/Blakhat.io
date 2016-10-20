@@ -38,7 +38,7 @@ router.get('/', auth.isLoggedIn, function (req, res) {
             });
 
             if (!response.isOwner) {
-                machine.externaLFiles = machine.externaLFiles.filter(function (file) {
+                machine.externalFiles = machine.externaLFiles.filter(function (file) {
                     return false;
                 });
             }
@@ -53,7 +53,7 @@ router.get('/', auth.isLoggedIn, function (req, res) {
 });
 
 router.get('/:_id', auth.isLoggedIn, function (req, res) {
-    if (req.params && req.params._id) {
+    if (req.params._id) {
         Machine.findByIdPopulated(req.params._id, function (err, machine) {
             if (err)
                 console.log(err);
@@ -67,13 +67,12 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
                     machine.files = machine.files.filter(function (file) {
                         return file.hidden === null || file.hidden <= fileStats.finder;
                     });
-                    if (!isOwner) {
-                        if (!bot || !bot.isAnalyzed) {
-                            machine.cpu = null;
-                            machine.gpu = null;
-                            machine.externalHDD = null;
-                            machine.internet = null;
-                        }
+
+                    if (!isOwner || !bot || !bot.isAnalyzed) {
+                        machine.cpu = null;
+                        machine.gpu = null;
+                        machine.externalHDD = null;
+                        machine.internet = null;
                     }
 
                     response = {
@@ -204,6 +203,48 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
     }
     else {
         errorHelpers.returnError_noId(res);
+    }
+});
+
+//Machine Info
+router.get('/:_id/info', auth.isLoggedIn, function (req, res) {
+    if (req.params._id) {
+        Machine.findByIdPopulated(req.params._id, function (err, machine) {
+            if (err)
+                return errorHelpers.returnError("Failed to update machine.", res, err);
+            else if (!machine)
+                return errorHelpers.returnError("No existing machine with supplied _id.", res);
+
+            machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
+                if (!isAuthenticated)
+                    return errorHelpers.returnError("You don't have permission to view this machine's log.", res);
+
+                res.json({
+                    machine: machine
+                });
+            })
+        });
+    }
+});
+
+//Machine Log
+router.get('/:_id/log', auth.isLoggedIn, function (req, res) {
+    if (req.params._id) {
+        Machine.findByIdWithLog(req.params._id, function (err, machine) {
+            if (err)
+                return errorHelpers.returnError("Failed to update machine.", res, err);
+            else if (!machine)
+                return errorHelpers.returnError("No existing machine with supplied _id.", res);
+
+            machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
+                if (!isAuthenticated)
+                    return errorHelpers.returnError("You don't have permission to view this machine's log.", res);
+
+                res.json({
+                    machine: machine
+                });
+            })
+        });
     }
 });
 

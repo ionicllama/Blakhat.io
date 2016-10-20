@@ -14,7 +14,7 @@ BH.models.File = BH.models.BaseModel.extend({
     },
     getPatchData: function () {
         var data = {};
-        if (this.get('machine').password)
+        if (this.get('machine') && this.get('machine').password)
             data.password = this.get('machine').password;
         return data;
     },

@@ -93,12 +93,6 @@ BH.views.Process = BH.views.BaseCollectionChildView.extend({
                                 BH.helpers.Toastr.showSuccessToast("Log update successful", null);
                             else
                                 BH.helpers.Toastr.showErrorToast("Log update failed", null);
-
-                            if (BH.app.currentMachine) {
-                                BH.app.currentMachine.get('machine').log = this.model.get('log');
-                                if (BH.app.currentMachine.get('machineLog'))
-                                    BH.app.currentMachine.get('machineLog').render();
-                            }
                         }
                         else if (this.model.get('type') === BH.sharedHelpers.processHelpers.types.CRACK_PASSWORD_MACHINE) {
                             if (this.model.get('processSuccess'))
@@ -199,6 +193,9 @@ BH.views.Process = BH.views.BaseCollectionChildView.extend({
 
                         if (BH.app.localMachine.get('processes'))
                             BH.app.localMachine.get('processes').fetch();
+
+                        if (BH.app.currentMachine.get('machineLog'))
+                            BH.app.currentMachine.get('machineLog').fetch();
                     }, this),
                     error: function (model, response) {
                         BH.helpers.Toastr.showBBResponseErrorToast(response, null);
