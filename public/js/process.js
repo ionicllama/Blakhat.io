@@ -23,12 +23,95 @@ BH.collections.Processes = BH.collections.BaseCollection.extend({
     afterInit: function () {
         this.on('sync', this.renderProcesses, this);
         this.renderProcesses();
+        this.listenTo(this, 'destroy:all', this.removeAll);
+        this.listenTo(this, 'destroy:successful', this.removeSuccessful);
+        this.listenTo(this, 'destroy:inprogress', this.removeInProgress);
+        this.listenTo(this, 'destroy:failed', this.removeFailed);
     },
     renderProcesses: function () {
-        this.view = new BH.views.Processes({
-            el: this.options.el,
-            collection: this
-        });
+        if (this.view) {
+            this.view.collection = this;
+            this.view.render();
+        }
+        else {
+            this.view = new BH.views.Processes({
+                el: this.options.el,
+                collection: this
+            });
+        }
+    },
+    removeAll: function () {
+        if (this.models.length > 0) {
+            this.modelsForRemoval = [];
+            this.removeCompletedCount = 0;
+            for (var i = 0; i < this.models.length; i++) {
+                this.modelsForRemoval.push(this.models[i]);
+            }
+            this.removeModels();
+        }
+        else {
+            BH.helpers.Toastr.showErrorToast("No processes to remove", null);
+        }
+    },
+    removeSuccessful: function () {
+        this.modelsForRemoval = [];
+        this.removeCompletedCount = 0;
+        for (var i = 0; i < this.models.length; i++) {
+            if (BH.sharedHelpers.processHelpers.getProgress(this.models[i].attributes) >= 100 && this.models[i].get('processSuccess') === true)
+                this.modelsForRemoval.push(this.models[i]);
+        }
+        if (this.modelsForRemoval.length > 0)
+            this.removeModels();
+        else
+            BH.helpers.Toastr.showErrorToast("No successful processes to remove");
+    },
+    removeInProgress: function () {
+        this.modelsForRemoval = [];
+        this.removeCompletedCount = 0;
+        for (var i = 0; i < this.models.length; i++) {
+            if (BH.sharedHelpers.processHelpers.getProgress(this.models[i].attributes) < 100)
+                this.modelsForRemoval.push(this.models[i]);
+        }
+        if (this.modelsForRemoval.length > 0)
+            this.removeModels();
+        else
+            BH.helpers.Toastr.showErrorToast("No in progress processes to remove");
+    },
+    removeFailed: function () {
+        this.modelsForRemoval = [];
+        this.removeCompletedCount = 0;
+        for (var i = 0; i < this.models.length; i++) {
+            if (BH.sharedHelpers.processHelpers.getProgress(this.models[i].attributes) >= 100 && this.models[i].get('processSuccess') === false)
+                this.modelsForRemoval.push(this.models[i]);
+        }
+        if (this.modelsForRemoval.length > 0)
+            this.removeModels();
+        else
+            BH.helpers.Toastr.showErrorToast("No failed processes to remove", null);
+    },
+    removeModels: function () {
+        if (this.modelsForRemoval.length > this.removeCompletedCount) {
+            this.modelsForRemoval[this.removeCompletedCount].destroy({
+                success: $.proxy(function (model, response) {
+                    if (this.removeCompletedCount === this.modelsForRemoval.length)
+                        BH.helpers.Toastr.showSuccessToast("Completed processes successfully cancelled");
+                    else {
+                        this.removeCompletedCount++;
+                        this.removeModels();
+                    }
+                }, this),
+                error: $.proxy(function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                }, this)
+            });
+        }
+        else {
+            this.removeCompletedCount = 0;
+            if (this.modelsForRemoval.length > 0) {
+                this.fetch();
+                this.modelsForRemoval = [];
+            }
+        }
     }
 });
 
@@ -42,6 +125,8 @@ BH.views.Process = BH.views.BaseCollectionChildView.extend({
     events: {
         'click .process-execute': 'executeProcess',
         'click .process-retry': 'retryProcess',
+        'click .process-unpause': 'unPauseProcess',
+        'click .process-pause': 'pauseProcess',
         'click .process-remove': 'removeProcessConfirm'
     },
     beforeFirstRender: function (options) {
@@ -61,8 +146,8 @@ BH.views.Process = BH.views.BaseCollectionChildView.extend({
     },
     afterRender: function () {
         this.listenTo(this.model, "destroy", this.remove);
+        this.listenTo(this.collection, "destroy", this.remove);
         this.listenTo(this.collection, "execute", this.executeProcess);
-
         this.progressBar = this.$('.process-progress > .progress-bar');
         var progress = BH.sharedHelpers.processHelpers.getProgress(this.model.attributes);
         if (progress < 100) {
@@ -205,6 +290,42 @@ BH.views.Process = BH.views.BaseCollectionChildView.extend({
             );
         }
     },
+    unPauseProcess: function () {
+        this.model.set('isPaused', false);
+        this.model.save(null,
+            {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process un-paused", null);
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
+    pauseProcess: function () {
+        this.model.set('isPaused', true);
+        this.model.save(null,
+            {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process paused", null);
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
     retryProcess: function () {
         this.model.save(null,
             {
@@ -261,7 +382,11 @@ BH.views.Processes = BH.views.BaseCollectionView.extend({
     events: {
         'page.dt .data-table': 'pageNumberChanged',
         'length.dt .data-table': 'pageLengthChanged',
-        'change .processes-auto-finish': 'executeCompleteProcesses'
+        'change .processes-auto-finish': 'executeCompleteProcesses',
+        'click .process-remove-all': 'removeAllProcesses',
+        'click .process-remove-successful': 'removeSuccessfulProcesses',
+        'click .process-remove-in-progress': 'removeInProgressProcesses',
+        'click .process-remove-failed': 'removeFailedProcesses'
     },
     beforeFirstRender: function (options) {
         this.renderData = {
@@ -273,6 +398,18 @@ BH.views.Processes = BH.views.BaseCollectionView.extend({
     },
     afterChildrenRender: function () {
         if (this.$('.data-table')) {
+            //ordering for progress bar - if in ASC order, it goes as follows:
+            //executable processes - ongoing processes ASC by progress - paused processes
+            $.fn.dataTable.ext.order['progressBar'] = function (settings, col) {
+                return this.api().column(col, {order: 'index'}).nodes().map(function (td, i) {
+                    if ($('.process-execute', td).length > 0)
+                        return -1;
+                    else if ($('.paused-text', td).length > 0)
+                        return 101;
+                    var p = $('div.progress-bar', td).attr('aria-valuenow');
+                    return p ? parseInt(p) : 0;
+                });
+            }
             this.$('.data-table').DataTable({
                 displayStart: this.options.dataTablePage * this.options.dataTableLength,
                 language: {
@@ -284,12 +421,30 @@ BH.views.Processes = BH.views.BaseCollectionView.extend({
                 pageLength: this.options.dataTableLength,
                 order: [this.options.initTableColSort, 'asc'],
                 columnDefs: [
-                    {orderable: false, targets: [-1]}
+                    {orderable: false, targets: -1},
+                ],
+                columns: [
+                    {type: "string"},
+                    {type: "ip-address"},
+                    {orderDataType: "progressBar", type: "num"},
+                    null
                 ]
             });
         }
     },
     executeCompleteProcesses: function () {
         this.collection.trigger('execute');
+    },
+    removeAllProcesses: function () {
+        this.collection.trigger('destroy:all');
+    },
+    removeSuccessfulProcesses: function () {
+        this.collection.trigger('destroy:successful');
+    },
+    removeInProgressProcesses: function () {
+        this.collection.trigger('destroy:inprogress');
+    },
+    removeFailedProcesses: function () {
+        this.collection.trigger('destroy:failed');
     }
 });

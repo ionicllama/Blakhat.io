@@ -21,6 +21,8 @@ var processSchema = mongoose.Schema({
     log: {type: String, default: null},
     machine: {type: mongoose.Schema.Types.ObjectId, ref: 'machine', default: null},
     bankAccount: {type: mongoose.Schema.Types.ObjectId, ref: 'bankaccount', default: null},
+    isPaused: {type: Boolean, default: false},
+    pausedOn: {type: Date, default: null},
     processSuccess: {type: Boolean, default: null},
     failureReason: {type: String, default: null}
 
@@ -40,9 +42,6 @@ processSchema.statics = {
         FILE_MOVE_INTERNAL: sharedHelpers.processHelpers.types.FILE_MOVE_INTERNAL,
         FILE_RUN: sharedHelpers.processHelpers.types.FILE_RUN,
         FILE_DELETE: sharedHelpers.processHelpers.types.FILE_DELETE
-    },
-    basicCosts: {
-        UPDATE_LOG: 180
     },
     findByMachine: function (_id, callback) {
         this.find({processMachine: {_id: _id}}).populate(['machine', 'bankAccount']).exec(function (err, processes) {

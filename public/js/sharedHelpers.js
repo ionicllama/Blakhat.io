@@ -36,48 +36,53 @@
                 'seconds': seconds
             };
         },
-        getNewDateAddDays: function (date, days) {
+        getNewDateAddMilliseconds: function (date, milliseconds) {
             if (!date)
                 return date;
             else {
                 date = new Date(date);
-                return new Date(date.setTime(date.getTime() + (days * 86400000)));
-            }
-        },
-        getNewDateAddHours: function (date, hours) {
-            if (!date)
-                return date;
-            else {
-                date = new Date(date);
-                return new Date(date.setTime(date.getTime() + (hours * 3600000)));
+                return new Date(date.setTime(date.getTime() + milliseconds));
             }
         },
         getNewDateAddSeconds: function (date, seconds) {
-            if (!date)
-                return date;
-            else {
-                date = new Date(date);
-                return new Date(date.setTime(date.getTime() + (seconds * 1000)));
-            }
+            return this.getNewDateAddMilliseconds(date, seconds * 1000);
         },
-        getDateHoursDiff: function (date1, date2) {
-            return this.getDateDiff('hours', date1, date2);
+        getNewDateAddHours: function (date, hours) {
+            return this.getNewDateAddMilliseconds(date, hours * 3600000);
+        },
+        getNewDateAddDays: function (date, days) {
+            return this.getNewDateAddMilliseconds(date, days * 86400000);
+        },
+        getDateMillisecondsDiff: function (date1, date2) {
+            return this.getDateDiff('milliseconds', date1, date2);
+        },
+        getDateSecondsDiff: function (date1, date2) {
+            return this.getDateDiff('seconds', date1, date2);
         },
         getDateMinutesDiff: function (date1, date2) {
             return this.getDateDiff('minutes', date1, date2);
         },
+        getDateHoursDiff: function (date1, date2) {
+            return this.getDateDiff('hours', date1, date2);
+        },
         getDateDiff: function (type, date1, date2) {
-            var diff = parseInt(date1.getTime() - date2.getTime()) / 1000;
+            var diff = parseInt(date1.getTime() - date2.getTime());
             var result = 0;
             switch (type) {
                 case 'days':
-                    result = parseInt(diff / 86400);
+                    result = diff / 86400000;
                     break;
                 case 'hours':
-                    result = parseInt(diff / 3600);
+                    result = diff / 3600000;
                     break;
                 case 'minutes':
-                    result = parseInt(diff / 60);
+                    result = diff / 60000;
+                    break;
+                case 'seconds':
+                    result = diff / 1000;
+                    break;
+                case 'milliseconds':
+                    result = diff;
                     break;
             }
 

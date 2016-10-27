@@ -10,7 +10,21 @@
             <th>Process</th>
             <th>IP</th>
             <th>Progress</th>
-            <th></th>
+            <th class="text-center">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false">
+                        Remove
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu">
+                        <li><a href="javascript:void(0)" class="process-remove-all">All</a></li>
+                        <li><a href="javascript:void(0)" class="process-remove-successful">Successful</a></li>
+                        <li><a href="javascript:void(0)" class="process-remove-in-progress">In Progress</a></li>
+                        <li><a href="javascript:void(0)" class="process-remove-failed">Failed</a></li>
+                    </ul>
+                </div>
+            </th>
         </tr>
         </thead>
         <tbody id="processList">

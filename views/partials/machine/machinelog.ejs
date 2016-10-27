@@ -11,6 +11,10 @@
         <div class="log-button-container col-xs-4 col-sm-4 col-lg-3 text-right">
             <div class="form-group">
                 <button type="button" class="log-save-button btn btn-success" disabled>Save</button>
+                <button type="button"
+                        class="log-clear-button btn btn-info" <%= model.get('machine').log.length === 0 ? 'disabled' : '' %>>
+                    Clear
+                </button>
             </div>
         </div>
     </div>

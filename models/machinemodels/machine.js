@@ -104,8 +104,42 @@ machineSchema.statics = {
             callback(err, machine);
         });
     },
+    findByIdWithInfo: function (_id, callback) {
+        var populate = [
+            {
+                path: 'cpu'
+            },
+            {
+                path: 'gpu'
+            },
+            {
+                path: 'hdd'
+            },
+            {
+                path: 'externalHDD'
+            },
+            {
+                path: 'internet'
+            },
+            {
+                path: 'files',
+                populate: [
+                    'fileDef'
+                ]
+            },
+            {
+                path: 'externalFiles',
+                populate: [
+                    'fileDef'
+                ]
+            }
+        ];
+        this.findOne({_id: _id}).select('_id user ip password cpu gpu hdd externalHDD internet lastIPRefresh lastPasswordReset files externalFiles').populate(populate).exec(function (err, machine) {
+            callback(err, machine);
+        });
+    },
     findByIdWithLog: function (_id, callback) {
-        this.findOne({_id: _id}).select('_id log user').exec(function (err, machine) {
+        this.findOne({_id: _id}).select('_id user log').exec(function (err, machine) {
             callback(err, machine);
         });
     },
@@ -770,9 +804,12 @@ machineSchema.methods = {
             internetProcesses = 0,
             i;
 
+        if (processes.length === 0)
+            return callback();
+
         //probably refactor this to use underscore
         for (i = 0; i < processes.length; i++) {
-            if (sharedHelpers.processHelpers.getProgress(processes[i]) >= 100)
+            if (processes[i].isPaused || sharedHelpers.processHelpers.getProgress(processes[i]) >= 100)
                 continue;
 
             switch (processes[i].type) {
@@ -804,56 +841,52 @@ machineSchema.methods = {
             internetSpeedLocal.upSpeed = internetSpeedLocal.upSpeed / internetProcesses;
         }
 
-        var cbCount = 0;
-
         var processPopulateOpts = [
-            {
-                path: 'machine',
-                populate: [
-                    {
-                        path: 'internet',
-                        select: 'upSpeed downSpeed'
-                    },
-                    {
-                        path: 'cpu',
-                        select: 'cores speed'
-                    },
-                    {
-                        path: 'files',
-                        select: 'level type fileDef',
-                        populate: {
-                            path: 'fileDef'
+                {
+                    path: 'machine',
+                    populate: [
+                        {
+                            path: 'internet',
+                            select: 'upSpeed downSpeed'
+                        },
+                        {
+                            path: 'cpu',
+                            select: 'cores speed'
+                        },
+                        {
+                            path: 'files',
+                            select: 'level type fileDef',
+                            populate: {
+                                path: 'fileDef'
+                            }
                         }
+                    ]
+                },
+                {
+                    path: 'file',
+                    populate: {
+                        path: 'fileDef'
                     }
-                ]
-            },
-            {
-                path: 'file',
-                populate: {
-                    path: 'fileDef'
                 }
-            }
-        ];
+            ],
+            cbCount = 0;
         Process.populate(processes, processPopulateOpts, function (err) {
             if (err) {
                 console.log(err);
                 return callback();
             }
 
-            if ((internetProcesses + cpuProcesses) > 0) {
-                for (i = 0; i < processes.length; i++) {
-                    var internetSpeedRemote = 0,
-                        cpuModRemote = 0;
-                    if (processes[i].machine) {
-                        internetSpeedRemote = processes[i].machine.internet.getMegabyteSpeed();
-                        cpuModRemote = processes[i].machine.cpu.getModifier();
-                    }
+            for (i = 0; i < processes.length; i++) {
+                var internetSpeedRemote = 0,
+                    cpuModRemote = 0;
+                if (processes[i].machine) {
+                    internetSpeedRemote = processes[i].machine.internet.getMegabyteSpeed();
+                    cpuModRemote = processes[i].machine.cpu.getModifier();
+                }
 
-                    var progress = sharedHelpers.processHelpers.getProgress(processes[i]);
-                    if (progress >= 100)
-                        continue;
-
-                    var seconds = 0;
+                var seconds = 0,
+                    progress = sharedHelpers.processHelpers.getProgress(processes[i]);
+                if (!processes[i].isPaused && progress < 100) {
                     switch (processes[i].type) {
                         case Process.types.UPDATE_LOG:
                             seconds = calculateUpdateLog(cpuModLocal);
@@ -885,7 +918,7 @@ machineSchema.methods = {
                                 break;
                             }
 
-                            seconds = calculateFileInstall(processes[i].file, cpuModRemote);
+                            seconds = calculateFileInstall(processes[i].file, processes[i].machine ? cpuModRemote : cpuModLocal);
                             break;
                         case Process.types.FILE_RUN:
                             if (!processes[i].file) {
@@ -893,7 +926,7 @@ machineSchema.methods = {
                                 break;
                             }
 
-                            seconds = calculateFileRun(processes[i].file, cpuModRemote);
+                            seconds = calculateFileRun(processes[i].file, processes[i].machine ? cpuModRemote : cpuModLocal);
                             break;
                         case Process.types.FILE_COPY_EXTERNAL:
                         case Process.types.FILE_COPY_INTERNAL:
@@ -902,7 +935,7 @@ machineSchema.methods = {
                                 break;
                             }
 
-                            seconds = calculateFileMoveCopy(processes[i].file, cpuModRemote);
+                            seconds = calculateFileMoveCopy(processes[i].file, processes[i].machine ? cpuModRemote : cpuModLocal);
                             break;
                         case Process.types.FILE_MOVE_EXTERNAL:
                         case Process.types.FILE_MOVE_INTERNAL:
@@ -911,7 +944,7 @@ machineSchema.methods = {
                                 break;
                             }
 
-                            seconds = calculateFileMoveCopy(processes[i].file, cpuModRemote);
+                            seconds = calculateFileMoveCopy(processes[i].file, processes[i].machine ? cpuModRemote : cpuModLocal);
                             break;
                         case Process.types.FILE_DELETE:
                             if (!processes[i].file) {
@@ -919,34 +952,31 @@ machineSchema.methods = {
                                 break;
                             }
 
-                            seconds = calculateFileDelete(processes[i].file, cpuModRemote);
+                            seconds = calculateFileDelete(processes[i].file, processes[i].machine ? cpuModRemote : cpuModLocal);
                             break;
                     }
                     //account for the progress that has already happened
                     seconds = seconds - (progress / 100 * seconds);
 
                     processes[i].end = sharedHelpers.getNewDateAddSeconds(new Date(), seconds);
-                    //currently doing this async, may want to change for performance and just deal with potential UI lag
-                    processes[i].save(function (err) {
-                        if (err)
-                            console.log(err);
-
-                        cbCount++;
-                        if (cbCount === (internetProcesses + cpuProcesses))
-                            callback();
-                    });
                 }
-            }
-            else {
-                callback();
+                //currently doing this async, may want to change for performance and just deal with potential UI lag
+                processes[i].save(function (err) {
+                    if (err)
+                        console.log(err);
+
+                    cbCount++;
+                    if (cbCount === processes.length)
+                        callback();
+                });
             }
         });
     }
 };
 
 function calculateUpdateLog(cpuMod) {
-    var s = Process.basicCosts.UPDATE_LOG;
-    return Math.ceil(s * (s / (cpuMod / 2)));
+    var b = 180;
+    return Math.ceil(b * (b / (cpuMod / 4)));
 }
 
 function calculateCrackMachinePassword(processMachine, cpuMod, crackMachine) {
@@ -989,13 +1019,14 @@ function calculateFileRun(file, cpuMod) {
 }
 
 function calculateFileMoveCopy(file, cpuMod) {
-
-    return 30;
+    var b = file.fileDef.size;
+    return Math.ceil((b * .1) / (cpuMod * .0001));
 }
 
 function calculateFileDelete(file, cpuMod) {
-
-    return 30;
+    console.log(file);
+    var b = (file.fileDef.size)
+    return Math.ceil((b * .01) / (cpuMod * .0001));
 }
 
 module.exports = mongoose.model('machine', machineSchema);

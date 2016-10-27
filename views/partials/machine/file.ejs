@@ -3,7 +3,7 @@
     <td><%- BH.sharedHelpers.fileHelpers.getFileName(model.attributes) %></td>
     <td><%- BH.sharedHelpers.fileHelpers.getFiletypeName(model.attributes) %></td>
     <td><%- model.get('fileDef').level %></td>
-    <td><%- model.get('fileDef').size %></td>
+    <td><%- model.get('fileDef').size + 'Mb' %></td>
     <td class="text-center">
         <% if(!model.get('isInstalled') || !BH.sharedHelpers.fileHelpers.isVirus(model.get('fileDef'))) { %>
         <div class="btn-group">
@@ -15,9 +15,6 @@
                 <% if(canDownloadFiles && fileLocation === 'internal'){ %>
                 <li><a href="javascript:void(0)" class="file-download">Download</a></li>
                 <% } else { %>
-                <% if(fileLocation === 'internal' && BH.sharedHelpers.fileHelpers.canRun(model.get('fileDef'))){ %>
-                <li><a href="javascript:void(0)" class="file-run">Run</a></li>
-                <% } %>
                 <% if(!model.get('installed') && fileLocation === 'internal') { %>
                 <li><a href="javascript:void(0)" class="file-copy-external">Copy to external HDD</a></li>
                 <li><a href="javascript:void(0)" class="file-move-external">Move to external HDD</a></li>
@@ -27,6 +24,9 @@
                 <% } %>
                 <% } %>
                 <% if(!model.get('isLocked')) { %>
+                <% if(fileLocation === 'internal' && BH.sharedHelpers.fileHelpers.canRun(model.get('fileDef'))){ %>
+                <li><a href="javascript:void(0)" class="file-run">Run</a></li>
+                <% } %>
                 <% if(fileLocation === 'internal' && !model.get('isInstalled') && BH.sharedHelpers.fileHelpers.isVirus(model.get('fileDef'))) { %>
                 <li><a href="javascript:void(0)" class="file-install">Install</a></li>
                 <% } %>

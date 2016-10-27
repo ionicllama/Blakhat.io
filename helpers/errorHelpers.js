@@ -4,7 +4,7 @@
 
 var errorHelpers = {
     returnError: function (resText, res, logErr) {
-        if (logErr && logErr.length > 0)
+        if (logErr)
             console.log('Error Handled: ' + logErr);
         if (res && res.status)
             res.status(500).send(resText);

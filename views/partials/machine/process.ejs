@@ -8,13 +8,15 @@
         <% } %>
     </td>
     <td class="progress-col">
-        <% if(progress < 100) { %>
+        <% if(!model.get('isPaused') && progress < 100) { %>
         <div class="process-progress progress">
             <div class="progress-bar progress-bar-striped progress-bar-success active" role="progressbar"
                  aria-valuenow="<%- progress %>>" aria-valuemin="0" aria-valuemax="100"
                  style="width: <%- progress %>%"></div>
             <div class="process-center-text process-time-remaining"><%= BH.helpers.viewHelpers.getTimeRemainingString(timeRemaining) %></div>
         </div>
+        <% } else if(model.get('isPaused')){ %>
+        <span class="text-warning paused-text">Paused</span>
         <% } else if(model.attributes.processSuccess === null){ %>
         <button type="button" class="btn btn-success btn-sm process-execute">
             Execute
@@ -26,6 +28,15 @@
         <% } %>
     </td>
     <td class="text-center">
+        <% if(!model.get('isPaused') && progress < 100) { %>
+        <button type="button" class="btn btn-warning btn-sm process-pause">
+            <span class="glyphicon glyphicon-pause"></span>
+        </button>
+        <% } else if(model.get('isPaused')) { %>
+        <button type="button" class="btn btn-success btn-sm process-unpause">
+            <span class="glyphicon glyphicon-play"></span>
+        </button>
+        <% } %>
         <button type="button" class="btn btn-danger btn-sm process-remove">
             <span class="glyphicon glyphicon-remove"></span>
         </button>

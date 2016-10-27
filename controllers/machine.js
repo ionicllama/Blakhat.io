@@ -16,7 +16,7 @@ var auth = require('../middlewares/authMiddleware');
 var sharedHelpers = require('../public/js/sharedHelpers').sharedHelpers;
 var errorHelpers = require('../helpers/errorHelpers');
 
-
+//All machine data
 router.get('/', auth.isLoggedIn, function (req, res) {
     var response = {machine: {}};
     if (req.user._id) {
@@ -38,11 +38,10 @@ router.get('/', auth.isLoggedIn, function (req, res) {
             });
 
             if (!response.isOwner) {
-                machine.externalFiles = machine.externaLFiles.filter(function (file) {
+                machine.externalFiles = machine.externalFiles.filter(function (file) {
                     return false;
                 });
             }
-
 
             res.json(response);
         })
@@ -89,7 +88,34 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
     }
 });
 
-router.patch('/:_id', auth.isLoggedIn, function (req, res) {
+//Machine Info
+router.get('/:_id/info', auth.isLoggedIn, function (req, res) {
+    if (req.params._id) {
+        Machine.findByIdWithInfo(req.params._id, function (err, machine) {
+            if (err)
+                return errorHelpers.returnError("Failed to update machine.", res, err);
+            else if (!machine)
+                return errorHelpers.returnError("No existing machine with supplied _id.", res);
+
+            machine.validateAuth(req.user, req.query.password, function (isAuthenticated, isOwner) {
+                if (!isAuthenticated)
+                    return errorHelpers.returnError("You don't have permission to view this machine's log.", res);
+
+                if (!isOwner) {
+                    machine.externalFiles = machine.externalFiles.filter(function (file) {
+                        return false;
+                    });
+                }
+
+                res.json({
+                    machine: machine
+                });
+            })
+        });
+    }
+});
+
+router.patch('/:_id/info', auth.isLoggedIn, function (req, res) {
     if (req.params._id) {
         Machine.findByIdPopulated(req.params._id, function (err, machine) {
             if (err)
@@ -97,37 +123,21 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
             else if (!machine)
                 return errorHelpers.returnError("No existing machine with supplied _id.", res);
 
-            var fileStats = machine.getFileStats();
-            //filter out hidden files where the hider level > the current machine's finder
-            //if a user needs to find a hidden file on a remote machine, they need to upload a seeker
-            machine.files = machine.files.filter(function (file) {
-                return file.hidden === null || file.hidden <= fileStats.finder;
-            });
-
             var response = {
                 machine: machine
             };
 
-            machine.validateAuth(req.user, req.body.password, function (isAuthenticated) {
+            machine.validateAuth(req.user, req.body.password, function (isAuthenticated, isOwner) {
                 if (!isAuthenticated)
                     return errorHelpers.returnError("You don't have admin permissions for this machine.", res);
 
-                if (req.body.log != null) {
-                    machine.updateLog(req.body.log, false, function (err) {
-                        if (err) {
-                            errorHelpers.returnError(UIError, res, err);
-                            return;
-                        }
-                        res.json(response);
-                    });
-                }
-                else if (req.body.ip != null) {
+                if (req.body.ip != null) {
                     machine.refreshIP(function (UIError, err) {
                         if (err || UIError) {
                             errorHelpers.returnError(UIError, res, err);
                             return;
                         }
-                        res.json(response);
+                        machineResponse(machine, isOwner, res);
                     });
                 }
                 else if (req.body.password != null) {
@@ -136,7 +146,7 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                             errorHelpers.returnError(UIError, res, err);
                             return;
                         }
-                        res.json(response);
+                        machineResponse(machine, isOwner, res);
                     });
                 }
                 else if (req.body.purchaseAccount) {
@@ -144,14 +154,13 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                         if (err || !bankAccount)
                             return errorHelpers.returnError("Failed to purchase upgrade.", res, err);
 
-
                         if (req.body.cpu && req.body.cpu._id && req.body.cpu._id.length > 0) {
                             machine.upgradeCPU(req.user, bankAccount, req.body.cpu._id, function (UIError, err) {
                                 if (err || UIError) {
                                     errorHelpers.returnError(UIError, res, err);
                                     return;
                                 }
-                                res.json(response);
+                                machineResponse(machine, isOwner, res);
                             });
                         }
                         else if (req.body.gpu && req.body.gpu._id && req.body.gpu._id.length > 0) {
@@ -160,7 +169,7 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                                     errorHelpers.returnError(UIError, res, err);
                                     return;
                                 }
-                                res.json(response);
+                                machineResponse(machine, isOwner, res);
                             });
                         }
                         else if (req.body.hdd && req.body.hdd._id && req.body.hdd._id.length > 0) {
@@ -169,7 +178,7 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                                     errorHelpers.returnError(UIError, res, err);
                                     return;
                                 }
-                                res.json(response);
+                                machineResponse(machine, isOwner, res);
                             });
                         }
                         else if (req.body.externalHDD && req.body.externalHDD._id && req.body.externalHDD._id.length > 0) {
@@ -178,7 +187,7 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                                     errorHelpers.returnError(UIError, res, err);
                                     return;
                                 }
-                                res.json(response);
+                                machineResponse(machine, isOwner, res);
                             });
                         }
                         else if (req.body.internet && req.body.internet._id && req.body.internet._id.length > 0) {
@@ -187,7 +196,7 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                                     errorHelpers.returnError(UIError, res, err);
                                     return;
                                 }
-                                res.json(response);
+                                machineResponse(machine, isOwner, res);
                             });
                         }
                         else {
@@ -206,26 +215,25 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
     }
 });
 
-//Machine Info
-router.get('/:_id/info', auth.isLoggedIn, function (req, res) {
-    if (req.params._id) {
-        Machine.findByIdPopulated(req.params._id, function (err, machine) {
-            if (err)
-                return errorHelpers.returnError("Failed to update machine.", res, err);
-            else if (!machine)
-                return errorHelpers.returnError("No existing machine with supplied _id.", res);
-
-            machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
-                if (!isAuthenticated)
-                    return errorHelpers.returnError("You don't have permission to view this machine's log.", res);
-
-                res.json({
-                    machine: machine
-                });
-            })
+function machineResponse(machine, isOwner, res) {
+    if (!isOwner) {
+        machine.externalFiles = machine.externalFiles.filter(function (file) {
+            return false;
+        });
+        machine.processes = machine.processes.filter(function (process) {
+            return false;
+        });
+        var fileStats = machine.getFileStats();
+        machine.files = machine.files.filter(function (file) {
+            return file.hidden === null || file.hidden <= fileStats.finder;
         });
     }
-});
+
+    res.json({
+        machine: machine,
+        isOwner: isOwner
+    });
+}
 
 //Machine Log
 router.get('/:_id/log', auth.isLoggedIn, function (req, res) {
@@ -333,7 +341,29 @@ router.patch('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) {
             if (err)
                 return errorHelpers.returnError("Failed to find a process with provided id", res, err);
 
-            if (process.processSuccess != null) {
+            if (req.body.isPaused != process.isPaused) {
+                process.processSuccess = null;
+                process.isPaused = req.body.isPaused;
+                if (!process.isPaused) {
+                    process.start = sharedHelpers.getNewDateAddMilliseconds(new Date(), sharedHelpers.getDateMillisecondsDiff(process.start, process.pausedOn));
+                    process.end = sharedHelpers.getNewDateAddMilliseconds(new Date(), sharedHelpers.getDateMillisecondsDiff(process.end, process.pausedOn));
+                    process.pausedOn = null;
+                }
+                else {
+                    process.pausedOn = new Date();
+                }
+                processMachine.updateProcessCosts(function (UIError, err) {
+                    if (UIError || err)
+                        return errorHelpers.returnError("Failed to pause process", res, err);
+                    processMachine.save(function (err) {
+                        if (err)
+                            return errorHelpers.returnError("Failed to pause process", res, err);
+
+                        res.json(process);
+                    });
+                });
+            }
+            else if (process.processSuccess != null) {
                 process.processSuccess = null;
                 process.start = new Date();
                 process.end = null;
@@ -714,10 +744,10 @@ router.delete('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) 
         machine.processes.pull(process._id);
         machine.save(function (err) {
             if (err)
-                return errorHelpers("Failed to delete the selected process", err, res);
+                return errorHelpers.returnError("Failed to delete the selected process", res, err);
             process.remove(function () {
                 if (err)
-                    return errorHelpers("Failed to delete the selected process", err, res);
+                    return errorHelpers.returnError("Failed to delete the selected process", res, err);
                 machine.updateProcessCosts(function (err) {
                     if (err)
                         console.log(err);

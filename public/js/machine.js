@@ -84,12 +84,18 @@ BH.models.Internet = BH.models.BaseModel.extend({
 });
 
 BH.models.MachineLog = BH.models.BaseModel.extend({
-    urlRoot: function () {
+    url: function () {
         return '/machine/' + this.get('machine')._id + '/log'
     },
     initialize: function () {
         this.on('sync', this.renderLog, this);
         this.renderLog();
+        this.parse(this.attributes);
+    },
+    parse: function (response) {
+        if (response.machine)
+            response._id = response.machine._id;
+        return response;
     },
     renderLog: function () {
         if (this.machineLogView)
@@ -131,22 +137,35 @@ BH.models.MachineLog = BH.models.BaseModel.extend({
 });
 
 BH.models.MachineInfo = BH.models.BaseModel.extend({
-    urlRoot: function () {
+    url: function () {
         return '/machine/' + this.get('machine')._id + '/info'
     },
     initialize: function () {
-        this.on('sync', this.renderLog, this);
+        this.on('sync', this.renderInfo, this);
         this.renderInfo();
+        this.parse(this.attributes);
+    },
+    parse: function (response) {
+        if (response.machine)
+            response._id = response.machine._id;
+        return response;
     },
     renderInfo: function () {
-        if (this.machineLogView)
+        if (this.machineInfoView) {
             this.machineInfoView.render();
-        else
+        }
+        else if (this.get('isOwner')) {
+            this.machineInfoView = new BH.views.LocalMachineInfo({
+                model: this,
+                el: this.get('el')
+            });
+        }
+        else {
             this.machineInfoView = new BH.views.MachineInfo({
                 model: this,
-                el: this.get('el'),
-                isOwner: this.get('isOwner')
+                el: this.get('el')
             });
+        }
     },
     canRefreshIP: function () {
         return BH.sharedHelpers.checkDateIsBeforeToday(BH.sharedHelpers.getNewDateAddDays(this.get('machine').lastIPRefresh, 1));
@@ -417,12 +436,13 @@ BH.collections.Internets = BH.collections.BaseCollection.extend({
 BH.views.Machine = BH.views.BaseView.extend({
     defaults: {
         template: '/views/partials/machine/machine.ejs',
-        canDownloadFiles: true
+        canDownloadFiles: true,
+        isOwner: false
     },
     renderMachineInfo: function () {
         this.machineInfo = new BH.models.MachineInfo({
             machine: this.model.get('machine'),
-            isOwner: this.model.get('isOwner'),
+            isOwner: this.options.isOwner,
             el: this.$('#machineInfo')
         });
         this.model.set('machineInfo', this.machineInfo);
@@ -440,7 +460,7 @@ BH.views.Machine = BH.views.BaseView.extend({
                 machine: this.model.get('machine'),
                 el: this.$('#internalFiles'),
                 fileLocation: 'internal',
-                canDownloadFiles: this.options.canDownloadFiles ? this.options.canDownloadFiles : false
+                canDownloadFiles: this.options.canDownloadFiles
             });
         this.model.set('internalFiles', this.internalFiles);
     },
@@ -459,7 +479,8 @@ BH.views.Machine = BH.views.BaseView.extend({
 BH.views.LocalMachine = BH.views.Machine.extend({
     defaults: {
         template: '/views/partials/machine/machine.ejs',
-        canDownloadFiles: false
+        canDownloadFiles: false,
+        isOwner: true
     },
     afterRender: function () {
         this.renderMachineInfo();
@@ -480,9 +501,6 @@ BH.views.LocalMachine = BH.views.Machine.extend({
 });
 
 BH.views.RemoteMachine = BH.views.Machine.extend({
-    events: {
-        'click #toggleMachinePassword': 'toggleMachinePassword'
-    },
     afterRender: function () {
         this.renderMachineInfo();
         this.renderMachineLog();
@@ -491,6 +509,9 @@ BH.views.RemoteMachine = BH.views.Machine.extend({
 });
 
 BH.views.MachineInfo = BH.views.BaseView.extend({
+    events: {
+        'click #toggleMachinePassword': 'toggleMachinePassword'
+    },
     defaults: {
         template: '/views/partials/machine/machineinfo.ejs'
     },
@@ -635,6 +656,7 @@ BH.views.MachineLog = BH.views.BaseView.extend({
     events: {
         'keyup .log-text': 'logChanged',
         'change .log-text': 'logChanged',
+        'click .log-clear-button': 'clearLog',
         'click .log-save-button': 'saveLog'
     },
     beforeFirstRender: function (options) {
@@ -645,13 +667,24 @@ BH.views.MachineLog = BH.views.BaseView.extend({
     },
     afterRender: function () {
         this.saveButton = this.$('.log-save-button');
+        this.clearButton = this.$('.log-clear-button');
         this.logText = this.$('.log-text');
     },
     logChanged: function () {
-        if (this.logText.val().length > 0 || this.model.get('machine').log.length > 0)
+        if (this.logText.val() != this.model.get('machine').log)
             this.saveButton.prop('disabled', false);
         else
             this.saveButton.prop('disabled', true);
+
+        if (this.logText.val().length > 0)
+            this.clearButton.prop('disabled', false)
+        else
+            this.clearButton.prop('disabled', true)
+    },
+    clearLog: function () {
+        this.logText.val("")
+        this.saveButton.prop('disabled', false);
+
     },
     saveLog: function () {
         this.model.updateLog(this.logText.val());

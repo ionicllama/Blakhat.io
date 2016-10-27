@@ -207,15 +207,21 @@ BH.collections.Files = BH.collections.BaseCollection.extend({
         this.renderFiles();
     },
     renderFiles: function () {
-        this.view = new BH.views.Files({
-            el: this.options.el,
-            collection: this,
-            machine: this.options.machine,
-            childOptions: {
-                canDownloadFiles: this.options.canDownloadFiles,
-                fileLocation: this.options.fileLocation
-            }
-        });
+        if (this.view) {
+            this.view.collection = this;
+            this.view.render();
+        }
+        else {
+            this.view = new BH.views.Files({
+                el: this.options.el,
+                collection: this,
+                machine: this.options.machine,
+                childOptions: {
+                    canDownloadFiles: this.options.canDownloadFiles,
+                    fileLocation: this.options.fileLocation
+                }
+            });
+        }
     }
 });
 
@@ -318,7 +324,15 @@ BH.views.Files = BH.views.BaseCollectionView.extend({
                 pageLength: this.options.dataTableLength,
                 order: [this.options.initTableColSort, 'asc'],
                 columnDefs: [
-                    {orderable: false, targets: [0, -1]}
+                    {orderable: false, targets: -1}
+                ],
+                columns: [
+                    null,
+                    {type: "string"},
+                    {type: "string"},
+                    {type: "num"},
+                    {type: "file-size"},
+                    null
                 ]
             });
         }

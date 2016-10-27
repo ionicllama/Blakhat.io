@@ -16,5 +16,6 @@
     <orderEntry type="library" name="dataTables.bootstrap" level="application" />
     <orderEntry type="library" name="backbone" level="application" />
     <orderEntry type="library" name="underscore" level="application" />
+    <orderEntry type="library" name="file-size" level="application" />
   </component>
 </module>
