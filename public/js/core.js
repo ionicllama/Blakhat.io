@@ -273,13 +273,13 @@ BH.helpers.viewHelpers = {
     createCountdownTimer: function ($el, date, finishCallback) {
         if ($el) {
             var t = BH.sharedHelpers.getTimeRemaining(date);
-            this.createCountdownElement($el, t);
+            this.createTimerElement($el, t);
             if (t.total > 0) {
                 var interval = setInterval(_.bind(function () {
                     t = BH.sharedHelpers.getTimeRemaining(date);
 
                     if (t.total > 0) {
-                        this.createCountdownElement($el, t);
+                        this.createTimerElement($el, t);
                     }
                     else {
                         clearInterval(interval);
@@ -290,20 +290,30 @@ BH.helpers.viewHelpers = {
         }
         return interval;
     },
-    createCountdownElement: function ($el, remaining) {
-        var d = this.getTimeRemainingString(remaining);
-        $el.html(d);
+    createElapsedTimer: function ($el, date) {
+        if ($el) {
+            var t = BH.sharedHelpers.getTimeElapsed(date);
+            this.createTimerElement($el, t);
+            var interval = setInterval(_.bind(function () {
+                t = BH.sharedHelpers.getTimeElapsed(date);
+                this.createTimerElement($el, t);
+            }, this), 1000);
+        }
+        return interval;
     },
-    getTimeRemainingString: function (remaining) {
+    createTimerElement: function ($el, date) {
+        $el.html(this.getDateTimeString(date));
+    },
+    getDateTimeString: function (date) {
         var s = "";
-        if (remaining.days > 0)
-            s += (remaining.days + "d ");
-        if (remaining.hours > 0 || remaining.days > 0)
-            s += (remaining.hours + "h ");
-        if (remaining.minutes > 0 || remaining.hours > 0 || remaining.days > 0)
-            s += (remaining.minutes + "m ");
+        if (date.days > 0)
+            s += (date.days + "d ");
+        if (date.hours > 0 || date.days > 0)
+            s += (date.hours + "h ");
+        if (date.minutes > 0 || date.hours > 0 || date.days > 0)
+            s += (date.minutes + "m ");
 
-        s += (remaining.seconds + "s ");
+        s += (date.seconds + "s ");
         return s;
     },
     getFilesSizeUsedString: function (hddSize, filesSize) {
@@ -432,7 +442,7 @@ BH.Router = Backbone.Router.extend({
         new BH.models.InternetBrowser({
             el: '#pageInnerContainer',
             browserLoadData: {
-                ip: ip
+                ip: ip.replace(new RegExp('_', 'g'), '/')
             }
         });
     },

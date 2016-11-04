@@ -34,7 +34,7 @@ router.get('/', auth.isLoggedIn, function (req, res) {
             //if a user needs to find a hidden file on a remote machine, they need to upload a seeker
             var fileStats = machine.getFileStats();
             machine.files = machine.files.filter(function (file) {
-                return file.hidden === null || file.hidden <= fileStats.finder;
+                return file.hidden === null || file.hidden <= fileStats[sharedHelpers.fileHelpers.types.FINDER];
             });
 
             if (!response.isOwner) {
@@ -64,7 +64,7 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
                     //filter out hidden files where the hider level > the current machine's finder
                     //if a user needs to find a hidden file on a remote machine, they need to upload a seeker
                     machine.files = machine.files.filter(function (file) {
-                        return file.hidden === null || file.hidden <= fileStats.finder;
+                        return file.hidden === null || file.hidden <= fileStats[sharedHelpers.fileHelpers.types.FINDER];
                     });
 
                     if (!isOwner || !bot || !bot.isAnalyzed) {
@@ -225,7 +225,7 @@ function machineResponse(machine, isOwner, res) {
         });
         var fileStats = machine.getFileStats();
         machine.files = machine.files.filter(function (file) {
-            return file.hidden === null || file.hidden <= fileStats.finder;
+            return file.hidden === null || file.hidden <= fileStats[sharedHelpers.fileHelpers.types.FINDER];
         });
     }
 
@@ -440,7 +440,7 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
 
                     var fileStatsP = processMachine.getFileStats(),
                         fileStatsC = machine.getFileStats();
-                    if (fileStatsC.firewall > fileStatsP.firewall)
+                    if (fileStatsC[sharedHelpers.fileHelpers.types.FIREWALL] > fileStatsP[sharedHelpers.fileHelpers.types.FIREWALL])
                         return errorHelpers.returnError("Your firewall bypasser level is too low to crack this machine's admin password.", res, err);
 
                     newProcess = new Process({
@@ -722,7 +722,7 @@ function saveProcess(processMachine, newProcess, res) {
 
 router.delete('/:machine_id/process/:_id', auth.isLoggedIn, function (req, res) {
     if (!req.params.machine_id)
-        return errorHelpers.returnError("No machine id was provided to start the process on", res);
+        return errorHelpers.returnError("No machine id was provided to delete the process from", res);
     else if (!req.params._id)
         return errorHelpers.returnError_noId(res);
 

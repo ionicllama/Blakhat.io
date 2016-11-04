@@ -240,7 +240,7 @@ machineSchema.statics = {
                     return false;
                 });
                 machineInfo.machine = machine;
-                machineInfo.firewall = fileStats.firewall;
+                machineInfo.firewall = fileStats[sharedHelpers.fileHelpers.types.FIREWALL];
             }
 
             return callback(null, machineInfo);
@@ -465,19 +465,19 @@ machineSchema.methods = {
                 processFileStats = processMachine.getFileStats(),
                 result = true;
 
-            if (processFileStats.passwordCracker == 0) {
+            if (processFileStats[sharedHelpers.fileHelpers.types.PASSWORD_CRACKER] == 0) {
                 result = false;
             }
-            else if (crackFileStats.firewall > processFileStats.firewall) {
+            else if (crackFileStats[sharedHelpers.fileHelpers.types.FIREWALL] > processFileStats[sharedHelpers.fileHelpers.types.FIREWALL]) {
                 result = false;
             }
             else {
                 //base chance of success is 10%
                 var chance = 10;
                 //10% chance more per firewall bypasser level of the process machine OVER the firewall of the crack machine
-                chance += (10 * (processFileStats.firewallBypasser - crackFileStats.firewall));
+                chance += (10 * (processFileStats[sharedHelpers.fileHelpers.types.FIREWALL_BYPASSER] - crackFileStats[sharedHelpers.fileHelpers.types.FIREWALL]));
                 //10% chance more per password cracker level of the process machine
-                chance += (10 * processFileStats.passwordCracker);
+                chance += (10 * processFileStats[sharedHelpers.fileHelpers.types.PASSWORD_CRACKER]);
 
                 //if chance is 100, it will always be greater or equal to the math equation
                 //if its less than 100, the chance it will be less is chance%
@@ -985,10 +985,10 @@ function calculateCrackMachinePassword(processMachine, cpuMod, crackMachine) {
         seconds = 300;
 
     //base seconds is 300 (5 mins) * the firewall level of the machine being cracked
-    seconds *= Math.max(1, (fileStatsC.firewall));
+    seconds *= Math.max(1, (fileStatsC[sharedHelpers.fileHelpers.types.FIREWALL]));
 
     //for every level of password cracker on process machine, reduce total seconds by 5%
-    seconds = seconds - (seconds * (fileStatsP.passwordCracker * .05));
+    seconds = seconds - (seconds * (fileStatsP[sharedHelpers.fileHelpers.types.FIREWALL] * .05));
 
     //calculate a decimal based on the available cpu, and remove the amount from the total
     seconds = seconds - (seconds * (cpuMod / 100000));

@@ -242,7 +242,7 @@ processSchema.methods = {
                             if (this.machine.files[i].fileDef.isVirus &&
                                 this.machine.files[i].fileDef.level <= this.file.fileDef.level &&
                                 this.machine.files[i].isInstalled &&
-                                this.machine.files[i].hidden <= this.machine.getFileStats().finder) {
+                                this.machine.files[i].hidden <= this.machine.getFileStats()[sharedHelpers.fileHelpers.types.FINDER]) {
                                 removeArr.push(this.machine.files[i]);
                         }
                         }

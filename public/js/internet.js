@@ -280,7 +280,7 @@ BH.views.InternetBrowserDOM = BH.views.BaseCollectionChildView.extend({
                     this.model.get('machine') &&
                     processes[i].machine._id === this.model.get('machine')._id &&
                     processes[i].processSuccess != false &&
-                    processes[i].type === BH.sharedHelpers.fileHelpers.types.CRACK_PASSWORD_MACHINE)
+                    processes[i].type === BH.sharedHelpers.processHelpers.types.CRACK_PASSWORD_MACHINE)
                     crackInProgress = true;
             }
         }

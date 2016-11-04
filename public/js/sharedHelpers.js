@@ -1,4 +1,3 @@
-//noinspection SillyAssignmentJS
 /**
  * Created by Evan on 9/25/2016.
  */
@@ -22,8 +21,14 @@
 
             return Math.floor(Math.random() * (startNum - 254) + 255);
         },
+        getTimeElapsed: function (date) {
+            return this.getTimeStats(new Date(), date);
+        },
         getTimeRemaining: function (date) {
-            var t = Date.parse(date) - Date.parse(new Date());
+            return this.getTimeStats(date, new Date());
+        },
+        getTimeStats: function (date1, date2) {
+            var t = Date.parse(date1) - Date.parse(date2);
             var seconds = Math.floor((t / 1000) % 60);
             var minutes = Math.floor((t / 1000 / 60) % 60);
             var hours = Math.floor((t / (1000 * 60 * 60)) % 24);
@@ -304,58 +309,25 @@
             return size / hdd.size;
         },
         getFileStats: function (files) {
-            var stats = {
-                firewall: 0,
-                firewallBypasser: 0,
-                passwordCracker: 0,
-                spam: 0,
-                warez: 0,
-                miner: 0,
-                ddos: 0,
-                antivirus: 0,
-                hider: 0,
-                finder: 0,
-                analyzer: 0
-            };
+            var stats = {};
+            stats[this.types.FIREWALL] = 0;
+            stats[this.types.FIREWALL_BYPASSER] = 0;
+            stats[this.types.PASSWORD_CRACKER] = 0;
+            stats[this.types.SPAM] = 0;
+            stats[this.types.WAREZ] = 0;
+            stats[this.types.MINER] = 0;
+            stats[this.types.DDOS] = 0;
+            stats[this.types.ANTIVIRUS] = 0;
+            stats[this.types.HIDER] = 0;
+            stats[this.types.FINDER] = 0;
+            stats[this.types.ANALYZER] = 0;
             if (files) {
                 for (var i = 0; i < files.length; i++) {
-                    if (!files[i].fileDef)
+                    var ft = files[i].fileDef.type.toLowerCase();
+                    if (!files[i].fileDef || stats[ft] == null)
                         continue;
-                    switch (files[i].fileDef.type.toLowerCase()) {
-                        case this.types.FIREWALL:
-                            stats.firewall = files[i].fileDef.level;
-                            break;
-                        case this.types.FIREWALL_BYPASSER:
-                            stats.firewallBypasser = files[i].fileDef.level;
-                            break;
-                        case this.types.PASSWORD_CRACKER:
-                            stats.passwordCracker = files[i].fileDef.level;
-                            break;
-                        case this.types.SPAM:
-                            stats.spam = files[i].fileDef.level;
-                            break;
-                        case this.types.WAREZ:
-                            stats.warez = files[i].fileDef.level;
-                            break;
-                        case this.types.MINER:
-                            stats.bitcoin = files[i].fileDef.level;
-                            break;
-                        case this.types.DDOS:
-                            stats.ddos = files[i].fileDef.level;
-                            break;
-                        case this.types.ANTIVIRUS:
-                            stats.antivirus = files[i].fileDef.level;
-                            break;
-                        case this.types.HIDER:
-                            stats.hider = files[i].fileDef.level;
-                            break;
-                        case this.types.FINDER:
-                            stats.finder = files[i].fileDef.level;
-                            break;
-                        case this.types.ANALYZER:
-                            stats.analyzer = files[i].fileDef.level;
-                            break;
-                    }
+
+                    stats[ft] = files[i].fileDef.level;
                 }
             }
             return stats;
@@ -367,9 +339,9 @@
             fileDef.type === this.types.DDOS);
         },
         canRun: function (fileDef) {
-            return (fileDef.type === BH.sharedHelpers.fileHelpers.types.ANTIVIRUS ||
-            fileDef.type === BH.sharedHelpers.fileHelpers.types.FINDER ||
-            fileDef.type === BH.sharedHelpers.fileHelpers.types.HIDER)
+            return (fileDef.type === this.types.ANTIVIRUS ||
+            fileDef.type === this.types.FINDER ||
+            fileDef.type === this.types.HIDER)
         }
     };
 
@@ -444,6 +416,26 @@
             result.dollars = balance / 100;
             result.cents = balance % 100;
             return result;
+        }
+    };
+
+    exports.sharedHelpers.botHelpers = {
+        jobTypes: {
+            SPAM: 0,
+            WAREZ: 1,
+            MINER: 2,
+            DDOS: 3
+        },
+        getProfit: function (bot) {
+            var p = bot.profit ? bot.profit : 0;
+            if (bot.lastCalculatedOn) {
+                var t = exports.sharedHelpers.getTimeElapsed(bot.lastCalculatedOn);
+                //todo: calculate bot profit based on $/sec - calculated on server side
+
+                //temporary - calculate seconds elapsed times 2 cents
+                p += Math.max(0, (t.total / 1000) * 2);
+            }
+            return Math.floor(p);
         }
     };
 

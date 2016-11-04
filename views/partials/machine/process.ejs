@@ -13,7 +13,7 @@
             <div class="progress-bar progress-bar-striped progress-bar-success active" role="progressbar"
                  aria-valuenow="<%- progress %>>" aria-valuemin="0" aria-valuemax="100"
                  style="width: <%- progress %>%"></div>
-            <div class="process-center-text process-time-remaining"><%= BH.helpers.viewHelpers.getTimeRemainingString(timeRemaining) %></div>
+            <div class="process-center-text process-time-remaining"><%= BH.helpers.viewHelpers.getDateTimeString(timeRemaining) %></div>
         </div>
         <% } else if(model.get('isPaused')){ %>
         <span class="text-warning paused-text">Paused</span>

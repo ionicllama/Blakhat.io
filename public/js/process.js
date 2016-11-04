@@ -155,7 +155,7 @@ BH.views.Process = BH.views.BaseCollectionChildView.extend({
                 var progress = BH.sharedHelpers.processHelpers.getProgress(this.model.attributes);
                 if (progress < 100) {
                     var timeRemaining = BH.sharedHelpers.getTimeRemaining(new Date(this.model.get('end')));
-                    BH.helpers.viewHelpers.updateProcessProgress(this.progressBar, progress, BH.helpers.viewHelpers.getTimeRemainingString(timeRemaining));
+                    BH.helpers.viewHelpers.updateProcessProgress(this.progressBar, progress, BH.helpers.viewHelpers.getDateTimeString(timeRemaining));
                 }
                 else {
                     clearInterval(this.progressInterval);
@@ -367,7 +367,6 @@ BH.views.Process = BH.views.BaseCollectionChildView.extend({
                 BH.helpers.Toastr.showBBResponseErrorToast(response, null);
             }, this)
         });
-
     }
 });
 

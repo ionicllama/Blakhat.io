@@ -1,14 +1,46 @@
-<tr>
+<tr class="bot-container">
     <td><a href='javascript:void(0)' class='ip-address'> <%- model.get('machine').ip %> </a></td>
     <td><%- model.get('machine').password %></td>
-    <td><%- fileStats.spam == 0 ? "N/A" : 'Lvl. ' + fileStats.spam %></td>
-    <td><%- fileStats.warez == 0 ? "N/A" : 'Lvl. ' + fileStats.warez %></td>
-    <td><%- fileStats.miner == 0 ? "N/A" : 'Lvl. ' + fileStats.miner %></td>
-    <td><%- fileStats.ddos == 0 ? "N/A" : 'Lvl. ' + fileStats.ddos %></td>
-    <td></td>
     <td>
-        <button type="button" class="btn btn-success bot-login">
-            Login
+        <%- fileStats[BH.sharedHelpers.fileHelpers.types.SPAM] === 0 ? "N/A" : 'Lvl. ' + fileStats[BH.sharedHelpers.fileHelpers.types.SPAM] %>
+        <% if(fileStats[BH.sharedHelpers.fileHelpers.types.SPAM] > 0) { %>
+        <% if(model.get('job') === BH.sharedHelpers.botHelpers.jobTypes.SPAM) { %>
+        <button type="button" class="btn btn-xs btn-danger bot-stop-job">
+            <span class="glyphicon glyphicon-stop"></span>
+        </button>
+        <% } else { %>
+        <button type="button" class="btn btn-xs btn-success bot-start-job"
+                job="<%- BH.sharedHelpers.botHelpers.jobTypes.SPAM %>">
+            <span class="glyphicon glyphicon-play"></span>
+        </button>
+        <% } %>
+        <% } %>
+    </td>
+    <td>
+        <%- fileStats[BH.sharedHelpers.fileHelpers.types.WAREZ] == 0 ? "N/A" : 'Lvl. ' + fileStats[BH.sharedHelpers.fileHelpers.types.WAREZ] %>
+    </td>
+    <td>
+        <%- fileStats[BH.sharedHelpers.fileHelpers.types.MINER] == 0 ? "N/A" : 'Lvl. ' + fileStats[BH.sharedHelpers.fileHelpers.types.MINER] %>
+    </td>
+    <td>
+        <%- fileStats[BH.sharedHelpers.fileHelpers.types.DDOS] == 0 ? "N/A" : 'Lvl. ' + fileStats[BH.sharedHelpers.fileHelpers.types.DDOS] %>
+    </td>
+    <td class="bot-job-time-elapsed">
+        <% if(timeElapsed) { %>
+        <%= BH.helpers.viewHelpers.getDateTimeString(timeElapsed) %>
+        <% } else{ %>
+        Nothing Running
+        <% } %>
+    </td>
+    <td class="bot-job-profit">
+        <%= BH.sharedHelpers.formatCurrency(BH.sharedHelpers.botHelpers.getProfit(model.attributes)) %>
+    </td>
+    <td>
+        <button type="button" class="btn btn-sm btn-success bot-login">
+            <span class="glyphicon glyphicon-log-in"></span>
+        </button>
+        <button type="button" class="btn btn-sm btn-danger bot-remove">
+            <span class="glyphicon glyphicon-remove"></span>
         </button>
     </td>
 </tr>

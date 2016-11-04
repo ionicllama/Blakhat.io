@@ -437,12 +437,9 @@ body {
 }
 
 .bot-container {
-  width: 225px;
-  background: $secondary-inner-background;
-  padding: 10px;
-  margin: 20px;
-  display: inline-block;
-  position: relative;
+  .bot-start-job, .bot-stop-job {
+    margin-left: 10px;
+  }
 }
 
 //Bank Styles
