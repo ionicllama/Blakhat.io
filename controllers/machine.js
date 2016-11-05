@@ -133,19 +133,17 @@ router.patch('/:_id/info', auth.isLoggedIn, function (req, res) {
 
                 if (req.body.ip != null) {
                     machine.refreshIP(function (UIError, err) {
-                        if (err || UIError) {
-                            errorHelpers.returnError(UIError, res, err);
-                            return;
-                        }
+                        if (err || UIError)
+                            return errorHelpers.returnError(UIError, res, err);
+
                         machineResponse(machine, isOwner, res);
                     });
                 }
                 else if (req.body.password != null) {
                     machine.resetPassword(function (UIError, err) {
-                        if (err || UIError) {
-                            errorHelpers.returnError(UIError, res, err);
-                            return;
-                        }
+                        if (err || UIError)
+                            return errorHelpers.returnError(UIError, res, err);
+
                         machineResponse(machine, isOwner, res);
                     });
                 }
@@ -156,46 +154,41 @@ router.patch('/:_id/info', auth.isLoggedIn, function (req, res) {
 
                         if (req.body.cpu && req.body.cpu._id && req.body.cpu._id.length > 0) {
                             machine.upgradeCPU(req.user, bankAccount, req.body.cpu._id, function (UIError, err) {
-                                if (err || UIError) {
-                                    errorHelpers.returnError(UIError, res, err);
-                                    return;
-                                }
+                                if (err || UIError)
+                                    return errorHelpers.returnError(UIError, res, err);
+
                                 machineResponse(machine, isOwner, res);
                             });
                         }
                         else if (req.body.gpu && req.body.gpu._id && req.body.gpu._id.length > 0) {
                             machine.upgradeGPU(req.user, bankAccount, req.body.gpu._id, function (UIError, err) {
-                                if (err || UIError) {
-                                    errorHelpers.returnError(UIError, res, err);
-                                    return;
-                                }
+                                if (err || UIError)
+                                    return errorHelpers.returnError(UIError, res, err);
+
                                 machineResponse(machine, isOwner, res);
                             });
                         }
                         else if (req.body.hdd && req.body.hdd._id && req.body.hdd._id.length > 0) {
                             machine.upgradeHDD(req.user, bankAccount, req.body.hdd._id, function (UIError, err) {
-                                if (err || UIError) {
-                                    errorHelpers.returnError(UIError, res, err);
-                                    return;
-                                }
+                                if (err || UIError)
+                                    return errorHelpers.returnError(UIError, res, err);
+
                                 machineResponse(machine, isOwner, res);
                             });
                         }
                         else if (req.body.externalHDD && req.body.externalHDD._id && req.body.externalHDD._id.length > 0) {
                             machine.upgradeExternalHDD(req.user, bankAccount, req.body.externalHDD._id, function (UIError, err) {
-                                if (err || UIError) {
-                                    errorHelpers.returnError(UIError, res, err);
-                                    return;
-                                }
+                                if (err || UIError)
+                                    return errorHelpers.returnError(UIError, res, err);
+
                                 machineResponse(machine, isOwner, res);
                             });
                         }
                         else if (req.body.internet && req.body.internet._id && req.body.internet._id.length > 0) {
                             machine.upgradeInternet(req.user, bankAccount, req.body.internet._id, function (UIError, err) {
-                                if (err || UIError) {
-                                    errorHelpers.returnError(UIError, res, err);
-                                    return;
-                                }
+                                if (err || UIError)
+                                    return errorHelpers.returnError(UIError, res, err);
+
                                 machineResponse(machine, isOwner, res);
                             });
                         }

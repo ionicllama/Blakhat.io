@@ -6,7 +6,7 @@
     </div>
 
     <button type="button"
-            class="btn btn-success btn-block select-bank-account <% if(amount > model.get('account').balance) { %> disabled <% } %> ">
+            class="btn btn-success btn-block select-bank-account <% if(amount && amount > model.get('account').balance) { %> disabled <% } %> ">
         Select
     </button>
 </div>

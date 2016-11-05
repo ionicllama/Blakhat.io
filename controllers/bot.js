@@ -9,6 +9,7 @@ var _ = require('underscore');
 var Bot = require('../models/machinemodels/bot');
 var Machine = require('../models/machinemodels/machine');
 var File = require('../models/filemodels/file');
+var BankAccount = require('../models/bankmodels/bankaccount');
 
 var auth = require('../middlewares/authMiddleware');
 
@@ -76,68 +77,87 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
 
                 bot.setProfit();
                 if (req.body.job != null) {
-                    var fileStats = bot.machine.getFileStats(),
-                        isStart = false;
-                    switch (req.body.job) {
-                        case sharedHelpers.botHelpers.jobTypes.SPAM:
-                            if (fileStats[sharedHelpers.fileHelpers.types.SPAM] > 0) {
-                                isStart = true;
-                            }
-                            break;
-                        case sharedHelpers.botHelpers.jobTypes.WAREZ:
-                            if (fileStats[sharedHelpers.fileHelpers.types.WAREZ] > 0) {
-                                isStart = true;
-                            }
-                            break;
-                        case sharedHelpers.botHelpers.jobTypes.MINER:
-                            if (fileStats[sharedHelpers.fileHelpers.types.MINER] > 0) {
-                                isStart = true;
-                            }
-                            break;
-                        case sharedHelpers.botHelpers.jobTypes.DDOS:
-                            if (fileStats[sharedHelpers.fileHelpers.types.DDOS] > 0) {
-                                isStart = true;
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                    if (isStart) {
-                        bot.job = req.body.job;
-                        bot.jobStartedOn = new Date();
-                        bot.lastCalculatedOn = new Date();
+                    if (req.body.job > -1) {
+                        var fileStats = bot.machine.getFileStats(),
+                            isStart = false;
+                        switch (req.body.job) {
+                            case sharedHelpers.botHelpers.jobTypes.SPAM:
+                                if (fileStats[sharedHelpers.fileHelpers.types.SPAM] > 0) {
+                                    isStart = true;
+                                }
+                                break;
+                            case sharedHelpers.botHelpers.jobTypes.WAREZ:
+                                if (fileStats[sharedHelpers.fileHelpers.types.WAREZ] > 0) {
+                                    isStart = true;
+                                }
+                                break;
+                            case sharedHelpers.botHelpers.jobTypes.MINER:
+                                if (fileStats[sharedHelpers.fileHelpers.types.MINER] > 0) {
+                                    isStart = true;
+                                }
+                                break;
+                            case sharedHelpers.botHelpers.jobTypes.DDOS:
+                                if (fileStats[sharedHelpers.fileHelpers.types.DDOS] > 0) {
+                                    isStart = true;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                        if (isStart) {
+                            bot.job = req.body.job;
+                            bot.jobStartedOn = new Date();
+                            bot.lastCalculatedOn = new Date();
+                        }
+                        else {
+                            return errorHelpers.returnError("The selected bot does not have the necessary software to start this job.", res);
+                        }
                     }
                     else {
-                        return errorHelpers.returnError("The selected bot does not have the necessary software to start this job.", res);
-                    }
-                }
-                else {
-                    bot.job = null;
-                    bot.jobStartedOn = null;
-                    bot.lastCalculatedOn = null;
-                }
-                bot.save(function (err) {
-                    if (err) {
-                        if (req.body.job != null)
-                            return errorHelpers.returnError("Failed to assign a new job to the selected bot.", res, err);
-                        else
-                            return errorHelpers.returnError("Failed to cancel job on the selected bot.", res, err);
+                        bot.job = null;
+                        bot.jobStartedOn = null;
+                        bot.lastCalculatedOn = null;
                     }
 
-                    res.json(bot);
-                });
+                    botResponse(bot, res);
+                }
+                else if (req.body.bankAccount != null) {
+                    BankAccount.findById(req.body.bankAccount, function (err, bankAccount) {
+                        if (err || !bankAccount)
+                            return errorHelpers.returnError("Failed to collect profit.", res, err);
+
+                        bankAccount.collectBotProfit(req.user, bot, function (UIError, err) {
+                            if (err || UIError)
+                                return errorHelpers.returnError(UIError, res, err);
+
+                            botResponse(bot, res);
+                        })
+                    });
+                }
+                else {
+                    return errorHelpers.returnError("No action provided to perform on the selected bot.", res, err);
+                }
             }
             else {
                 bot.remove(function (err) {
                     if (err)
                         console.log(err);
 
-                    errorHelpers.returnError("You no longer have admin permissions on this machine.  It has been removed from your botnet.", res);
+                    return errorHelpers.returnError("You no longer have admin permissions on this machine.  It has been removed from your botnet.", res);
                 })
             }
         });
     });
 });
+
+function botResponse(bot, res) {
+    bot.save(function (err) {
+        if (err)
+            console.log(err);
+
+        res.json(bot);
+    });
+}
 
 router.delete('/:_id', auth.isLoggedIn, function (req, res) {
     if (!req.params._id)

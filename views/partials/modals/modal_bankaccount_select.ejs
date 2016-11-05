@@ -6,11 +6,12 @@
             <% } %>
         </div>
         <div class="modal-body">
-            <% if(extras && extras.amount) { %>
+            <% if(extras.amount) { %>
             <div class="payment-total-container">
                 <strong>Cost: </strong>
                 <span class="text-success"><%= BH.sharedHelpers.formatCurrency(extras.amount) %></span>
             </div>
+            <% } %>
             <div class="modal-body-inner">
                 <% if(extras.accountCount == 0) { %>
                 <div class="alert alert-danger" role="alert">
@@ -19,7 +20,6 @@
                 </div>
                 <% } %>
             </div>
-            <% } %>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-default modal-button-close" data-dismiss="modal">Close</button>

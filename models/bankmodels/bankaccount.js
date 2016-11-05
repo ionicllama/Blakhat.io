@@ -126,20 +126,41 @@ bankAccountSchema.methods = {
             })
         }
     },
+    collectBotProfit: function (user, bot, callback) {
+        if (user._id.toString() != this.user.toString())
+            return callback("You do not own the selected bank account.");
+        else if (!bot || bot.user.toString() != user._id.toString())
+            return callback("You do not have permission to collect the profit on this bot.");
+
+        this.balance = this.balance + bot.profit;
+        bot.profit = 0;
+        bot.lastCalculatedOn = new Date();
+        this.save(function (err) {
+            if (err)
+                return callback("Failed to collect profit.", err);
+
+            bot.save(function (err) {
+                if (err)
+                    console.log(err);
+
+                return callback();
+            });
+        });
+    },
     makePurchase: function (user, amount, callback) {
         if (this.balance < amount) {
-            return callback("This account no longer has enough funds to purchase this item");
+            return callback("This account no longer has enough funds to purchase this item.");
         }
         else if (user._id.toString() != this.user.toString()) {
             //this should never happen
             //this is here for a second validation after client side to prevent cheating
-            return callback("You do not own the selected bank account");
+            return callback("You do not own the selected bank account.");
         }
 
         this.balance = this.balance - amount;
         this.save(function (err) {
             if (err)
-                return callback("Failed to purchase the selected item", err);
+                return callback("Failed to purchase the selected item.", err);
 
             return callback();
         });

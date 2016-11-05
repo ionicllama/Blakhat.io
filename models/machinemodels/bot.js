@@ -23,32 +23,28 @@ botSchema.statics = {
         var populate = [
             {
                 path: 'machine',
-                select: '_id ip password files',
-                populate: {
-                    path: 'files',
-                    populate: [
-                        'fileDef'
-                    ],
-                    match: {
-                        isInstalled: true,
-                        installedBy: user._id
+                select: '_id ip cpu gpu internet password files',
+                populate: [
+                    {
+                        path: 'files',
+                        populate: [
+                            'fileDef'
+                        ],
+                        match: {
+                            isInstalled: true,
+                            installedBy: user._id
+                        }
+                    },
+                    {
+                        path: 'cpu'
+                    },
+                    {
+                        path: 'gpu'
+                    },
+                    {
+                        path: 'internet'
                     }
-                }
-            },
-            {
-                path: 'cpu'
-            },
-            {
-                path: 'gpu'
-            },
-            {
-                path: 'hdd'
-            },
-            {
-                path: 'externalHDD'
-            },
-            {
-                path: 'internet'
+                ]
             }
         ];
         if (query._id) {

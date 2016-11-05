@@ -117,7 +117,7 @@ BH.collections.UserBankAccountSelect = BH.collections.UserBankAccounts.extend({
             childOptions: {
                 amount: this.options.amount
             },
-            header: "Select a payment account",
+            header: "Select an account",
             extras: {
                 amount: this.options.amount,
                 accountCount: this.models.length

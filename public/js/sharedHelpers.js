@@ -426,16 +426,34 @@
             MINER: 2,
             DDOS: 3
         },
-        getProfit: function (bot) {
-            var p = bot.profit ? bot.profit : 0;
-            if (bot.lastCalculatedOn) {
-                var t = exports.sharedHelpers.getTimeElapsed(bot.lastCalculatedOn);
-                //todo: calculate bot profit based on $/sec - calculated on server side
-
-                //temporary - calculate seconds elapsed times 2 cents
-                p += Math.max(0, (t.total / 1000) * 2);
+        calculateProfitPerTick: function (bot) {
+            var profitPerTick = 0;
+            if (bot && bot.job != null && bot.machine.files && bot.machine.files.length > 0) {
+                var fileStats = exports.sharedHelpers.fileHelpers.getFileStats(bot.machine.files);
+                switch (bot.job) {
+                    case this.jobTypes.SPAM:
+                        profitPerTick = ((exports.sharedHelpers.cpuHelpers.getCPUModifier(bot.machine.cpu) * .001) + (exports.sharedHelpers.internetHelpers.getInternetModifier(bot.machine.internet) * .0001)) * fileStats[exports.sharedHelpers.fileHelpers.types.SPAM] * .8;
+                        break;
+                    case this.jobTypes.WAREZ:
+                        profitPerTick = ((exports.sharedHelpers.cpuHelpers.getCPUModifier(bot.machine.cpu) * .001) + (exports.sharedHelpers.internetHelpers.getInternetModifier(bot.machine.internet) * .0001)) * fileStats[exports.sharedHelpers.fileHelpers.types.WAREZ] * .9;
+                        break;
+                    case this.jobTypes.MINER:
+                        profitPerTick = (exports.sharedHelpers.gpuHelpers.getGPUModifier(bot.machine.gpu) * .001) * fileStats[exports.sharedHelpers.fileHelpers.types.MINER] * .7;
+                        break;
+                }
             }
-            return Math.floor(p);
+            return profitPerTick;
+        },
+        getProfit: function (bot) {
+            var tickLength = 5000,
+                profit = bot.profit ? bot.profit : 0;
+            if (bot.lastCalculatedOn) {
+                var elapsed = exports.sharedHelpers.getTimeElapsed(bot.lastCalculatedOn);
+                if (bot.profitPerTick == null)
+                    bot.profitPerTick = this.calculateProfitPerTick(bot);
+                profit += Math.max(0, (elapsed.total / tickLength) * bot.profitPerTick);
+            }
+            return Math.floor(profit);
         }
     };
 

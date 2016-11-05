@@ -3,9 +3,7 @@ BH.models.Bot = BH.models.BaseModel.extend({
     urlRoot: '/bot',
     initialize: function () {
         this.on('sync', this.renderBot, this);
-    },
-    renderBot: function () {
-
+        this.set('profitPerTick', BH.sharedHelpers.botHelpers.calculateProfitPerTick(this.attributes));
     },
     startJob: function (job) {
         var self = this;
@@ -29,12 +27,30 @@ BH.models.Bot = BH.models.BaseModel.extend({
         var self = this;
         this.save(
             {
-                job: null
+                job: -1
             },
             {
                 patch: true,
                 success: function (model, response) {
                     BH.helpers.Toastr.showSuccessToast("Job stopped on bot: " + self.get('machine').ip, null);
+                },
+                error: function (model, err) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(err, null);
+                },
+                wait: true
+            }
+        );
+    },
+    collectProfit: function (bankAccount) {
+        var self = this;
+        this.save(
+            {
+                bankAccount: bankAccount.get('_id')
+            },
+            {
+                patch: true,
+                success: function (model, response) {
+                    BH.helpers.Toastr.showSuccessToast("Profit collected from bot: " + self.get('machine').ip, null);
                 },
                 error: function (model, err) {
                     BH.helpers.Toastr.showBBResponseErrorToast(err, null);
@@ -73,6 +89,7 @@ BH.views.Bot = BH.views.BaseCollectionChildView.extend({
         'click .bot-login': 'login',
         'click .bot-start-job': 'startJob',
         'click .bot-stop-job': 'stopJob',
+        'click .bot-collect-profit': 'collectProfit',
         'click .bot-remove': 'removeBotConfirm'
     },
     beforeFirstRender: function (options) {
@@ -103,7 +120,7 @@ BH.views.Bot = BH.views.BaseCollectionChildView.extend({
             $el.html(BH.sharedHelpers.formatCurrency(BH.sharedHelpers.botHelpers.getProfit(this.model.attributes)));
             var interval = setInterval(_.bind(function () {
                 $el.html(BH.sharedHelpers.formatCurrency(BH.sharedHelpers.botHelpers.getProfit(this.model.attributes)));
-            }, this), 1000);
+            }, this), 5000);
         }
         return interval;
     },
@@ -112,12 +129,15 @@ BH.views.Bot = BH.views.BaseCollectionChildView.extend({
         BH.app.router.navigate(url, {trigger: true});
     },
     startJob: function (e) {
-        var job = parseInt($(e.currentTarget).attr('job'));
-        this.model.startJob(job);
+        this.model.startJob(parseInt($(e.currentTarget).attr('job')));
     },
     stopJob: function (e) {
-        var job = parseInt();
         this.model.stopJob();
+    },
+    collectProfit: function () {
+        new BH.collections.UserBankAccountSelect([], {
+            callback: this.model.collectProfit.bind(this.model)
+        });
     },
     removeBotConfirm: function () {
         new BH.views.DeleteModal({
