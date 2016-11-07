@@ -61,8 +61,16 @@
                 job="<%- BH.sharedHelpers.botHelpers.jobTypes.MINER %>">
             <span class="glyphicon glyphicon-usd"></span>
         </button>
-        <span class="bot-job-profit">
+        <span>
+            <span class="bot-job-profit">
             <%= BH.sharedHelpers.formatCurrency(BH.sharedHelpers.botHelpers.getProfit(model.attributes)) %>
+            </span>
+            <% if(model.get('profitPerTick') > 0) { %>
+
+            <span class="text-success bot-job-profit-per-tick">(<%= BH.sharedHelpers.formatCurrency(model.get('profitPerTick')) %>
+                / 5s)</span>
+
+            <% } %>
         </span>
     </td>
     <td>

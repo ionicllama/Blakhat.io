@@ -229,12 +229,6 @@ processSchema.methods = {
                 //todo: maybe fail sometimes randomly
                 this.processSuccess = true;
                 switch (this.file.fileDef.type.toLowerCase()) {
-                    case sharedHelpers.fileHelpers.types.HIDER:
-
-                        break;
-                    case sharedHelpers.fileHelpers.types.FINDER:
-
-                        break;
                     case sharedHelpers.fileHelpers.types.ANTIVIRUS:
                         var removeArr = [],
                             i;
@@ -244,23 +238,42 @@ processSchema.methods = {
                                 this.machine.files[i].isInstalled &&
                                 this.machine.files[i].hidden <= this.machine.getFileStats()[sharedHelpers.fileHelpers.types.FINDER]) {
                                 removeArr.push(this.machine.files[i]);
-                        }
+                            }
                         }
                         for (i = 0; i < removeArr.length; i++) {
                             this.machine.files.pull(removeArr[i]);
                         }
+                        this.machine.save(function (err) {
+                            if (err)
+                                return callback("Failed to execute the selected process", err);
+                            self.save(function (err) {
+                                if (err)
+                                    return callback("Failed to execute the selected process", err);
+                                return callback();
+                            })
+                        });
+                        break;
+                    case sharedHelpers.fileHelpers.types.HIDER:
+
+                        break;
+                    case sharedHelpers.fileHelpers.types.FINDER:
+
+                        break;
+                    case sharedHelpers.fileHelpers.types.ANALYZER:
+                        Bot.findUserBotByMachine(user._id, this.machine._id, function (err, bot) {
+                            if (err || !bot)
+                                return callback("Failed to execute the selected process", err);
+
+                            bot.isAnalyzed = true;
+                            bot.save(function (err) {
+                                if (err)
+                                    return callback("Failed to execute the selected process", err);
+
+                                return callback();
+                            });
+                        });
                         break;
                 }
-
-                this.machine.save(function (err) {
-                    if (err)
-                        return callback("Failed to execute the selected process", err);
-                    self.save(function (err) {
-                        if (err)
-                            return callback("Failed to execute the selected process", err);
-                        return callback();
-                    })
-                });
                 break;
             case processTypes.FILE_COPY_EXTERNAL:
                 if (!this.file)

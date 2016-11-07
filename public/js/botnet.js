@@ -109,12 +109,12 @@ BH.views.Bot = BH.views.BaseCollectionChildView.extend({
     },
     afterRender: function () {
         if (this.model.get('jobStartedOn')) {
-            BH.helpers.viewHelpers.createElapsedTimer($('.bot-job-time-elapsed'), new Date(this.model.get('jobStartedOn')));
+            BH.helpers.viewHelpers.createElapsedTimer(this.$('.bot-job-time-elapsed'), new Date(this.model.get('jobStartedOn')));
             this.createProfitCounter();
         }
     },
     createProfitCounter: function () {
-        var $el = $('.bot-job-profit');
+        var $el = this.$('.bot-job-profit');
         if ($el) {
             BH.sharedHelpers.botHelpers.getProfit(this.model.attributes)
             $el.html(BH.sharedHelpers.formatCurrency(BH.sharedHelpers.botHelpers.getProfit(this.model.attributes)));

@@ -332,6 +332,12 @@
             }
             return stats;
         },
+        getFileWithTypeAndLevel: function (files, type, level) {
+            for (var i = 0; i < files.length; i++) {
+                if (files[i].fileDef && (files[i].fileDef.type === type && (!level || files[i].fileDef.level === level)))
+                    return files[i];
+            }
+        },
         isVirus: function (fileDef) {
             return (fileDef.type === this.types.SPAM ||
             fileDef.type === this.types.WAREZ ||

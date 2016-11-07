@@ -48,11 +48,11 @@ botSchema.statics = {
             }
         ];
         if (query._id) {
-            this.findOne(query).populate(populate).exec(function (err, bots) {
+            this.findOne(query).populate(populate).exec(function (err, bot) {
                 if (err)
                     return callback(err);
 
-                return callback(null, bots);
+                return callback(null, bot);
             });
         }
         else {

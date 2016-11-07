@@ -222,6 +222,33 @@ BH.models.MachineInfo = BH.models.BaseModel.extend({
             }
         );
     },
+    analyze: function () {
+        var analyzer = BH.sharedHelpers.fileHelpers.getFileWithTypeAndLevel(BH.app.localMachine.get('machine').files, BH.sharedHelpers.fileHelpers.types.ANALYZER);
+        if (!analyzer)
+            BH.helpers.Toastr.showErrorToast("Analyzer file no longer exists on your machine.")
+
+        new BH.models.Process({
+            type: BH.sharedHelpers.processHelpers.types.FILE_RUN,
+            processMachine_id: BH.app.localMachine.get('machine')._id,
+            machine_id: this.get('machine')._id,
+            file: {
+                _id: analyzer
+            }
+        }).save(null, {
+                patch: true,
+                success: $.proxy(function (data) {
+                    BH.helpers.Toastr.showSuccessToast("Process started: Run " + BH.sharedHelpers.fileHelpers.getFileName(this.toJSON()), null);
+
+                    if (BH.app.localMachine.get('processes'))
+                        BH.app.localMachine.get('processes').fetch();
+                }, this),
+                error: function (model, response) {
+                    BH.helpers.Toastr.showBBResponseErrorToast(response, null);
+                },
+                wait: true
+            }
+        );
+    },
     upgradeCPU: function (purchaseAccount, options) {
         this.save(
             {
@@ -510,7 +537,8 @@ BH.views.RemoteMachine = BH.views.Machine.extend({
 
 BH.views.MachineInfo = BH.views.BaseView.extend({
     events: {
-        'click #toggleMachinePassword': 'toggleMachinePassword'
+        'click #toggleMachinePassword': 'toggleMachinePassword',
+        'click .machine-analyze': 'analyze'
     },
     defaults: {
         template: '/views/partials/machine/machineinfo.ejs'
@@ -532,6 +560,9 @@ BH.views.MachineInfo = BH.views.BaseView.extend({
             this.$('#toggleMachinePassword').text('Show');
             this.isPasswordVisible = false;
         }
+    },
+    analyze: function () {
+        this.model.analyze();
     }
 });
 

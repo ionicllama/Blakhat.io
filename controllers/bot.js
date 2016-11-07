@@ -24,6 +24,12 @@ router.get('/', auth.isLoggedIn, function (req, res) {
             if (err)
                 return errorHelpers.returnError("Failed to initialize botnet.  Please try again later.", res, err);
 
+            for (var i = 0; i < bots.length; i++) {
+                bots[i] = bots[i].toObject();
+                bots[i].profitPerTick = sharedHelpers.botHelpers.calculateProfitPerTick(bots[i]);
+                bots[i] = filterBotHardware(bots[i]);
+            }
+
             res.json(bots ? bots : []);
         })
     }
@@ -40,7 +46,9 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
 
             bot.machine.validateAuth(req.user, req.query.password, function (isAuthenticated) {
                 if (isAuthenticated) {
-                    res.json(bot);
+                    bot = bot.toObject();
+                    bot.profitPerTick = sharedHelpers.botHelpers.calculateProfitPerTick(bot);
+                    res.json(filterBotHardware(bot));
                 }
                 else {
                     bot.remove(function (err) {
@@ -155,8 +163,20 @@ function botResponse(bot, res) {
         if (err)
             console.log(err);
 
-        res.json(bot);
+        bot = bot.toObject();
+        bot.profitPerTick = sharedHelpers.botHelpers.calculateProfitPerTick(bot);
+        res.json(filterBotHardware(bot));
     });
+}
+
+function filterBotHardware(bot) {
+    if (!bot.isAnalyzed) {
+        bot.machine.cpu = null;
+        bot.machine.gpu = null;
+        bot.machine.externalHDD = null;
+        bot.machine.internet = null;
+    }
+    return bot;
 }
 
 router.delete('/:_id', auth.isLoggedIn, function (req, res) {
@@ -175,7 +195,7 @@ router.delete('/:_id', auth.isLoggedIn, function (req, res) {
             if (err)
                 return errorHelpers.returnError("Failed to delete the selected bot", res, err);
 
-            res.json(bot);
+            res.json(filterBotHardware(bot));
         });
     });
 });

@@ -67,7 +67,7 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
                         return file.hidden === null || file.hidden <= fileStats[sharedHelpers.fileHelpers.types.FINDER];
                     });
 
-                    if (!isOwner || !bot || !bot.isAnalyzed) {
+                    if (!isOwner && (!bot || !bot.isAnalyzed)) {
                         machine.cpu = null;
                         machine.gpu = null;
                         machine.externalHDD = null;
@@ -547,30 +547,30 @@ router.post('/:machine_id/process/', auth.isLoggedIn, function (req, res) {
                     return errorHelpers.returnError("No machine provided to run file on.", res);
                 else if (!req.body.file)
                     return errorHelpers.returnError("No file selected to run.", res);
-                Machine.findByIdPopulated(req.body.machine_id, function (err, machine) {
-                    if (err || !machine)
-                        return errorHelpers.returnError("No machine could be found to run file on.", res, err);
-
-                    var runFile = _.find(machine.files, function (file) {
-                        return file._id.toString() === req.body.file._id.toString() && !file.isInstalled;
-                    });
-                    if (!runFile)
+                File.findById(req.body.file._id, function (err, file) {
+                    if (!file)
                         return errorHelpers.returnError("The selected file no longer exists.", res);
 
-                    machine.validateAuth(req.user, req.body.password, function (isAuthenticated) {
-                        if (!isAuthenticated)
-                            return errorHelpers.returnError("You don't have permission to run files on this machine.", res);
+                    Machine.findById(req.body.machine_id, function (err, machine) {
+                        if (err || !machine)
+                            return errorHelpers.returnError("No machine could be found to run file on.", res, err);
 
-                        newProcess = new Process({
-                            machine: machine._id,
-                            type: req.body.type,
-                            start: new Date(),
-                            file: runFile._id
+                        machine.validateAuth(req.user, req.body.password, function (isAuthenticated) {
+                            if (!isAuthenticated)
+                                return errorHelpers.returnError("You don't have permission to run files on this machine.", res);
+
+                            newProcess = new Process({
+                                machine: machine._id,
+                                type: req.body.type,
+                                start: new Date(),
+                                file: file._id
+                            });
+
+                            saveProcess(processMachine, newProcess, res);
                         });
-
-                        saveProcess(processMachine, newProcess, res);
                     });
                 });
+
                 break;
             case sharedHelpers.processHelpers.types.FILE_COPY_EXTERNAL:
                 if (!req.body.file)
