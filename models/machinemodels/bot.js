@@ -14,7 +14,8 @@ var botSchema = mongoose.Schema({
     job: {type: Number, default: null},
     jobStartedOn: {type: Date, default: null},
     lastCalculatedOn: {type: Date, default: null},
-    profit: {type: Number, default: 0}
+    profit: {type: Number, default: 0},
+    botnet: {type: mongoose.Schema.Types.ObjectId, ref: 'botnet', default: null}
 
 });
 
@@ -47,7 +48,7 @@ botSchema.statics = {
                 ]
             }
         ];
-        if (query._id) {
+        if (query._id && !query._id.$in) {
             this.findOne(query).populate(populate).exec(function (err, bot) {
                 if (err)
                     return callback(err);

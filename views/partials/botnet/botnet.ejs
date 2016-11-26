@@ -1,0 +1,37 @@
+<tr class="bot-container">
+    <td><%= model.get('name') %></td>
+    <td><%= model.get('bots').length %></td>
+    <td class="botnet-job-time-elapsed">
+        <% if(timeElapsed) { %>
+        <%= BH.helpers.viewHelpers.getDateTimeString(timeElapsed) %>
+        <% } else{ %>
+        Nothing Running
+        <% } %>
+    </td>
+    <td><%= model.get('power') %></td>
+    <td><%= model.get('job') ? BH.sharedHelpers.botHelpers.getJobName(model.get('job')) : "None" %></td>
+    <td>
+        <button type="button" class="btn btn-xs btn-success botnet-collect-profit">
+            <span class="glyphicon glyphicon-usd"></span>
+        </button>
+        <span>
+            <span class="botnet-job-profit">
+            <%= BH.sharedHelpers.formatCurrency(BH.sharedHelpers.botnetHelpers.getProfit(model.get('bots'))) %>
+            </span>
+            <% if(model.get('profitPerTick') > 0) { %>
+
+            <span class="text-success botnet-job-profit-per-tick">(<%= BH.sharedHelpers.formatCurrency(model.get('profitPerTick'), 3) %>
+                / 5s)</span>
+
+            <% } %>
+        </span>
+    </td>
+    <td>
+        <button type="button" class="btn btn-sm btn-success botnet-manage">
+            <span class="glyphicon glyphicon glyphicon-cog"></span>
+        </button>
+        <button type="button" class="btn btn-sm btn-danger botnet-remove">
+            <span class="glyphicon glyphicon-trash"></span>
+        </button>
+    </td>
+</tr>

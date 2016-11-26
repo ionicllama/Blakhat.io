@@ -1,0 +1,76 @@
+<div id="botnetModal" class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title"><strong>Manage Botnet:</strong> <span class="botnet-name"></span></h4>
+        </div>
+
+        <div class="modal-body">
+
+            <div class="form-group">
+                <label for="botnet-name-input">Name:</label>
+                <input type="text" class="form-control" id="botnet-name-input">
+            </div>
+
+            <div class="form-group">
+                <label class="text-default">Power:</label>
+                <span><%= model.get('power') %></span>
+            </div>
+
+            <hr/>
+
+            <button type="button" class="btn btn-block btn-success botnet-bots-add">
+                Add Bot
+            </button>
+
+            <div id="botnetBotsContainer" class="modal-body">
+
+                <div class="table-responsive">
+                    <table id="botnetBotsTable" class="table data-table">
+                        <thead>
+                        <tr>
+                            <th>IP</th>
+                            <th>Password</th>
+                            <th>Power</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="botnetBotsManageList">
+
+                        <% for(var i = 0 ; i < bots.length ; i++){ %>
+
+                        <tr class="botnet-bot-container" bot_id="<%= bots[i]._id %>">
+                            <td><a href='javascript:void(0)' class='ip-address'> <%- bots[i].machine.ip %> </a></td>
+                            <td><%- bots[i].machine.password %></td>
+                            <td>
+                                <%= bots[i].power %>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-success botnet-bot-login">
+                                    <span class="glyphicon glyphicon-log-in"></span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger botnet-bot-remove">
+                                    <span class="glyphicon glyphicon-remove"></span>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <% } %>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+
+    </div>
+
+</div>

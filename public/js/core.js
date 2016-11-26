@@ -154,10 +154,16 @@ BH.views.BaseModal = BH.views.BaseView.extend({
                     type: this.options.type
                 };
             }
+            else {
+                this.renderData = {};
+            }
         }
         else {
             this.renderData = this.options.renderData;
         }
+
+        if (this.model && !this.renderData.model)
+            this.renderData.model = this.model;
 
         this.renderData.extras = this.options.extras ? this.options.extras : {};
 
@@ -190,7 +196,11 @@ BH.views.BaseModal = BH.views.BaseView.extend({
         }
     },
     afterModalCreated: function () {
-        this.modal.modal('show');
+        this.modal.modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+        //this.modal.modal('show');
     },
     removeModal: function () {
         this.modal.modal('hide');
@@ -248,21 +258,26 @@ BH.views.DeleteModal = BH.views.ConfirmModal.extend({
 });
 
 BH.views.BaseCollectionModal = BH.views.BaseModal.extend({
+    beforeChildrenRender: function () {
+        return true;
+    },
     afterRender: function () {
-        this.setElement(this.$('.modal-body-inner'));
-        if (this.options.childView && this.options.collection) {
-            for (var model in this.options.collection.models) {
-                var options = {
-                    model: this.options.collection.models[model],
-                    el: this.el
-                };
+        if (this.beforeChildrenRender() != false) {
+            this.setElement(this.$('.modal-body-inner'));
+            if (this.options.childView && this.options.collection) {
+                for (var model in this.options.collection.models) {
+                    var options = {
+                        model: this.options.collection.models[model],
+                        el: this.el
+                    };
 
-                if (this.options.childOptions)
-                    options = _.extend(this.options.childOptions, options);
-                new this.options.childView(options);
+                    if (this.options.childOptions)
+                        options = _.extend(this.options.childOptions, options);
+                    new this.options.childView(options);
+                }
             }
+            this.$el.css("max-height", ($(window).height() - 250) + "px");
         }
-        this.$el.css("max-height", ($(window).height() - 250) + "px");
     }
 });
 
@@ -407,7 +422,7 @@ BH.Router = Backbone.Router.extend({
         "": "localMachine",
         "localmachine": "localMachine",
         "internet": "internetBrowser",
-        "botnet": "botnet",
+        "botnets": "botnets",
         "internet/b:bank_id/a:account_id": 'browserBankAccountLogin',
         "internet/ip:ip": 'browserIPNavigate',
         "finances": "userFinances"
@@ -421,24 +436,27 @@ BH.Router = Backbone.Router.extend({
     },
     internetBrowser: function () {
         BH.helpers.viewHelpers.setActiveNav('#navInternet');
-        //BH.app.localMachine = new BH.models.LocalMachine();
         new BH.models.InternetBrowser({
             el: '#pageInnerContainer'
         });
     },
-    botnet: function () {
+    botnets: function () {
         BH.helpers.viewHelpers.setActiveNav('#navBotnet');
-        //BH.app.localMachine = new BH.models.LocalMachine();
-        new BH.collections.Botnet([],
+        $('#pageInnerContainer').html('<div id="botnetsContainer" />').append('<div id="botsContainer" />');
+        new BH.collections.Botnets([],
             {
-                el: '#pageInnerContainer'
+                el: '#botnetsContainer'
+            });
+        new BH.collections.Bots([],
+            {
+                el: '#botsContainer',
+                view: BH.views.Bots
             });
     },
     browserIPNavigate: function (ip) {
         BH.helpers.viewHelpers.setActiveNav('#navInternet');
         $('#modalsContainer').remove();
         $('.modal-backdrop').remove();
-        //BH.app.localMachine = new BH.models.LocalMachine();
         new BH.models.InternetBrowser({
             el: '#pageInnerContainer',
             browserLoadData: {
@@ -448,7 +466,6 @@ BH.Router = Backbone.Router.extend({
     },
     browserBankAccountLogin: function (bank_id, account_id) {
         BH.helpers.viewHelpers.setActiveNav('#navInternet');
-        //BH.app.localMachine = new BH.models.LocalMachine();
         new BH.models.InternetBrowser({
             el: '#pageInnerContainer',
             browserLoadData: {

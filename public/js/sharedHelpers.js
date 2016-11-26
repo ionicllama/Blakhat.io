@@ -110,9 +110,9 @@
                 result = string.match(regex);
             return result ? result : "";
         },
-        formatCurrency: function (money) {
+        formatCurrency: function (money, decimals) {
             //divide by 100, we store it in the database as cents for exact accuracy to one cent
-            return '$' + (money / 100).toFixed(2).toString().replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
+            return '$' + (money / 100).toFixed(decimals ? decimals : 2).toString().replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
         },
         formatCurrencyNoDecimals: function (money) {
             return '$' + (money / 100).toString().replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
@@ -123,6 +123,11 @@
         cpuDefaults: {
             speed: 666,
             cores: 1
+        },
+        maxSpeed: 4000,
+        maxCores: 8,
+        maxModifier: function () {
+            return (this.maxSpeed * this.maxCores);
         },
         getCPUName: function (cpu) {
             return cpu.cores + '-core ' + cpu.speed + ' MHz';
@@ -147,6 +152,11 @@
         gpuDefaults: {
             speed: 800,
             cores: 8
+        },
+        maxSpeed: 1800,
+        maxCores: 256,
+        maxModifier: function () {
+            return (this.maxSpeed * this.maxCores);
         },
         getGPUName: function (gpu) {
             if (gpu)
@@ -215,6 +225,11 @@
         internetDefaults: {
             upSpeed: 3,
             downSpeed: 5
+        },
+        maxDown: 1000,
+        maxUp: 1000,
+        maxModifier: function () {
+            return (this.maxDown * this.maxUp)
         },
         getInternetName: function (internet) {
             return internet.downSpeed + 'mb/s down - ' + internet.upSpeed + 'mb/s up';
@@ -432,6 +447,31 @@
             MINER: 2,
             DDOS: 3
         },
+        getJobName: function (job) {
+            switch (job) {
+                case this.jobTypes.SPAM:
+                    return "Spam";
+                    break;
+                case this.jobTypes.WAREZ:
+                    return "Malware";
+                    break;
+                case this.jobTypes.MINER:
+                    return "Miner"
+                    break;
+                case this.jobTypes.DDOS:
+                    return "DDOS";
+                    break;
+                default:
+                    return "None";
+                    break;
+            }
+        },
+        calculatePower: function (bot) {
+            var cpuModifierRatio = exports.sharedHelpers.cpuHelpers.getCPUModifier(bot.machine.cpu) / exports.sharedHelpers.cpuHelpers.maxModifier(),
+                gpuModifierRatio = exports.sharedHelpers.gpuHelpers.getGPUModifier(bot.machine.gpu) / exports.sharedHelpers.gpuHelpers.maxModifier(),
+                internetModifierRatio = exports.sharedHelpers.internetHelpers.getInternetModifier(bot.machine.internet) / exports.sharedHelpers.internetHelpers.maxModifier();
+            return parseFloat((Math.min(1, (cpuModifierRatio + gpuModifierRatio + internetModifierRatio) / 3) * 10).toFixed(2));
+        },
         calculateProfitPerTick: function (bot) {
             var profitPerTick = 0;
             if (bot && bot.job != null && bot.machine.files && bot.machine.files.length > 0) {
@@ -458,6 +498,23 @@
                 if (bot.profitPerTick == null)
                     bot.profitPerTick = this.calculateProfitPerTick(bot);
                 profit += Math.max(0, (elapsed.total / tickLength) * bot.profitPerTick);
+            }
+            return Math.floor(profit);
+        }
+    };
+
+    exports.sharedHelpers.botnetHelpers = {
+        calculateProfitPerTick: function (bots) {
+            var profitPerTick = 0;
+            for (var i = 0; i < bots.length; i++) {
+                profitPerTick += exports.sharedHelpers.botHelpers.calculateProfitPerTick(bots[i]);
+            }
+            return profitPerTick;
+        },
+        getProfit: function (bots) {
+            var profit = 0;
+            for (var i = 0; i < bots.length; i++) {
+                profit += exports.sharedHelpers.botHelpers.getProfit(bots[i]);
             }
             return Math.floor(profit);
         }

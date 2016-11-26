@@ -4,6 +4,7 @@ var router = express.Router();
 var _ = require('underscore');
 
 router.use('/machine', require('../controllers/machine'));
+router.use('/botnet', require('../controllers/botnet'));
 router.use('/bot', require('../controllers/bot'));
 router.use('/machineParts/', require('../controllers/machineParts'));
 router.use('/internetcontent', require('../controllers/internetcontent'));

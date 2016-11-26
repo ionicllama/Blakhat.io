@@ -436,12 +436,32 @@ body {
   }
 }
 
-.bot-container {
-  .bot-start-job, .bot-stop-job, .bot-collect-profit {
-    margin-right: 3px;
+#bots {
+  .bot-container {
+    .bot-start-job, .bot-stop-job, .bot-collect-profit {
+      margin-right: 3px;
+    }
+    .bot-job-profit-per-tick {
+      font-size: 11px;
+    }
   }
-  .bot-job-profit-per-tick {
-    font-size: 11px;
+}
+
+#botnets {
+  .botnets-header {
+    display: inline-block;
+  }
+  .botnet-create {
+    display: inline-block;
+    margin: 10px;
+  }
+}
+
+#botnetModal {
+  hr {
+    border-top: 1px solid #CCC;
+    margin-top: 15px;
+    margin-bottom: 15px;
   }
 }
 

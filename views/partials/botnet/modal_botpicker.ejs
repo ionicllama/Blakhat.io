@@ -1,0 +1,68 @@
+<div id="botPickerModal" class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title">Select bots</h4>
+        </div>
+
+        <div class="modal-body">
+
+            <div id="botPickerContainer" class="modal-body">
+
+                <div class="table-responsive">
+                    <table id="botPickerTable" class="table data-table">
+                        <thead>
+                        <tr>
+                            <th></th>
+                            <th>IP</th>
+                            <th>Power</th>
+                            <th>Current Job</th>
+                            <th>Current Botnet</th>
+                        </tr>
+                        </thead>
+                        <tbody id="botPickerList">
+
+                        <% for(var i = 0 ; i < collection.models.length ; i++){ %>
+
+                        <tr class="bot-picker-container">
+                            <td>
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="checkbox" class="pick-bot"
+                                               bot_id="<%= collection.models[i].get('_id') %>">
+                                    </label>
+                                </div>
+                            </td>
+                            <td><a href='javascript:void(0)'
+                                   class='ip-address'> <%- collection.models[i].get('machine').ip %> </a></td>
+                            <td>
+                                <%= collection.models[i].get('power') %>
+                            </td>
+                            <td>
+                                <%= BH.sharedHelpers.botHelpers.getJobName(collection.models[i].get('job')) %>
+                            </td>
+                            <td>
+                                <%= collection.models[i].get('botnet') ? collection.models[i].get('botnet').name : "None" %>
+                            </td>
+                        </tr>
+
+                        <% } %>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-success bot-picker-add" data-dismiss="modal">Add Selected</button>
+            <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+        </div>
+
+    </div>
+
+</div>

@@ -18,15 +18,15 @@ var errorHelpers = require('../helpers/errorHelpers');
 
 
 router.get('/', auth.isLoggedIn, function (req, res) {
-    var response = {machine: {}};
     if (req.user._id) {
         Bot.findByUserPopulated(req.user, function (err, bots) {
             if (err)
-                return errorHelpers.returnError("Failed to initialize botnet.  Please try again later.", res, err);
+                return errorHelpers.returnError("Failed to initialize bots.  Please try again later.", res, err);
 
             for (var i = 0; i < bots.length; i++) {
                 bots[i] = bots[i].toObject();
                 bots[i].profitPerTick = sharedHelpers.botHelpers.calculateProfitPerTick(bots[i]);
+                bots[i].power = sharedHelpers.botHelpers.calculatePower(bots[i]);
                 bots[i] = filterBotHardware(bots[i]);
             }
 
@@ -34,7 +34,7 @@ router.get('/', auth.isLoggedIn, function (req, res) {
         })
     }
     else {
-        res.json(response)
+        res.json({});
     }
 });
 
@@ -48,6 +48,7 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
                 if (isAuthenticated) {
                     bot = bot.toObject();
                     bot.profitPerTick = sharedHelpers.botHelpers.calculateProfitPerTick(bot);
+                    bot.power = sharedHelpers.botHelpers.calculatePower(bot);
                     res.json(filterBotHardware(bot));
                 }
                 else {
@@ -66,11 +67,8 @@ router.get('/:_id', auth.isLoggedIn, function (req, res) {
 });
 
 router.patch('/:_id', auth.isLoggedIn, function (req, res) {
-    if (req.params._id) {
-
-    }
-    else {
-        errorHelpers.returnError_noId(res);
+    if (!req.params._id) {
+        return errorHelpers.returnError_noId(res);
     }
 
     Bot.findByIdPopulated(req.user, req.params._id, function (err, bot) {
@@ -151,7 +149,7 @@ router.patch('/:_id', auth.isLoggedIn, function (req, res) {
                     if (err)
                         console.log(err);
 
-                    return errorHelpers.returnError("You no longer have admin permissions on this machine.  It has been removed from your botnet.", res);
+                    return errorHelpers.returnError("You no longer have admin permissions on this machine.  It has been removed from your bots.", res);
                 })
             }
         });
